@@ -30,6 +30,8 @@ from typing import Dict, Iterable, List, Tuple
 
 import sys
 
+import matplotlib
+matplotlib.use("Agg")  # Force non-interactive backend (avoid GUI stalls on Windows).
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
