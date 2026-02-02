@@ -23,7 +23,9 @@ import requests
 from bench_utils import ensure_dir
 
 
-DEFAULT_4STATE_URL = "http://compbio.buffalo.edu/dd/files/4state_reduced.tgz"
+# Decoys 'R' Us serves datasets via a CGI endpoint:
+# see http://compbio.buffalo.edu/dd/download.shtml
+DEFAULT_4STATE_URL = "http://compbio.buffalo.edu/dd/ddownload.cgi?4state_reduced"
 
 
 def _iter_pdbs(root: Path) -> Iterable[Path]:
