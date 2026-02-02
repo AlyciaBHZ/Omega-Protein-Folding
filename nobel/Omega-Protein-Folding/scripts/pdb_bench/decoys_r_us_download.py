@@ -46,22 +46,39 @@ def _guess_pairs(extract_root: Path) -> List[Tuple[str, Path, Path]]:
     scripts validate length/parse.
     """
     rows: List[Tuple[str, Path, Path]] = []
-    # Heuristic: if a folder contains one pdb with 'native' in name, treat it as native
+
+    # Dataset-specific common layout (4state_reduced, etc):
+    #   doc/pdb_orig/<target>.pdb are natives
+    #   <target>/*.pdb are decoys
+    native_dir = extract_root / "doc" / "pdb_orig"
+    native_map = {}
+    if native_dir.is_dir():
+        for p in native_dir.glob("*.pdb"):
+            native_map[p.stem.lower()] = p
+
     for target_dir in sorted([d for d in extract_root.iterdir() if d.is_dir()]):
+        if target_dir.name.lower() in {"doc"}:
+            continue
         pdbs = list(_iter_pdbs(target_dir))
         if not pdbs:
             continue
-        natives = [p for p in pdbs if "native" in p.name.lower()]
-        if not natives:
-            # fallback: take the shortest filename as "native" (common in some sets)
-            natives = [sorted(pdbs, key=lambda x: len(x.name))[0]]
-        native = natives[0]
 
-        # decoys: all other pdbs under the target_dir (excluding the chosen native)
+        native = None
+        if native_map:
+            native = native_map.get(target_dir.name.lower())
+        if native is None:
+            # Fallback heuristic: if a folder contains one pdb with 'native' in name, treat it as native
+            natives = [p for p in pdbs if "native" in p.name.lower()]
+            if natives:
+                native = natives[0]
+            else:
+                native = sorted(pdbs, key=lambda x: len(x.name))[0]
+
         for decoy in pdbs:
             if decoy.resolve() == native.resolve():
                 continue
             rows.append((target_dir.name, native, decoy))
+
     return rows
 
 
@@ -134,19 +151,23 @@ def main() -> None:
     else:
         extract_root = cache_root
 
-    # Many decoy sets unpack under dd/<setname>/...; normalize to the set root if present.
+    # Many decoy sets unpack under dd/(multiple|single|loop)/<setname>/...; normalize.
     name = str(args.name)
-    cand = extract_root / "dd" / name
-    if cand.is_dir():
-        extract_root = cand
-    else:
-        cand2 = extract_root / "dd"
-        if cand2.is_dir():
-            extract_root = cand2
-        else:
-            cand3 = extract_root / name
-            if cand3.is_dir():
-                extract_root = cand3
+    candidates = [
+        extract_root / "dd" / "multiple" / name,
+        extract_root / "dd" / "single" / name,
+        extract_root / "dd" / "loop" / name,
+        extract_root / "dd" / name,
+        extract_root / name,
+        extract_root / "dd" / "multiple",
+        extract_root / "dd" / "single",
+        extract_root / "dd" / "loop",
+        extract_root / "dd",
+    ]
+    for c in candidates:
+        if c.is_dir():
+            extract_root = c
+            break
 
     # Manifest (lightweight, committed)
     run_dir = root / "docs" / "runs" / str(args.run_name)
