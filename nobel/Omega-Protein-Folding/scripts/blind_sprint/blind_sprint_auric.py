@@ -345,6 +345,7 @@ def main() -> None:
 
     dt = time.perf_counter() - t0
     report = run_dir / f"{args.tag}_{str(args.pdb_id).upper()}.md"
+    csv_rel = out_csv.relative_to(root).as_posix()
     report.write_text(
         "\n".join(
             [
@@ -358,7 +359,7 @@ def main() -> None:
                 f"- auric_m: {int(args.auric_m)} (every {int(args.auric_every)} steps)",
                 f"- weights: w_contact={float(args.w_contact)}, wA={float(args.wA)}, wB={float(args.wB)}",
                 "",
-                f"- CSV (gitignored): `{str(out_csv.relative_to(root)).replace('\\\\','/')}`",
+                f"- CSV (gitignored): `{csv_rel}`",
                 f"- Runtime: {dt:.1f}s",
                 "",
                 "## Results",
@@ -374,6 +375,6 @@ def main() -> None:
     print(f"Wrote: {report}")
 
 
-if __name__ == \"__main__\":
+if __name__ == "__main__":
     main()
 
