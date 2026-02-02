@@ -77,7 +77,8 @@ def main() -> None:
                     data = [subm[c].to_numpy(dtype=np.float64) for c, _ in cols]
                     labels = [lab for _, lab in cols]
                     fig, ax = plt.subplots(figsize=(9.6, 4.3))
-                    ax.boxplot(data, tick_labels=labels, showfliers=False)
+                    # Use 'labels' for matplotlib compatibility (older versions lack tick_labels=).
+                    ax.boxplot(data, labels=labels, showfliers=False)
                     ax.set_ylabel(ylab)
                     ax.set_title(f"Auric {metric} ({alpha_name}, rho{ro}, m={m}, n={len(subm)})")
                     fig.tight_layout()
