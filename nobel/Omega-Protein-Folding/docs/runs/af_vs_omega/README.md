@@ -21,3 +21,13 @@ We download an AlphaFold DB model PDB for a UniProt accession, then extract
 - `P37840`: `afdb_P37840_summary.md`
 - `P62328`: `afdb_P62328_summary.md`
 
+## Omega example (white-box baseline)
+
+We export a per-step audit log from an in-repo Omega runner (`blind_sprint_auric.py`)
+and plot it as a trajectory panel.
+
+- Target: `1CRN`
+- Artifacts:
+  - `omega_trajectory_1CRN.csv`
+  - `omega_trajectory_1CRN.png`
+

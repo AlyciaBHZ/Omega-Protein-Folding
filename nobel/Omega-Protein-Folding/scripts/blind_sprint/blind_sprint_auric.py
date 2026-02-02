@@ -44,6 +44,7 @@ from bench_utils import (  # noqa: E402
     ensure_dir,
     icosa_B,
     load_ca_coords_longest_chain,
+    phason_stats_from_yperp,
     tm_score,
 )
 
@@ -211,6 +212,7 @@ def run_one(
     w_rmse: float,
     wA: float,
     wB: float,
+    audit_out: Path | None = None,
 ) -> Tuple[State, dict]:
     rng = np.random.default_rng(int(seed))
     N = int(coords_native.shape[0])
@@ -244,6 +246,7 @@ def run_one(
     beam_states: List[State] = [init]
 
     # Precompute true-contact counts per column for fast fn updates? We'll do per-step scan.
+    audit_rows: List[dict] = []
     for t in range(1, N):
         cand_states: List[State] = []
         for st in beam_states:
@@ -307,6 +310,25 @@ def run_one(
         scored.sort(key=lambda x: x[0], reverse=True)
         beam_states = [x[2] for x in scored[: int(beam)]]
 
+        if audit_out is not None and scored:
+            best_score, best_f1, best_state = scored[0]
+            best_rmse = math.sqrt(float(best_state.sum_sq) / max(1, int(best_state.cnt)))
+            ph_rms, ph_max = phason_stats_from_yperp(best_state.y_perp)
+            audit_rows.append(
+                {
+                    "t": int(t),
+                    "score": float(best_score),
+                    "contact_f1": float(best_f1),
+                    "dist_rmse": float(best_rmse),
+                    "auric_penalty": float(best_state.auric_penalty),
+                    "ph_rms": float(ph_rms),
+                    "ph_max": float(ph_max),
+                    "tp": int(best_state.tp),
+                    "fp": int(best_state.fp),
+                    "fn": int(best_state.fn),
+                }
+            )
+
     best = beam_states[0]
     tm = tm_score(best.coords, coords_native)
     f1_final = f1_from_counts(best.tp, best.fp, best.fn)
@@ -333,6 +355,25 @@ def run_one(
         "uvec_y": float(uvec[1]),
         "uvec_z": float(uvec[2]),
     }
+
+    if audit_out is not None and audit_rows:
+        ensure_dir(audit_out.parent)
+        df_a = pd.DataFrame(audit_rows)
+        # attach run-level context for convenience (repeated columns)
+        df_a["seed"] = int(seed)
+        df_a["codec"] = str(codec)
+        df_a["beam"] = int(beam)
+        df_a["K"] = int(K)
+        df_a["cutoff"] = float(cutoff)
+        df_a["min_sep"] = int(min_sep)
+        df_a["auric_m"] = int(auric_m)
+        df_a["auric_every"] = int(auric_every)
+        df_a["w_contact"] = float(w_contact)
+        df_a["w_rmse"] = float(w_rmse)
+        df_a["wA"] = float(wA)
+        df_a["wB"] = float(wB)
+        df_a.to_csv(audit_out, index=False)
+
     return best, meta
 
 
@@ -353,6 +394,11 @@ def main() -> None:
     ap.add_argument("--w-rmse", type=float, default=1.0, help="Distogram RMSE weight (penalty).")
     ap.add_argument("--wA", type=float, default=0.2, help="Auric A weight (type_entropy penalty).")
     ap.add_argument("--wB", type=float, default=0.2, help="Auric B weight (smb_rate_hat penalty).")
+    ap.add_argument(
+        "--audit-out",
+        default="",
+        help="Optional CSV path to write a per-step audit log (best beam state per t).",
+    )
     args = ap.parse_args()
 
     root = Path(__file__).resolve().parents[2]
@@ -376,6 +422,11 @@ def main() -> None:
     rows = []
     t0 = time.perf_counter()
     for s in seeds:
+        audit_out: Path | None = None
+        if str(args.audit_out).strip() and len(seeds) == 1:
+            audit_out = Path(str(args.audit_out))
+            if not audit_out.is_absolute():
+                audit_out = (root / audit_out).resolve()
         _, meta = run_one(
             coords_native,
             seed=s,
@@ -390,6 +441,7 @@ def main() -> None:
             w_rmse=float(args.w_rmse),
             wA=float(args.wA),
             wB=float(args.wB),
+            audit_out=audit_out,
         )
         meta.update({"pdb_id": str(args.pdb_id).upper(), "chain": str(chain_id), "N": int(coords_native.shape[0])})
         rows.append(meta)
