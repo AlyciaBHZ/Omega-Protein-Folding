@@ -1,0 +1,11 @@
+pdb_id,status,path,url,chain,N,selected
+1CRN,len_out_of_range,data/raw/pdb_cache/1CRN.cif,https://files.rcsb.org/download/1CRN.cif,A,46,0
+1UBQ,downloaded_selected,data/raw/pdb_cache/1UBQ.cif,https://files.rcsb.org/download/1UBQ.cif,A,76,1
+2CI2,downloaded_selected,data/raw/pdb_cache/2CI2.cif,https://files.rcsb.org/download/2CI2.cif,I,65,1
+5PTI,len_out_of_range,data/raw/pdb_cache/5PTI.cif,https://files.rcsb.org/download/5PTI.cif,A,58,0
+1CTF,downloaded_selected,data/raw/pdb_cache/1CTF.cif,https://files.rcsb.org/download/1CTF.cif,A,68,1
+2CRO,downloaded_selected,data/raw/pdb_cache/2CRO.cif,https://files.rcsb.org/download/2CRO.cif,A,65,1
+4PTI,len_out_of_range,data/raw/pdb_cache/4PTI.cif,https://files.rcsb.org/download/4PTI.cif,A,58,0
+4RXN,len_out_of_range,data/raw/pdb_cache/4RXN.cif,https://files.rcsb.org/download/4RXN.cif,A,54,0
+1R69,downloaded_selected,data/raw/pdb_cache/1R69.cif,https://files.rcsb.org/download/1R69.cif,A,63,1
+1SN3,downloaded_selected,data/raw/pdb_cache/1SN3.cif,https://files.rcsb.org/download/1SN3.cif,?,65,1
