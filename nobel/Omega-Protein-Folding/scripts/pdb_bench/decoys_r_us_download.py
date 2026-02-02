@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import re
 import tarfile
 from pathlib import Path
 from typing import Iterable, List, Tuple
@@ -23,9 +24,9 @@ import requests
 from bench_utils import ensure_dir
 
 
-# Decoys 'R' Us serves datasets via a CGI endpoint:
-# see http://compbio.buffalo.edu/dd/download.shtml
-DEFAULT_4STATE_URL = "http://compbio.buffalo.edu/dd/ddownload.cgi?4state_reduced"
+# Direct tarball URL (preferred). The CGI page provides a link to this.
+# Dataset index: http://compbio.buffalo.edu/dd/download.shtml
+DEFAULT_4STATE_URL = "http://dd.compbio.org/4state_reduced.tgz"
 
 
 def _iter_pdbs(root: Path) -> Iterable[Path]:
@@ -64,14 +65,33 @@ def _guess_pairs(extract_root: Path) -> List[Tuple[str, Path, Path]]:
     return rows
 
 
+def _maybe_follow_html_download_landing(url: str, body: bytes) -> str:
+    """
+    Decoys 'R' Us sometimes serves an HTML landing page with a .tgz link.
+    If this looks like HTML, extract the first .tgz URL and return it.
+    """
+    head = body[:2048].lstrip()
+    if not (head.startswith(b"<") or b"<html" in head.lower()):
+        return url
+    try:
+        txt = body.decode("utf-8", errors="ignore")
+    except Exception:
+        return url
+    m = re.search(r"(https?://[^\s\"']+?\.tgz)", txt)
+    return m.group(1) if m else url
+
+
 def download(url: str, out_path: Path) -> None:
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    with requests.get(url, stream=True, timeout=120) as r:
-        r.raise_for_status()
-        with out_path.open("wb") as f:
-            for chunk in r.iter_content(chunk_size=1024 * 1024):
-                if chunk:
-                    f.write(chunk)
+    r = requests.get(url, timeout=180)
+    r.raise_for_status()
+    data = r.content
+    url2 = _maybe_follow_html_download_landing(url, data)
+    if url2 != url:
+        r2 = requests.get(url2, timeout=180)
+        r2.raise_for_status()
+        data = r2.content
+    out_path.write_bytes(data)
 
 
 def extract_tgz(tgz_path: Path, out_dir: Path) -> Path:
