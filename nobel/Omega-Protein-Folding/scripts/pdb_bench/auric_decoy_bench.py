@@ -141,6 +141,10 @@ def main() -> None:
     ap.add_argument("--m", default="6,8,10", help="Comma list of m values.")
     ap.add_argument("--min-len", type=int, default=40)
     ap.add_argument("--max-len", type=int, default=400)
+    ap.add_argument("--max-targets", type=int, default=0, help="If >0, limit number of targets (debug/quick runs).")
+    ap.add_argument("--max-decoys-per-target", type=int, default=0, help="If >0, cap decoys per target (debug/quick runs).")
+    ap.add_argument("--no-plots", action="store_true", help="If set, skip plot generation (fast/headless).")
+    ap.add_argument("--progress-every", type=int, default=200, help="Progress print frequency in decoy loop.")
     args = ap.parse_args()
 
     root = Path(__file__).resolve().parents[2]
@@ -173,7 +177,13 @@ def main() -> None:
     sample_rows: List[Dict[str, object]] = []
     summary_rows: List[Dict[str, object]] = []
 
-    for tid, rows in sorted(rows_by_target.items()):
+    items = sorted(rows_by_target.items())
+    if int(args.max_targets) > 0:
+        items = items[: int(args.max_targets)]
+
+    print(f"Loaded manifest targets={len(rows_by_target)}; running targets={len(items)}", flush=True)
+
+    for tid, rows in items:
         # find a native path from the first row
         native_path = (root / str(rows[0]["native_path"])).resolve()
         if not native_path.exists():
@@ -196,7 +206,11 @@ def main() -> None:
         # decoys metrics
         met_decoys: Dict[Tuple[str, int, str], List[float]] = {}
         n_decoys_used = 0
-        for r in rows:
+        rows_dec = rows
+        if int(args.max_decoys_per_target) > 0:
+            rows_dec = rows_dec[: int(args.max_decoys_per_target)]
+
+        for j, r in enumerate(rows_dec, start=1):
             decoy_path = (root / str(r["decoy_path"])).resolve()
             if not decoy_path.exists():
                 continue
@@ -231,6 +245,9 @@ def main() -> None:
                     }
                 )
 
+            if int(args.progress_every) > 0 and (j % int(args.progress_every) == 0):
+                print(f"[{tid}] processed decoys: {j}/{len(rows_dec)} (used={n_decoys_used})", flush=True)
+
         # per-target summary (native vs decoys)
         out: Dict[str, object] = {
             "target_id": tid,
@@ -248,26 +265,27 @@ def main() -> None:
             out[f"pct_native_among_decoys_{metric_name}_rho{ro}_m{m}"] = percentile_among_decoys(float(xnat), ys)
         summary_rows.append(out)
 
-        # Plots: per-target decoy distributions with native marker (m=8 default)
-        for metric_name in ("type_entropy", "smb_rate_hat"):
-            for ro in ("A", "B"):
-                m = 8 if 8 in cfg.ms else cfg.ms[0]
-                ys = np.asarray(met_decoys.get((ro, m, metric_name), []), dtype=np.float64)
-                ys = ys[np.isfinite(ys)]
-                if ys.size == 0:
-                    continue
-                xnat = float(met_native[(ro, m, metric_name)])
-                fig, ax = plt.subplots(figsize=(6.8, 3.6))
-                ax.hist(ys, bins=40, alpha=0.85, label="decoys")
-                ax.axvline(xnat, color="k", linestyle="--", linewidth=2, label="native")
-                ax.set_title(f"{tid}: {metric_name} (rho{ro}, m={m})")
-                ax.set_xlabel(metric_name)
-                ax.set_ylabel("count")
-                ax.legend(frameon=False)
-                fig.tight_layout()
-                outp = plots_dir / f"decoys_hist_{metric_name}_{tid}_rho{ro}_m{m}_{args.tag}.png"
-                fig.savefig(outp, dpi=200)
-                plt.close(fig)
+        if not args.no_plots:
+            # Plots: per-target decoy distributions with native marker (m=8 default)
+            for metric_name in ("type_entropy", "smb_rate_hat"):
+                for ro in ("A", "B"):
+                    m = 8 if 8 in cfg.ms else cfg.ms[0]
+                    ys = np.asarray(met_decoys.get((ro, m, metric_name), []), dtype=np.float64)
+                    ys = ys[np.isfinite(ys)]
+                    if ys.size == 0:
+                        continue
+                    xnat = float(met_native[(ro, m, metric_name)])
+                    fig, ax = plt.subplots(figsize=(6.8, 3.6))
+                    ax.hist(ys, bins=40, alpha=0.85, label="decoys")
+                    ax.axvline(xnat, color="k", linestyle="--", linewidth=2, label="native")
+                    ax.set_title(f"{tid}: {metric_name} (rho{ro}, m={m})")
+                    ax.set_xlabel(metric_name)
+                    ax.set_ylabel("count")
+                    ax.legend(frameon=False)
+                    fig.tight_layout()
+                    outp = plots_dir / f"decoys_hist_{metric_name}_{tid}_rho{ro}_m{m}_{args.tag}.png"
+                    fig.savefig(outp, dpi=200)
+                    plt.close(fig)
 
     # Write CSVs (gitignored)
     pd.DataFrame(sample_rows).to_csv(samples_csv, index=False)
