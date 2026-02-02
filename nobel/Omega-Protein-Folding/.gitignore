@@ -34,6 +34,7 @@ venv/
 # --- large local caches / generated outputs ---
 artifacts/
 data/raw/pdb_cache/
+data/raw/decoy_cache/
 data/processed/
 figures/
 
