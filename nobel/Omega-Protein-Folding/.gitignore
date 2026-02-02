@@ -35,6 +35,7 @@ venv/
 artifacts/
 data/raw/pdb_cache/
 data/raw/decoy_cache/
+data/raw/afdb_cache/
 data/processed/
 figures/
 
