@@ -364,7 +364,7 @@ def main() -> None:
                 "",
                 "## Results",
                 "",
-                df.sort_values(\"tm\", ascending=False).to_markdown(index=False),
+                df.sort_values("tm", ascending=False).to_markdown(index=False),
                 "",
             ]
         )
