@@ -2,6 +2,17 @@
 
 Omega demonstrates a practical path from ‘folding as optimization’ to ‘folding as an auditable program’. Three messages emerge.
 
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\linewidth]{assets/figures/fig_af_vs_omega.png}
+  \caption{\textbf{AlphaFold vs Omega: black-box output vs replayable, auditable dynamics.}
+  \textbf{(A) Process:} AlphaFold DB provides a static structure estimate and a per-residue confidence profile (pLDDT), while Omega exposes an explicit, replayable optimization trajectory with logged objective terms and certificate proxies.
+  \textbf{(B) Geometry:} a ``shadow projection'' of the perpendicular-space trace ($y_\perp$ PCA) highlights a qualitative difference between an AFDB low-confidence intrinsically disordered example (UniProt P06454) and an Omega reconstruction example (1CRN) under the same 6D lifting/quantization protocol.
+  \textbf{(C) Audit/debugger:} AlphaFold exposes confidence as an output-side annotation, whereas Omega exposes an internal audit signal (phason proxy and certificate checkpoints) that supports targeted interventions and operator-level A/B tests.
+  All run artifacts used to build this figure are provided under \texttt{docs/runs/af\_vs\_omega/}.}
+  \label{fig:af_vs_omega_transparency}
+\end{figure}
+
 First, low-resolution objectives are sufficient to drive search to apparently high-quality solutions, but they can also hide off-manifold failures. This motivates a principled separation between optimized readouts and audit-only residuals, and it provides a natural testbed for mechanistic gates.
 
 Second, phason is most useful when treated as a dynamical variable rather than a static filter. Feasible-tight regimes ($\theta^\star$) show that projector-style repair is necessary: without repair, hard constraints can become mathematically infeasible under a given alphabet and slice. With repair, the gate becomes an actionable dynamical force.
