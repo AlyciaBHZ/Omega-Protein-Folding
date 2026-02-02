@@ -79,6 +79,31 @@ def f1_from_counts(tp: int, fp: int, fn: int) -> float:
     return float(2.0 * prec * rec / (prec + rec))
 
 
+def df_to_markdown_table(df: pd.DataFrame) -> str:
+    """
+    Render a small dataframe as a markdown table without requiring `tabulate`.
+    """
+    if df is None or len(df) == 0:
+        return "_(empty)_"
+    cols = list(df.columns)
+    lines = []
+    lines.append("| " + " | ".join(str(c) for c in cols) + " |")
+    lines.append("| " + " | ".join(["---"] * len(cols)) + " |")
+    for _, row in df.iterrows():
+        cells = []
+        for c in cols:
+            v = row[c]
+            if isinstance(v, float):
+                if math.isfinite(v):
+                    cells.append(f"{v:.4f}")
+                else:
+                    cells.append("nan")
+            else:
+                cells.append(str(v))
+        lines.append("| " + " | ".join(cells) + " |")
+    return "\n".join(lines)
+
+
 @dataclass
 class State:
     # Geometry
@@ -399,7 +424,7 @@ def main() -> None:
                 "",
                 "## Results",
                 "",
-                df.sort_values("tm", ascending=False).to_markdown(index=False),
+                df_to_markdown_table(df.sort_values("tm", ascending=False)),
                 "",
             ]
         )
