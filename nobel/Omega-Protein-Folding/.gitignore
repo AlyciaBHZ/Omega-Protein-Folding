@@ -39,6 +39,10 @@ data/raw/afdb_cache/
 data/processed/
 figures/
 
+# Allow paper assets even though we ignore other "figures/" folders.
+!paper/assets/figures/
+!paper/assets/figures/**
+
 # --- legacy-docs: source-only policy (exclude data/binaries) ---
 legacy-docs/**/data/
 legacy-docs/**/dist/

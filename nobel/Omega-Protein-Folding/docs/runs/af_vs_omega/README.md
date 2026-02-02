@@ -39,3 +39,12 @@ and plot it as a trajectory panel.
 - AlphaFold DB: `shadow_afdb_P06454.png`
 - Omega: `shadow_omega_1CRN.png`
 
+## Debugger views
+
+- AlphaFold DB pLDDT: `debugger_afdb_P06454.png`
+- Omega audit debugger: `debugger_omega_1CRN.png`
+
+## Paper asset
+
+- Composite figure: `paper/assets/figures/fig_af_vs_omega.png`
+
