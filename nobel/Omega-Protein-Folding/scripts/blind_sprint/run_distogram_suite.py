@@ -20,7 +20,7 @@ import sys
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))  # allow importing distogram_mds_auric
-sys.path.insert(0, str((HERE.parents[1] / "pdb_bench").resolve()))
+sys.path.insert(0, str((HERE.parent / "pdb_bench").resolve()))
 
 from bench_utils import ensure_dir, load_ca_coords_longest_chain  # noqa: E402
 
