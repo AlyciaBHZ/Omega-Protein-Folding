@@ -89,6 +89,9 @@ class State:
     tp: int
     fp: int
     fn: int
+    # incremental distogram RMSE accumulator over considered pairs
+    sum_sq: float
+    cnt: int
     # cached score components
     auric_penalty: float
 
@@ -180,6 +183,7 @@ def run_one(
     auric_m: int,
     auric_every: int,
     w_contact: float,
+    w_rmse: float,
     wA: float,
     wB: float,
 ) -> Tuple[State, dict]:
@@ -201,6 +205,8 @@ def run_one(
 
     # Target contact matrix from native coords
     C_true = contact_matrix(coords_native, cutoff=cutoff, min_sep=min_sep)
+    # Target distogram (rotation-invariant): pairwise distances
+    d_true = np.linalg.norm(coords_native[:, None, :] - coords_native[None, :, :], axis=2)
 
     # Shared protocol axis uvec (derived once from native y_perp)
     uvec = shared_pca_uvec_from_native(coords_native, bond_len=bond_len, alphabet=codec)
@@ -209,7 +215,7 @@ def run_one(
     coords0 = np.zeros((1, 3), dtype=np.float64)
     n0 = np.zeros((1, 6), dtype=np.int32)
     y0 = (Bperp @ n0.T).T
-    init = State(coords=coords0, n_path=n0, y_perp=y0, tp=0, fp=0, fn=0, auric_penalty=0.0)
+    init = State(coords=coords0, n_path=n0, y_perp=y0, tp=0, fp=0, fn=0, sum_sq=0.0, cnt=0, auric_penalty=0.0)
     beam_states: List[State] = [init]
 
     # Precompute true-contact counts per column for fast fn updates? We'll do per-step scan.
@@ -229,6 +235,7 @@ def run_one(
                 y_new = np.vstack([st.y_perp, y_new_last[None, :]])
 
                 tp, fp, fn = st.tp, st.fp, st.fn
+                sum_sq, cnt = float(st.sum_sq), int(st.cnt)
                 # update contact counts for pairs (i,t)
                 # only consider i <= t-min_sep-1
                 i_max = t - int(min_sep)
@@ -241,17 +248,36 @@ def run_one(
                     fp += int(np.sum(pred & (~true)))
                     fn += int(np.sum((~pred) & true))
 
+                    # distogram RMSE increment (on same considered pairs)
+                    dt = d_true[:i_max, t]
+                    err = dist - dt
+                    sum_sq += float(np.sum(err * err))
+                    cnt += int(err.shape[0])
+
                 aur_pen = st.auric_penalty
                 if int(auric_every) > 0 and t >= int(auric_m) and (t % int(auric_every) == 0):
                     aur_pen = auric_penalty_from_streams(y_new, n_new, uvec=uvec, m=int(auric_m), wA=float(wA), wB=float(wB))
 
-                cand_states.append(State(coords=coords_new, n_path=n_new, y_perp=y_new, tp=tp, fp=fp, fn=fn, auric_penalty=aur_pen))
+                cand_states.append(
+                    State(
+                        coords=coords_new,
+                        n_path=n_new,
+                        y_perp=y_new,
+                        tp=tp,
+                        fp=fp,
+                        fn=fn,
+                        sum_sq=sum_sq,
+                        cnt=cnt,
+                        auric_penalty=aur_pen,
+                    )
+                )
 
         # select top beam by score
         scored = []
         for st in cand_states:
             f1 = f1_from_counts(st.tp, st.fp, st.fn)
-            score = float(w_contact) * f1 - float(st.auric_penalty)
+            rmse = math.sqrt(float(st.sum_sq) / max(1, int(st.cnt)))
+            score = float(w_contact) * f1 - float(w_rmse) * rmse - float(st.auric_penalty)
             scored.append((score, f1, st))
         scored.sort(key=lambda x: x[0], reverse=True)
         beam_states = [x[2] for x in scored[: int(beam)]]
@@ -259,6 +285,7 @@ def run_one(
     best = beam_states[0]
     tm = tm_score(best.coords, coords_native)
     f1_final = f1_from_counts(best.tp, best.fp, best.fn)
+    rmse_final = math.sqrt(float(best.sum_sq) / max(1, int(best.cnt)))
     meta = {
         "seed": int(seed),
         "codec": str(codec),
@@ -269,10 +296,12 @@ def run_one(
         "auric_m": int(auric_m),
         "auric_every": int(auric_every),
         "w_contact": float(w_contact),
+        "w_rmse": float(w_rmse),
         "wA": float(wA),
         "wB": float(wB),
         "tm": float(tm),
         "contact_f1": float(f1_final),
+        "dist_rmse": float(rmse_final),
         "auric_penalty": float(best.auric_penalty),
         "bond_len": float(bond_len),
         "uvec_x": float(uvec[0]),
@@ -296,6 +325,7 @@ def main() -> None:
     ap.add_argument("--auric-m", type=int, default=8)
     ap.add_argument("--auric-every", type=int, default=10)
     ap.add_argument("--w-contact", type=float, default=1.0)
+    ap.add_argument("--w-rmse", type=float, default=1.0, help="Distogram RMSE weight (penalty).")
     ap.add_argument("--wA", type=float, default=0.2, help="Auric A weight (type_entropy penalty).")
     ap.add_argument("--wB", type=float, default=0.2, help="Auric B weight (smb_rate_hat penalty).")
     args = ap.parse_args()
@@ -332,12 +362,17 @@ def main() -> None:
             auric_m=int(args.auric_m),
             auric_every=int(args.auric_every),
             w_contact=float(args.w_contact),
+            w_rmse=float(args.w_rmse),
             wA=float(args.wA),
             wB=float(args.wB),
         )
         meta.update({"pdb_id": str(args.pdb_id).upper(), "chain": str(chain_id), "N": int(coords_native.shape[0])})
         rows.append(meta)
-        print(f"{args.pdb_id}:{chain_id} seed={s} TM={meta['tm']:.3f} F1={meta['contact_f1']:.3f} auric_pen={meta['auric_penalty']:.3f}", flush=True)
+        print(
+            f"{args.pdb_id}:{chain_id} seed={s} TM={meta['tm']:.3f} F1={meta['contact_f1']:.3f} "
+            f"RMSE={meta['dist_rmse']:.3f} auric_pen={meta['auric_penalty']:.3f}",
+            flush=True,
+        )
 
     df = pd.DataFrame(rows)
     out_csv = out_dir / f"blind_sprint_auric_runs_{args.tag}_{str(args.pdb_id).upper()}.csv"
