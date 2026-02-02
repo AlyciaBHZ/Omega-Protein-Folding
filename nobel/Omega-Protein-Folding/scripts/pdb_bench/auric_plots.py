@@ -47,6 +47,10 @@ def main() -> None:
     if len(df) == 0:
         raise ValueError("Empty auric summary CSV")
 
+    def add_if_present(cols: list[tuple[str, str]], col: str, label: str) -> None:
+        if col in df.columns:
+            cols.append((col, label))
+
     for alpha_name in sorted(df["alphabet"].unique().tolist()):
         suba = df[df["alphabet"] == alpha_name]
         for ro in sorted(suba["readout"].unique().tolist()):
@@ -56,42 +60,57 @@ def main() -> None:
                 if len(subm) == 0:
                     continue
 
-                # Boxplot: real vs control means (random/pert)
-                fig, ax = plt.subplots(figsize=(7.8, 4.3))
-                data = [
-                    subm["type_entropy_real"].to_numpy(dtype=np.float64),
-                    subm["type_entropy_random_mean"].to_numpy(dtype=np.float64),
-                    subm["type_entropy_pert_mean"].to_numpy(dtype=np.float64),
-                ]
-                ax.boxplot(data, tick_labels=["real", "random_mean", "pert_mean"], showfliers=False)
-                ax.set_ylabel("H(type) [bits]")
-                ax.set_title(f"Auric type entropy ({alpha_name}, ρ{ro}, m={m}, n={len(subm)})")
-                fig.tight_layout()
-                out1 = out_dir / f"auric_entropy_box_{alpha_name}_rho{ro}_m{m}_{args.tag}.png"
-                fig.savefig(out1, dpi=200)
-                plt.close(fig)
-
-                # ECDF of delta vs controls
-                fig, ax = plt.subplots(figsize=(7.8, 4.3))
-                for col, label in [
-                    ("delta_type_entropy_real_vs_random", "δ(real,random)"),
-                    ("delta_type_entropy_real_vs_perturbed", "δ(real,perturbed)"),
+                # Boxplot: real vs null means (random/pert/shuffle/blockshuffle*)
+                for metric, ylab, stem in [
+                    ("type_entropy", "H(type) [bits]", "entropy"),
+                    ("smb_rate_hat", "smb_rate_hat", "smb_rate_hat"),
                 ]:
-                    x, y = ecdf(subm[col].to_numpy(dtype=np.float64))
-                    ax.plot(x, y, label=label)
-                ax.set_xlabel("Cliff's δ")
-                ax.set_ylabel("ECDF")
-                ax.set_title(f"Auric effect size ECDF ({alpha_name}, ρ{ro}, m={m})")
-                ax.legend(frameon=False)
-                fig.tight_layout()
-                out2 = out_dir / f"auric_delta_ecdf_{alpha_name}_rho{ro}_m{m}_{args.tag}.png"
-                fig.savefig(out2, dpi=200)
-                plt.close(fig)
+                    cols: list[tuple[str, str]] = []
+                    add_if_present(cols, f"{metric}_real", "real")
+                    add_if_present(cols, f"{metric}_random_mean", "random_mean")
+                    add_if_present(cols, f"{metric}_pert_mean", "pert_mean")
+                    add_if_present(cols, f"{metric}_shuffle_mean", "shuffle_mean")
+                    # blockshuffle_k{K}_mean columns (if present)
+                    for c in sorted([c for c in df.columns if c.startswith(f"{metric}_blockshuffle_k") and c.endswith("_mean")]):
+                        cols.append((c, c.replace(f"{metric}_", "")))
 
-                print(f"Wrote: {out1}")
-                print(f"Wrote: {out2}")
+                    data = [subm[c].to_numpy(dtype=np.float64) for c, _ in cols]
+                    labels = [lab for _, lab in cols]
+                    fig, ax = plt.subplots(figsize=(9.6, 4.3))
+                    ax.boxplot(data, tick_labels=labels, showfliers=False)
+                    ax.set_ylabel(ylab)
+                    ax.set_title(f"Auric {metric} ({alpha_name}, rho{ro}, m={m}, n={len(subm)})")
+                    fig.tight_layout()
+                    out1 = out_dir / f"auric_{stem}_box_{alpha_name}_rho{ro}_m{m}_{args.tag}.png"
+                    fig.savefig(out1, dpi=200)
+                    plt.close(fig)
 
-    # Multi-scale curve (median entropy vs m) for each (alphabet, readout)
+                    # ECDF of Cliff's deltas vs nulls (if columns exist)
+                    delta_cols: list[tuple[str, str]] = []
+                    add_if_present(delta_cols, f"delta_{metric}_real_vs_random", "δ(real,random)")
+                    add_if_present(delta_cols, f"delta_{metric}_real_vs_perturbed", "δ(real,perturbed)")
+                    add_if_present(delta_cols, f"delta_{metric}_real_vs_shuffle", "δ(real,shuffle)")
+                    for c in sorted([c for c in df.columns if c.startswith(f"delta_{metric}_real_vs_blockshuffle_k")]):
+                        delta_cols.append((c, c.replace(f"delta_{metric}_real_vs_", "δ(real,") + ")"))
+                    fig, ax = plt.subplots(figsize=(9.6, 4.3))
+                    for c, lab in delta_cols:
+                        x, y = ecdf(subm[c].to_numpy(dtype=np.float64))
+                        if len(x) == 0:
+                            continue
+                        ax.plot(x, y, label=lab)
+                    ax.set_xlabel("Cliff's δ")
+                    ax.set_ylabel("ECDF")
+                    ax.set_title(f"Auric effect size ECDF ({metric}, {alpha_name}, rho{ro}, m={m})")
+                    ax.legend(frameon=False, ncols=2)
+                    fig.tight_layout()
+                    out2 = out_dir / f"auric_{stem}_delta_ecdf_{alpha_name}_rho{ro}_m{m}_{args.tag}.png"
+                    fig.savefig(out2, dpi=200)
+                    plt.close(fig)
+
+                    print(f"Wrote: {out1}")
+                    print(f"Wrote: {out2}")
+
+    # Multi-scale curves (median metric vs m) for each (alphabet, readout)
     for alpha_name in sorted(df["alphabet"].unique().tolist()):
         suba = df[df["alphabet"] == alpha_name]
         for ro in sorted(suba["readout"].unique().tolist()):
@@ -99,27 +118,34 @@ def main() -> None:
             ms = sorted(sub["m"].unique().tolist())
             if not ms:
                 continue
-            med_real = []
-            med_rand = []
-            med_pert = []
-            for m in ms:
-                subm = sub[sub["m"] == m]
-                med_real.append(float(np.nanmedian(subm["type_entropy_real"].to_numpy(dtype=np.float64))))
-                med_rand.append(float(np.nanmedian(subm["type_entropy_random_mean"].to_numpy(dtype=np.float64))))
-                med_pert.append(float(np.nanmedian(subm["type_entropy_pert_mean"].to_numpy(dtype=np.float64))))
-            fig, ax = plt.subplots(figsize=(7.8, 4.3))
-            ax.plot(ms, med_real, marker="o", label="real")
-            ax.plot(ms, med_rand, marker="o", label="random_mean")
-            ax.plot(ms, med_pert, marker="o", label="pert_mean")
-            ax.set_xlabel("m (Fold_m window length)")
-            ax.set_ylabel("median H(type) [bits]")
-            ax.set_title(f"Auric multi-scale entropy ({alpha_name}, ρ{ro})")
-            ax.legend(frameon=False)
-            fig.tight_layout()
-            out3 = out_dir / f"auric_entropy_multiscale_{alpha_name}_rho{ro}_{args.tag}.png"
-            fig.savefig(out3, dpi=200)
-            plt.close(fig)
-            print(f"Wrote: {out3}")
+            for metric, ylab, stem in [
+                ("type_entropy", "median H(type) [bits]", "entropy"),
+                ("smb_rate_hat", "median smb_rate_hat", "smb_rate_hat"),
+            ]:
+                series: list[tuple[str, str]] = []
+                add_if_present(series, f"{metric}_real", "real")
+                add_if_present(series, f"{metric}_random_mean", "random_mean")
+                add_if_present(series, f"{metric}_pert_mean", "pert_mean")
+                add_if_present(series, f"{metric}_shuffle_mean", "shuffle_mean")
+                for c in sorted([c for c in df.columns if c.startswith(f"{metric}_blockshuffle_k") and c.endswith("_mean")]):
+                    series.append((c, c.replace(f"{metric}_", "")))
+
+                fig, ax = plt.subplots(figsize=(9.6, 4.3))
+                for c, lab in series:
+                    meds = []
+                    for m in ms:
+                        subm = sub[sub["m"] == m]
+                        meds.append(float(np.nanmedian(subm[c].to_numpy(dtype=np.float64))))
+                    ax.plot(ms, meds, marker="o", label=lab)
+                ax.set_xlabel("m (Fold_m window length)")
+                ax.set_ylabel(ylab)
+                ax.set_title(f"Auric multi-scale ({metric}, {alpha_name}, rho{ro})")
+                ax.legend(frameon=False, ncols=2)
+                fig.tight_layout()
+                out3 = out_dir / f"auric_{stem}_multiscale_{alpha_name}_rho{ro}_{args.tag}.png"
+                fig.savefig(out3, dpi=200)
+                plt.close(fig)
+                print(f"Wrote: {out3}")
 
 
 if __name__ == "__main__":

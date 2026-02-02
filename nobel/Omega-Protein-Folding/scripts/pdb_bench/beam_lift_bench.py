@@ -45,6 +45,8 @@ from bench_utils import (  # noqa: E402
     phason_stats_from_yperp,
     phason_stats_piecewise,
     random_chain_from_lengths,
+    blockshuffle_bond_directions,
+    shuffle_bond_directions,
     radius_of_gyration,
     tm_score,
 )
@@ -174,6 +176,16 @@ def beam_lift(
     return coords_pred, n_path, y_perp, tm, ph_rms, ph_max
 
 
+def percentile_among_null(x: float, ys: np.ndarray) -> float:
+    """
+    Native percentile among null reps: P(null <= x).
+    """
+    ys = np.asarray(ys, dtype=np.float64)
+    if ys.size == 0:
+        return float("nan")
+    return float(np.mean(ys <= float(x)))
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--ids", required=True)
@@ -184,13 +196,22 @@ def main() -> None:
     ap.add_argument("--w-perp", type=float, default=0.01)
     ap.add_argument("--piecewise-seg-len", type=int, default=0, help="If >0, use piecewise phason regularization/metric with this segment length.")
     ap.add_argument("--random-reps", type=int, default=2)
+    ap.add_argument("--shuffle-reps", type=int, default=0, help="If >0, add bond-direction shuffle controls.")
+    ap.add_argument("--blockshuffle-reps", type=int, default=0, help="If >0, add block-shuffle controls.")
+    ap.add_argument("--blockshuffle-k", default="4,8,16", help="Comma list of block sizes for block-shuffle.")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--min-len", type=int, default=60)
     ap.add_argument("--max-len", type=int, default=350)
     ap.add_argument("--max-proteins", type=int, default=0, help="0 means no limit.")
     ap.add_argument("--auric", action="store_true", help="If set, compute auric Fold_m certificate metrics.")
     ap.add_argument("--auric-m", default="6,8,10,12", help="Comma list of m values for Fold_m (e.g. 6,8,10,12).")
-    ap.add_argument("--auric-readouts", default="all", choices=["A", "B", "all"], help="Which ρ readouts to use.")
+    ap.add_argument("--auric-readouts", default="all", choices=["A", "B", "all"], help="Which rho readouts to use.")
+    ap.add_argument(
+        "--auric-rhoA-threshold",
+        default="median",
+        choices=["median", "mean", "zero"],
+        help="Thresholding rule for rho_A (default: median).",
+    )
     args = ap.parse_args()
 
     root = Path(__file__).resolve().parents[2]
@@ -216,6 +237,12 @@ def main() -> None:
         auric_ms = [int(x.strip()) for x in str(args.auric_m).split(",") if x.strip()]
         if not auric_ms:
             raise ValueError("--auric-m must contain at least one integer m value")
+
+    block_ks: List[int] = []
+    if int(args.blockshuffle_reps) > 0:
+        block_ks = [int(x.strip()) for x in str(args.blockshuffle_k).split(",") if x.strip()]
+        if not block_ks:
+            raise ValueError("--blockshuffle-k must contain at least one integer")
 
     t0 = time.perf_counter()
     used = 0
@@ -253,7 +280,14 @@ def main() -> None:
 
         # Random controls (mean over reps)
         ph_rms_rand = []
-        auric_ent_random: Dict[Tuple[str, int], List[float]] = {}
+        ph_rms_shuffle: List[float] = []
+        ph_rms_block: Dict[int, List[float]] = {k: [] for k in block_ks}
+
+        # Auric control metric streams
+        auric_ctrl_random: Dict[Tuple[str, int, str], List[float]] = {}
+        auric_ctrl_shuffle: Dict[Tuple[str, int, str], List[float]] = {}
+        auric_ctrl_block: Dict[Tuple[str, int, int, str], List[float]] = {}
+
         for r in range(args.random_reps):
             coords_r = random_chain_from_lengths(rng, bond_lengths)
             _, npr, ypr, _, pr, _ = beam_lift(
@@ -266,17 +300,74 @@ def main() -> None:
             )
             ph_rms_rand.append(pr)
             if args.auric:
-                bits_A = rho_A_from_yperp(ypr)
+                bits_A = rho_A_from_yperp(ypr, threshold=args.auric_rhoA_threshold)
                 bits_B = rho_B_from_npath(npr)
                 for m in auric_ms:
                     if args.auric_readouts in {"A", "all"}:
                         folded = fold_sliding_windows_bits(bits_A, m=m)
                         met = metrics_for_stream(bits_A, folded)
-                        auric_ent_random.setdefault(("A", m), []).append(float(met["type_entropy"]))
+                        for kname in ("type_entropy", "smb_rate_hat"):
+                            auric_ctrl_random.setdefault(("A", m, kname), []).append(float(met[kname]))
                     if args.auric_readouts in {"B", "all"}:
                         folded = fold_sliding_windows_bits(bits_B, m=m)
                         met = metrics_for_stream(bits_B, folded)
-                        auric_ent_random.setdefault(("B", m), []).append(float(met["type_entropy"]))
+                        for kname in ("type_entropy", "smb_rate_hat"):
+                            auric_ctrl_random.setdefault(("B", m, kname), []).append(float(met[kname]))
+
+        # Shuffle controls (bond-direction shuffle before lift)
+        for r in range(int(args.shuffle_reps)):
+            coords_s = shuffle_bond_directions(rng, coords)
+            _, nps, yps, _, pr, _ = beam_lift(
+                coords_s,
+                alphabet=args.alphabet,
+                beam_width=args.beam_width,
+                topk=args.topk,
+                w_perp=args.w_perp,
+                piecewise_seg_len=args.piecewise_seg_len,
+            )
+            ph_rms_shuffle.append(pr)
+            if args.auric:
+                bits_A = rho_A_from_yperp(yps, threshold=args.auric_rhoA_threshold)
+                bits_B = rho_B_from_npath(nps)
+                for m in auric_ms:
+                    if args.auric_readouts in {"A", "all"}:
+                        folded = fold_sliding_windows_bits(bits_A, m=m)
+                        met = metrics_for_stream(bits_A, folded)
+                        for kname in ("type_entropy", "smb_rate_hat"):
+                            auric_ctrl_shuffle.setdefault(("A", m, kname), []).append(float(met[kname]))
+                    if args.auric_readouts in {"B", "all"}:
+                        folded = fold_sliding_windows_bits(bits_B, m=m)
+                        met = metrics_for_stream(bits_B, folded)
+                        for kname in ("type_entropy", "smb_rate_hat"):
+                            auric_ctrl_shuffle.setdefault(("B", m, kname), []).append(float(met[kname]))
+
+        # Block-shuffle controls
+        for kblk in block_ks:
+            for r in range(int(args.blockshuffle_reps)):
+                coords_s = blockshuffle_bond_directions(rng, coords, block_len=int(kblk))
+                _, nps, yps, _, pr, _ = beam_lift(
+                    coords_s,
+                    alphabet=args.alphabet,
+                    beam_width=args.beam_width,
+                    topk=args.topk,
+                    w_perp=args.w_perp,
+                    piecewise_seg_len=args.piecewise_seg_len,
+                )
+                ph_rms_block[int(kblk)].append(pr)
+                if args.auric:
+                    bits_A = rho_A_from_yperp(yps, threshold=args.auric_rhoA_threshold)
+                    bits_B = rho_B_from_npath(nps)
+                    for m in auric_ms:
+                        if args.auric_readouts in {"A", "all"}:
+                            folded = fold_sliding_windows_bits(bits_A, m=m)
+                            met = metrics_for_stream(bits_A, folded)
+                            for kname in ("type_entropy", "smb_rate_hat"):
+                                auric_ctrl_block.setdefault(("A", m, int(kblk), kname), []).append(float(met[kname]))
+                        if args.auric_readouts in {"B", "all"}:
+                            folded = fold_sliding_windows_bits(bits_B, m=m)
+                            met = metrics_for_stream(bits_B, folded)
+                            for kname in ("type_entropy", "smb_rate_hat"):
+                                auric_ctrl_block.setdefault(("B", m, int(kblk), kname), []).append(float(met[kname]))
 
         rg = radius_of_gyration(coords)
         cd = contact_density(coords, cutoff=8.0, min_sep=3)
@@ -294,64 +385,112 @@ def main() -> None:
                 "ph_rms_real": ph_rms,
                 "ph_max_real": ph_max,
                 "ph_rms_random_mean": float(np.mean(ph_rms_rand)) if len(ph_rms_rand) else float("nan"),
+                "ph_rms_shuffle_mean": float(np.mean(ph_rms_shuffle)) if len(ph_rms_shuffle) else float("nan"),
                 "rg_real": rg,
                 "contact_density_real": cd,
                 "runtime_s_real": dt_real,
             }
         )
+        if block_ks:
+            last = rows[-1]
+            for kblk in block_ks:
+                xs = np.asarray(ph_rms_block[int(kblk)], dtype=np.float64)
+                last[f"ph_rms_blockshuffle_k{int(kblk)}_mean"] = float(np.mean(xs)) if len(xs) else float("nan")
 
         if args.auric:
-            bits_A_real = rho_A_from_yperp(y_perp)
+            bits_A_real = rho_A_from_yperp(y_perp, threshold=args.auric_rhoA_threshold)
             bits_B_real = rho_B_from_npath(n_path)
             for m in auric_ms:
                 if args.auric_readouts in {"A", "all"}:
                     folded = fold_sliding_windows_bits(bits_A_real, m=m)
                     met = metrics_for_stream(bits_A_real, folded)
-                    ent_rand = np.asarray(auric_ent_random.get(("A", m), []), dtype=np.float64)
-                    auric_rows.append(
-                        {
-                            "pdb_id": pdb_id,
-                            "chain": chain_id,
-                            "N": N,
-                            "alphabet": args.alphabet,
-                            "readout": "A",
-                            "m": m,
-                            "tm_beam": tm,
-                            "ph_rms_real": ph_rms,
-                            "ph_max_real": ph_max,
-                            "type_entropy_real": float(met["type_entropy"]),
-                            "type_entropy_random_mean": float(np.mean(ent_rand)) if len(ent_rand) else float("nan"),
-                            "delta_type_entropy_real_vs_random": cliffs_delta_one_vs_many(float(met["type_entropy"]), ent_rand) if len(ent_rand) else float("nan"),
-                            "type_support_real": float(met["type_support"]),
-                            "run1_mean_real": float(met["run1_mean"]),
-                            "run1_max_real": float(met["run1_max"]),
-                            "smb_rate_hat_real": float(met["smb_rate_hat"]),
-                        }
-                    )
+                    ent_rand = np.asarray(auric_ctrl_random.get(("A", m, "type_entropy"), []), dtype=np.float64)
+                    ent_shuf = np.asarray(auric_ctrl_shuffle.get(("A", m, "type_entropy"), []), dtype=np.float64)
+                    smb_rand = np.asarray(auric_ctrl_random.get(("A", m, "smb_rate_hat"), []), dtype=np.float64)
+                    smb_shuf = np.asarray(auric_ctrl_shuffle.get(("A", m, "smb_rate_hat"), []), dtype=np.float64)
+                    row = {
+                        "pdb_id": pdb_id,
+                        "chain": chain_id,
+                        "N": N,
+                        "alphabet": args.alphabet,
+                        "readout": "A",
+                        "m": m,
+                        "tm_beam": tm,
+                        "ph_rms_real": ph_rms,
+                        "ph_max_real": ph_max,
+                        "type_entropy_real": float(met["type_entropy"]),
+                        "type_entropy_random_mean": float(np.mean(ent_rand)) if len(ent_rand) else float("nan"),
+                        "type_entropy_shuffle_mean": float(np.mean(ent_shuf)) if len(ent_shuf) else float("nan"),
+                        "delta_type_entropy_real_vs_random": cliffs_delta_one_vs_many(float(met["type_entropy"]), ent_rand) if len(ent_rand) else float("nan"),
+                        "delta_type_entropy_real_vs_shuffle": cliffs_delta_one_vs_many(float(met["type_entropy"]), ent_shuf) if len(ent_shuf) else float("nan"),
+                        "pct_type_entropy_real_vs_random": percentile_among_null(float(met["type_entropy"]), ent_rand),
+                        "pct_type_entropy_real_vs_shuffle": percentile_among_null(float(met["type_entropy"]), ent_shuf),
+                        "type_support_real": float(met["type_support"]),
+                        "run1_mean_real": float(met["run1_mean"]),
+                        "run1_max_real": float(met["run1_max"]),
+                        "smb_rate_hat_real": float(met["smb_rate_hat"]),
+                        "smb_rate_hat_random_mean": float(np.mean(smb_rand)) if len(smb_rand) else float("nan"),
+                        "smb_rate_hat_shuffle_mean": float(np.mean(smb_shuf)) if len(smb_shuf) else float("nan"),
+                        "delta_smb_rate_hat_real_vs_random": cliffs_delta_one_vs_many(float(met["smb_rate_hat"]), smb_rand) if len(smb_rand) else float("nan"),
+                        "delta_smb_rate_hat_real_vs_shuffle": cliffs_delta_one_vs_many(float(met["smb_rate_hat"]), smb_shuf) if len(smb_shuf) else float("nan"),
+                        "pct_smb_rate_hat_real_vs_random": percentile_among_null(float(met["smb_rate_hat"]), smb_rand),
+                        "pct_smb_rate_hat_real_vs_shuffle": percentile_among_null(float(met["smb_rate_hat"]), smb_shuf),
+                    }
+                    for kblk in block_ks:
+                        eb = np.asarray(auric_ctrl_block.get(("A", m, int(kblk), "type_entropy"), []), dtype=np.float64)
+                        sb = np.asarray(auric_ctrl_block.get(("A", m, int(kblk), "smb_rate_hat"), []), dtype=np.float64)
+                        row[f"type_entropy_blockshuffle_k{int(kblk)}_mean"] = float(np.mean(eb)) if len(eb) else float("nan")
+                        row[f"delta_type_entropy_real_vs_blockshuffle_k{int(kblk)}"] = cliffs_delta_one_vs_many(float(met["type_entropy"]), eb) if len(eb) else float("nan")
+                        row[f"pct_type_entropy_real_vs_blockshuffle_k{int(kblk)}"] = percentile_among_null(float(met["type_entropy"]), eb)
+                        row[f"smb_rate_hat_blockshuffle_k{int(kblk)}_mean"] = float(np.mean(sb)) if len(sb) else float("nan")
+                        row[f"delta_smb_rate_hat_real_vs_blockshuffle_k{int(kblk)}"] = cliffs_delta_one_vs_many(float(met["smb_rate_hat"]), sb) if len(sb) else float("nan")
+                        row[f"pct_smb_rate_hat_real_vs_blockshuffle_k{int(kblk)}"] = percentile_among_null(float(met["smb_rate_hat"]), sb)
+                    auric_rows.append(row)
                 if args.auric_readouts in {"B", "all"}:
                     folded = fold_sliding_windows_bits(bits_B_real, m=m)
                     met = metrics_for_stream(bits_B_real, folded)
-                    ent_rand = np.asarray(auric_ent_random.get(("B", m), []), dtype=np.float64)
-                    auric_rows.append(
-                        {
-                            "pdb_id": pdb_id,
-                            "chain": chain_id,
-                            "N": N,
-                            "alphabet": args.alphabet,
-                            "readout": "B",
-                            "m": m,
-                            "tm_beam": tm,
-                            "ph_rms_real": ph_rms,
-                            "ph_max_real": ph_max,
-                            "type_entropy_real": float(met["type_entropy"]),
-                            "type_entropy_random_mean": float(np.mean(ent_rand)) if len(ent_rand) else float("nan"),
-                            "delta_type_entropy_real_vs_random": cliffs_delta_one_vs_many(float(met["type_entropy"]), ent_rand) if len(ent_rand) else float("nan"),
-                            "type_support_real": float(met["type_support"]),
-                            "run1_mean_real": float(met["run1_mean"]),
-                            "run1_max_real": float(met["run1_max"]),
-                            "smb_rate_hat_real": float(met["smb_rate_hat"]),
-                        }
-                    )
+                    ent_rand = np.asarray(auric_ctrl_random.get(("B", m, "type_entropy"), []), dtype=np.float64)
+                    ent_shuf = np.asarray(auric_ctrl_shuffle.get(("B", m, "type_entropy"), []), dtype=np.float64)
+                    smb_rand = np.asarray(auric_ctrl_random.get(("B", m, "smb_rate_hat"), []), dtype=np.float64)
+                    smb_shuf = np.asarray(auric_ctrl_shuffle.get(("B", m, "smb_rate_hat"), []), dtype=np.float64)
+                    row = {
+                        "pdb_id": pdb_id,
+                        "chain": chain_id,
+                        "N": N,
+                        "alphabet": args.alphabet,
+                        "readout": "B",
+                        "m": m,
+                        "tm_beam": tm,
+                        "ph_rms_real": ph_rms,
+                        "ph_max_real": ph_max,
+                        "type_entropy_real": float(met["type_entropy"]),
+                        "type_entropy_random_mean": float(np.mean(ent_rand)) if len(ent_rand) else float("nan"),
+                        "type_entropy_shuffle_mean": float(np.mean(ent_shuf)) if len(ent_shuf) else float("nan"),
+                        "delta_type_entropy_real_vs_random": cliffs_delta_one_vs_many(float(met["type_entropy"]), ent_rand) if len(ent_rand) else float("nan"),
+                        "delta_type_entropy_real_vs_shuffle": cliffs_delta_one_vs_many(float(met["type_entropy"]), ent_shuf) if len(ent_shuf) else float("nan"),
+                        "pct_type_entropy_real_vs_random": percentile_among_null(float(met["type_entropy"]), ent_rand),
+                        "pct_type_entropy_real_vs_shuffle": percentile_among_null(float(met["type_entropy"]), ent_shuf),
+                        "type_support_real": float(met["type_support"]),
+                        "run1_mean_real": float(met["run1_mean"]),
+                        "run1_max_real": float(met["run1_max"]),
+                        "smb_rate_hat_real": float(met["smb_rate_hat"]),
+                        "smb_rate_hat_random_mean": float(np.mean(smb_rand)) if len(smb_rand) else float("nan"),
+                        "smb_rate_hat_shuffle_mean": float(np.mean(smb_shuf)) if len(smb_shuf) else float("nan"),
+                        "delta_smb_rate_hat_real_vs_random": cliffs_delta_one_vs_many(float(met["smb_rate_hat"]), smb_rand) if len(smb_rand) else float("nan"),
+                        "delta_smb_rate_hat_real_vs_shuffle": cliffs_delta_one_vs_many(float(met["smb_rate_hat"]), smb_shuf) if len(smb_shuf) else float("nan"),
+                        "pct_smb_rate_hat_real_vs_random": percentile_among_null(float(met["smb_rate_hat"]), smb_rand),
+                        "pct_smb_rate_hat_real_vs_shuffle": percentile_among_null(float(met["smb_rate_hat"]), smb_shuf),
+                    }
+                    for kblk in block_ks:
+                        eb = np.asarray(auric_ctrl_block.get(("B", m, int(kblk), "type_entropy"), []), dtype=np.float64)
+                        sb = np.asarray(auric_ctrl_block.get(("B", m, int(kblk), "smb_rate_hat"), []), dtype=np.float64)
+                        row[f"type_entropy_blockshuffle_k{int(kblk)}_mean"] = float(np.mean(eb)) if len(eb) else float("nan")
+                        row[f"delta_type_entropy_real_vs_blockshuffle_k{int(kblk)}"] = cliffs_delta_one_vs_many(float(met["type_entropy"]), eb) if len(eb) else float("nan")
+                        row[f"pct_type_entropy_real_vs_blockshuffle_k{int(kblk)}"] = percentile_among_null(float(met["type_entropy"]), eb)
+                        row[f"smb_rate_hat_blockshuffle_k{int(kblk)}_mean"] = float(np.mean(sb)) if len(sb) else float("nan")
+                        row[f"delta_smb_rate_hat_real_vs_blockshuffle_k{int(kblk)}"] = cliffs_delta_one_vs_many(float(met["smb_rate_hat"]), sb) if len(sb) else float("nan")
+                        row[f"pct_smb_rate_hat_real_vs_blockshuffle_k{int(kblk)}"] = percentile_among_null(float(met["smb_rate_hat"]), sb)
+                    auric_rows.append(row)
         used += 1
 
     df = pd.DataFrame(rows)
@@ -361,8 +500,12 @@ def main() -> None:
     if args.auric:
         pd.DataFrame(auric_rows).to_csv(auric_out_csv, index=False)
 
-    ids_rel = str(ids_path.relative_to(root)).replace("\\", "/")
+    try:
+        ids_rel = ids_path.relative_to(root).as_posix()
+    except Exception:
+        ids_rel = ids_path.resolve().as_posix()
     out_rel = str(out_csv.relative_to(root)).replace("\\", "/")
+    auric_rel = auric_out_csv.relative_to(root).as_posix()
     report_path = rep_dir / f"pdb_beam_lift_bench_{args.tag}.md"
     lines = [
         "# PDB beam-lift benchmark (large-scale)",
@@ -383,7 +526,7 @@ def main() -> None:
         "",
         "## Outputs",
         f"- CSV: `{out_rel}`",
-        f"- Auric CSV: `{str(auric_out_csv.relative_to(root)).replace('\\\\', '/')}`" if args.auric else "",
+        f"- Auric CSV: `{auric_rel}`" if args.auric else "",
         "",
         "## Quick stats (median)",
         f"- tm_beam: {df['tm_beam'].median():.3f}",

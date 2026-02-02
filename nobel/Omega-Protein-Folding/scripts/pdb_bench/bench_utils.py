@@ -295,6 +295,57 @@ def perturb_chain_directions(
     return coords
 
 
+def shuffle_bond_directions(
+    rng: np.random.Generator,
+    coords_native: np.ndarray,
+) -> np.ndarray:
+    """
+    Shuffle the sequence of 3D bond directions while preserving per-bond lengths.
+
+    This is a correlation-destroying null that preserves the marginal distributions
+    of step directions and the original length schedule.
+    """
+    x = np.asarray(coords_native, dtype=np.float64)
+    d = x[1:] - x[:-1]
+    L = np.linalg.norm(d, axis=1)
+    dirs = d / np.clip(L[:, None], 1e-12, None)
+    perm = rng.permutation(dirs.shape[0])
+    dirs2 = dirs[perm]
+    d2 = dirs2 * L[:, None]
+    out = np.zeros_like(x)
+    for t in range(d2.shape[0]):
+        out[t + 1] = out[t] + d2[t]
+    return out
+
+
+def blockshuffle_bond_directions(
+    rng: np.random.Generator,
+    coords_native: np.ndarray,
+    *,
+    block_len: int,
+) -> np.ndarray:
+    """
+    Block-shuffle the bond-direction stream to probe correlation length.
+
+    Split the direction sequence into contiguous blocks of length block_len,
+    shuffle the blocks, keep intra-block order; preserve the original length schedule.
+    """
+    x = np.asarray(coords_native, dtype=np.float64)
+    d = x[1:] - x[:-1]
+    L = np.linalg.norm(d, axis=1)
+    dirs = d / np.clip(L[:, None], 1e-12, None)
+    n = dirs.shape[0]
+    k = int(max(1, block_len))
+    blocks = [dirs[i : i + k] for i in range(0, n, k)]
+    perm = rng.permutation(len(blocks))
+    dirs2 = np.concatenate([blocks[i] for i in perm], axis=0)
+    d2 = dirs2 * L[:, None]
+    out = np.zeros_like(x)
+    for t in range(d2.shape[0]):
+        out[t + 1] = out[t] + d2[t]
+    return out
+
+
 def cliffs_delta_one_vs_many(x: float, ys: np.ndarray) -> float:
     """
     Cliff's delta comparing a single x to a sample ys.

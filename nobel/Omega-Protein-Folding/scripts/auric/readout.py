@@ -5,22 +5,43 @@ from typing import Iterable, Tuple
 import numpy as np
 
 
-def rho_A_from_yperp(y_perp: np.ndarray, *, u: Tuple[float, float, float] = (1.0, 0.0, 0.0)) -> np.ndarray:
+def rho_A_from_yperp(
+    y_perp: np.ndarray,
+    *,
+    u: Tuple[float, float, float] = (1.0, 0.0, 0.0),
+    threshold: str = "median",
+) -> np.ndarray:
     """
     ρ_A(t) from perp-space.
 
     Reuses Omega's convention w0 = mean(y_perp), then binarizes along a fixed direction u:
-      b_t = 1{ u · (y_perp[t] - w0) >= 0 }.
+      s_t = u · (y_perp[t] - w0)
+
+    Thresholding (to reduce definition sensitivity):
+      - threshold="median" (default): b_t = 1{s_t >= median(s)}
+      - threshold="mean":             b_t = 1{s_t >= mean(s)}
+      - threshold="zero":             b_t = 1{s_t >= 0}   (legacy ablation)
 
     Returns uint8 array of shape (N,).
     """
     y = np.asarray(y_perp, dtype=np.float64)
     if y.ndim != 2 or y.shape[1] != 3:
         raise ValueError("y_perp must have shape (N,3)")
+    if y.shape[0] == 0:
+        return np.zeros((0,), dtype=np.uint8)
     w0 = y.mean(axis=0, keepdims=True)
     uvec = np.asarray(u, dtype=np.float64).reshape(3)
-    dots = (y - w0) @ uvec
-    return (dots >= 0.0).astype(np.uint8)
+    s = (y - w0) @ uvec
+    thr = str(threshold).lower().strip()
+    if thr == "median":
+        t = float(np.median(s))
+    elif thr == "mean":
+        t = float(np.mean(s))
+    elif thr in {"zero", "0", "sign"}:
+        t = 0.0
+    else:
+        raise ValueError(f"Unknown threshold={threshold!r}; expected one of: median, mean, zero")
+    return (s >= t).astype(np.uint8)
 
 
 def rho_B_from_npath(n_path: np.ndarray) -> np.ndarray:

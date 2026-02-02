@@ -46,10 +46,11 @@ Below we provide an inventory mapping each experiment family to its primary arti
   \item Protocol: define a binary readout $\rho(t)\in\{0,1\}$ and compute sliding windows $\omega_t^{(m)}$ of length $m$; stabilize each window via $\mathrm{Fold}_m:\{0,1\}^m\twoheadrightarrow X_m^{\mathrm Z}$ (no adjacent 11), producing a stable-type stream $x_t\in X_m^{\mathrm Z}$.
   \item Readouts used in this repository:
   \begin{itemize}
-    \item $\rho_A(t)$ from perp-space: with $w_0=\mathrm{mean}(y^\perp)$ and fixed $u=(1,0,0)$, $b_t=1\{u\cdot(y^\perp_t-w_0)\ge 0\}$.
+    \item $\rho_A(t)$ from perp-space: with $w_0=\mathrm{mean}(y^\perp)$ and fixed $u=(1,0,0)$, define $s_t=u\cdot(y^\perp_t-w_0)$ and binarize via a robust threshold (default $b_t=1\{s_t\ge \mathrm{median}(s)\}$; ablations use mean or zero threshold via \texttt{--auric-rhoA-threshold}).
     \item $\rho_B(t)$ from 6D steps: from $\Delta n_t=n_{t+1}-n_t$, binarize by majority sign across coordinates (deterministic tie-break).
   \end{itemize}
   \item Metrics: empirical entropy of stable types $H(\mathrm{type})$, support size, run-length statistics on the raw bitstream, and a practical SMB-style entropy-rate proxy (block-entropy slope).
+  \item Null families: in addition to random-chain and perturbed-native controls, we include bond-direction shuffle and block-shuffle controls (preserve per-bond lengths and marginal directions while destroying long-range correlation; configured via \texttt{--shuffle-reps}, \texttt{--blockshuffle-reps}, \texttt{--blockshuffle-k}).
   \item Outputs (from \texttt{scripts/pdb\_bench/phason\_stats.py --auric}):
   \begin{itemize}
     \item Report: \texttt{artifacts/reports/pdb\_auric\_stats\_n1000\_seed0.md}
