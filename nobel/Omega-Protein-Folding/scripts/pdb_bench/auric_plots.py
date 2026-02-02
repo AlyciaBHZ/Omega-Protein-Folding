@@ -33,6 +33,11 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--summary", required=True, help="auric_stats_summary_*.csv (from phason_stats.py --auric)")
     ap.add_argument("--tag", default="n1000_seed0")
+    ap.add_argument(
+        "--out-dir",
+        default="figures/pdb_bench",
+        help="Output directory for figures (relative to repo root unless absolute).",
+    )
     args = ap.parse_args()
 
     root = Path(__file__).resolve().parents[2]
@@ -41,7 +46,9 @@ def main() -> None:
         summary_path = (root / summary_path).resolve()
 
     df = pd.read_csv(summary_path)
-    out_dir = root / "figures" / "pdb_bench"
+    out_dir = Path(args.out_dir)
+    if not out_dir.is_absolute():
+        out_dir = (root / out_dir).resolve()
     ensure_dir(out_dir)
 
     if len(df) == 0:
