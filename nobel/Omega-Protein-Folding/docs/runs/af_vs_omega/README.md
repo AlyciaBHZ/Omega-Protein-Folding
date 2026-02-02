@@ -30,4 +30,12 @@ and plot it as a trajectory panel.
 - Artifacts:
   - `omega_trajectory_1CRN.csv`
   - `omega_trajectory_1CRN.png`
+  - `omega_trajectory_1CRN_v1.csv` (improved run; TM~0.74)
+  - `omega_trajectory_1CRN_v1.png`
+  - `omega_pred_1CRN_v1.pdb` (CA-only trace for plotting)
+
+## 6D shadow projections (Auric-space)
+
+- AlphaFold DB: `shadow_afdb_P06454.png`
+- Omega: `shadow_omega_1CRN.png`
 

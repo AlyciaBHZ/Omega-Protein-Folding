@@ -399,6 +399,11 @@ def main() -> None:
         default="",
         help="Optional CSV path to write a per-step audit log (best beam state per t).",
     )
+    ap.add_argument(
+        "--pred-pdb-out",
+        default="",
+        help="Optional PDB path to write the final predicted CA trace (single-seed only).",
+    )
     args = ap.parse_args()
 
     root = Path(__file__).resolve().parents[2]
@@ -427,7 +432,7 @@ def main() -> None:
             audit_out = Path(str(args.audit_out))
             if not audit_out.is_absolute():
                 audit_out = (root / audit_out).resolve()
-        _, meta = run_one(
+        best_state, meta = run_one(
             coords_native,
             seed=s,
             codec=str(args.codec),
@@ -443,6 +448,22 @@ def main() -> None:
             wB=float(args.wB),
             audit_out=audit_out,
         )
+        if str(args.pred_pdb_out).strip() and len(seeds) == 1:
+            out_pdb = Path(str(args.pred_pdb_out))
+            if not out_pdb.is_absolute():
+                out_pdb = (root / out_pdb).resolve()
+            ensure_dir(out_pdb.parent)
+            # Write a minimal CA-only PDB for visualization/debugging.
+            lines = []
+            for i, (x, y, z) in enumerate(np.asarray(best_state.coords, dtype=np.float64), start=1):
+                # PDB fixed columns; keep it simple.
+                lines.append(
+                    f"ATOM  {i:5d}  CA  ALA A{i:4d}    "
+                    f"{x:8.3f}{y:8.3f}{z:8.3f}"
+                    f"{1.00:6.2f}{0.00:6.2f}           C"
+                )
+            lines.append("END")
+            out_pdb.write_text("\n".join(lines) + "\n", encoding="utf-8")
         meta.update({"pdb_id": str(args.pdb_id).upper(), "chain": str(chain_id), "N": int(coords_native.shape[0])})
         rows.append(meta)
         print(
