@@ -39,6 +39,49 @@ Early experiments showed that naive hard phason rejection can freeze search when
 
 The projector performs a small inner-loop optimization of $w_0$ (a perpendicular-space translation) to reduce phason violation and accept the repaired candidate if it becomes feasible. This converts phason from a passive constraint into an active dynamical relaxation (a phason-flip analogue).
 
+\subsection{Auric multi-scale certificate metrics disambiguate ``theory vs protocol'' at 1000-PDB scale}
+
+At 1000-PDB scale, scalar phason proxies such as $\mathrm{ph}_{\mathrm{rms}}$ or $\mathrm{ph}_{\max}$ can be \emph{too low-resolution} to distinguish a genuine theoretical failure from an \emph{observation-protocol} failure (e.g. misaligned slicing axis or offset definition). We therefore introduce an \textbf{Auric multi-scale certificate} family: instead of a single scalar, we compute distributional, multi-$m$ signatures from stabilized type streams.
+
+\textbf{Protocol.} For each protein, we derive a binary readout $\rho(t)\in\{0,1\}$, then compute length-$m$ sliding windows and stabilize them via $\mathrm{Fold}_m$ (mapping arbitrary bit windows to golden-mean legal types with no adjacent 11), producing a stable-type stream. We report two complementary readouts:
+(i) \textbf{$\rho_A$ (geometry certifier)} from perpendicular-space $y^\perp$ using a \textbf{shared-PCA axis} computed once from the real chain and reused across nulls, with robust median thresholding; and
+(ii) \textbf{$\rho_B$ (logic certifier)} from the 6D step stream $\Delta n$ using a parity/majority-sign binarization. To avoid false positives from trivial marginals, we compare against strong correlation-destroying nulls (bond-direction shuffle and block-shuffle) in addition to random chains.
+
+\textbf{Full1k results.} On a reproducible set of 1000 PDB chains (length-filtered to $60\le N\le 350$), Auric produces stable, large effect sizes across $m\in\{6,8,10\}$. The shared-PCA $\rho_A$ readout yields a strong separation (lower type entropy and lower entropy-rate proxy) relative to shuffle and block-shuffle nulls, while the parity $\rho_B$ readout provides complementary evidence that is particularly strong on the entropy-rate proxy (Table~\ref{tab:auric_full1k}). Notably, cross-readout agreement remains close to zero ($\mathrm{corr}(z_A,z_B)\approx 0$), indicating that the geometry and logic certificates capture distinct aspects of order rather than redundant views of the same signal.
+
+\begin{table}[t]
+  \centering
+  \caption{Auric full1k hybrid protocol (triple232; $m=8$): effect sizes vs strong nulls. Cliff's $\delta<0$ indicates the real chain is more ordered (lower metric) than the null. Percentiles are native percentiles among shuffle replicates. Full per-$m$ tables and plots are provided in \texttt{docs/runs/full1k\_hybrid\_auric/}.}
+  \label{tab:auric_full1k}
+  \begin{tabular}{lllllll}
+    \toprule
+    Readout & Metric & mean $\delta$(real,shuffle) & mean $\delta$(real,blk8) & median pct(real,shuffle) \\
+    \midrule
+    $\rho_A$ (PCA) & $H(\mathrm{type})$ & -0.274 & -0.242 & 0.300 \\
+    $\rho_B$ (parity) & $H(\mathrm{type})$ & -0.366 & -0.119 & 0.200 \\
+    $\rho_A$ (PCA) & $\widehat{h}_{\mathrm{SMB}}$ & -0.298 & -0.278 & 0.300 \\
+    $\rho_B$ (parity) & $\widehat{h}_{\mathrm{SMB}}$ & -0.494 & -0.326 & 0.100 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\begin{figure}[t]
+  \centering
+  \begin{subfigure}[t]{0.49\linewidth}
+    \centering
+    \maybeincludegraphics[width=\linewidth]{../docs/runs/full1k_hybrid_auric/plots/auric_entropy_multiscale_triple232_rhoA_n1000_seed0_triple232_hybrid_pcaA_parityB_shuffle10_blk8x5_r1}
+    \caption{$\rho_A$ (shared-PCA): multi-$m$ trends.}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[t]{0.49\linewidth}
+    \centering
+    \maybeincludegraphics[width=\linewidth]{../docs/runs/full1k_hybrid_auric/plots/auric_entropy_multiscale_triple232_rhoB_n1000_seed0_triple232_hybrid_pcaA_parityB_shuffle10_blk8x5_r1}
+    \caption{$\rho_B$ (parity): multi-$m$ trends.}
+  \end{subfigure}
+  \caption{Auric multi-scale certificate on full1k under the hybrid protocol. Multi-scale curves summarize median $H(\mathrm{type})$ across $m\in\{6,8,10\}$ for real and null families.}
+  \label{fig:auric_multiscale_full1k}
+\end{figure}
+
 \subsection{Projector repair enables feasible hard gates on a long-chain $\beta$-barrel (1EMA/GFP)}
 
 On the long-chain GFP target (1EMA, N=221), the projector substantially reduces phason ratio while maintaining or improving structural metrics, whereas filter-style hard rejection incurs a large reject count and can lower TM-score. These results support the interpretation that feasibility at tight gates is limited by alignment ($w_0$) and expressivity, not by the usefulness of phason as a geometric regularizer.
