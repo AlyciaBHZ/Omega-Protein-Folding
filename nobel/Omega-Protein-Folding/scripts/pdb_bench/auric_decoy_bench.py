@@ -28,10 +28,16 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Iterable, List, Tuple
 
+import sys
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from Bio.PDB.PDBParser import PDBParser
+
+# Allow running as a script without installing a package.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str((Path(__file__).resolve().parents[1] / "auric").resolve()))
 
 from bench_utils import PHI, cliffs_delta_one_vs_many, ensure_dir, oracle_direction_reconstruct
 
