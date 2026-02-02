@@ -38,8 +38,8 @@ python scripts/pdb_bench/phason_stats.py \
   - `pdb_download_manifest_n1000_seed0.csv`
 - **Paper-facing summary slice (recommended entry point)**:
   - `auric_summary_slice_n1000_seed0_triple232_hybrid_pcaA_parityB_shuffle10_blk8x5_r1.md`
-- **Figures**:
-  - `figures/` (boxplots, ECDFs, multi-scale curves)
+- **Plots**:
+  - `plots/` (boxplots, ECDFs, multi-scale curves)
 
 Note: the large CSVs and auto-generated report markdowns are written under
 `data/processed/pdb_bench/` and `artifacts/reports/` respectively (those folders are git-ignored).
