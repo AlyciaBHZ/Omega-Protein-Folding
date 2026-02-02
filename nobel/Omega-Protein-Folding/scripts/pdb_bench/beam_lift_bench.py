@@ -54,12 +54,19 @@ from bench_utils import (  # noqa: E402
 try:
     from fold_m import fold_sliding_windows_bits  # type: ignore
     from metrics import metrics_for_stream  # type: ignore
-    from readout import rho_A_from_yperp, rho_B_from_npath  # type: ignore
+    from readout import (  # type: ignore
+        rho_A_from_yperp,
+        rho_B_from_npath,
+        rho_B_from_yperp_position,
+        rho_B_from_yperp_velocity,
+    )
 except Exception:  # pragma: no cover
     fold_sliding_windows_bits = None  # type: ignore
     metrics_for_stream = None  # type: ignore
     rho_A_from_yperp = None  # type: ignore
     rho_B_from_npath = None  # type: ignore
+    rho_B_from_yperp_position = None  # type: ignore
+    rho_B_from_yperp_velocity = None  # type: ignore
 
 
 def beam_lift(
@@ -186,6 +193,21 @@ def percentile_among_null(x: float, ys: np.ndarray) -> float:
     return float(np.mean(ys <= float(x)))
 
 
+def zscore_against_null(x: float, ys: np.ndarray) -> float:
+    """
+    Z-score of x relative to null rep distribution ys: (x-mean)/std.
+    """
+    ys = np.asarray(ys, dtype=np.float64)
+    ys = ys[np.isfinite(ys)]
+    if ys.size < 2:
+        return float("nan")
+    mu = float(np.mean(ys))
+    sd = float(np.std(ys))
+    if sd < 1e-12:
+        return float("nan")
+    return (float(x) - mu) / sd
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--ids", required=True)
@@ -212,6 +234,24 @@ def main() -> None:
         choices=["median", "mean", "zero"],
         help="Thresholding rule for rho_A (default: median).",
     )
+    ap.add_argument(
+        "--auric-u-mode",
+        default="fixed",
+        choices=["fixed", "pca"],
+        help="Auric: direction selection for perp-space projection (fixed axis vs per-protein PCA from real y_perp).",
+    )
+    ap.add_argument(
+        "--auric-rhoB-mode",
+        default="parity",
+        choices=["parity", "vel", "pos"],
+        help="Auric: rho_B construction (parity over 6D steps; vel=perp-space velocity; pos=perp-space position).",
+    )
+    ap.add_argument(
+        "--auric-rhoB-threshold",
+        default="zero",
+        choices=["median", "mean", "zero"],
+        help="Auric: threshold rule for rho_B when mode=vel/pos.",
+    )
     args = ap.parse_args()
 
     root = Path(__file__).resolve().parents[2]
@@ -232,7 +272,14 @@ def main() -> None:
     rng_global = np.random.default_rng(args.seed)
     auric_ms: List[int] = []
     if args.auric:
-        if fold_sliding_windows_bits is None or metrics_for_stream is None or rho_A_from_yperp is None or rho_B_from_npath is None:
+        if (
+            fold_sliding_windows_bits is None
+            or metrics_for_stream is None
+            or rho_A_from_yperp is None
+            or rho_B_from_npath is None
+            or rho_B_from_yperp_velocity is None
+            or rho_B_from_yperp_position is None
+        ):
             raise RuntimeError("Auric is enabled but auric modules failed to import (scripts/auric/*).")
         auric_ms = [int(x.strip()) for x in str(args.auric_m).split(",") if x.strip()]
         if not auric_ms:
@@ -243,6 +290,34 @@ def main() -> None:
         block_ks = [int(x.strip()) for x in str(args.blockshuffle_k).split(",") if x.strip()]
         if not block_ks:
             raise ValueError("--blockshuffle-k must contain at least one integer")
+
+    def auric_uvec_from_real_yperp(y_perp: np.ndarray) -> np.ndarray:
+        if not args.auric or str(args.auric_u_mode).lower().strip() != "pca":
+            return np.array([1.0, 0.0, 0.0], dtype=np.float64)
+        Y = np.asarray(y_perp, dtype=np.float64)
+        Yc = Y - Y.mean(axis=0, keepdims=True)
+        if np.allclose(Yc, 0.0):
+            return np.array([1.0, 0.0, 0.0], dtype=np.float64)
+        _, _, Vt = np.linalg.svd(Yc, full_matrices=False)
+        u = np.asarray(Vt[0], dtype=np.float64)
+        nu = float(np.linalg.norm(u))
+        u = (u / nu) if nu != 0.0 else np.array([1.0, 0.0, 0.0], dtype=np.float64)
+        for k in range(3):
+            if abs(u[k]) > 1e-12:
+                if u[k] < 0:
+                    u = -u
+                break
+        return u
+
+    def auric_rhoB_bits(y_perp: np.ndarray, n_path: np.ndarray, uvec: np.ndarray) -> np.ndarray:
+        mode = str(args.auric_rhoB_mode).lower().strip()
+        if mode == "parity":
+            return rho_B_from_npath(n_path)
+        if mode == "vel":
+            return rho_B_from_yperp_velocity(y_perp, u=tuple(uvec.tolist()), u_mode="fixed", threshold=str(args.auric_rhoB_threshold))
+        if mode == "pos":
+            return rho_B_from_yperp_position(y_perp, u=tuple(uvec.tolist()), u_mode="fixed", threshold=str(args.auric_rhoB_threshold))
+        raise ValueError(f"Unknown --auric-rhoB-mode={args.auric_rhoB_mode!r}")
 
     t0 = time.perf_counter()
     used = 0
@@ -278,6 +353,11 @@ def main() -> None:
         )
         dt_real = time.perf_counter() - t1
 
+        # Protocol-fixed axis u computed from the real-chain y_perp (shared across null families).
+        uvec = np.array([1.0, 0.0, 0.0], dtype=np.float64)
+        if args.auric:
+            uvec = auric_uvec_from_real_yperp(y_perp)
+
         # Random controls (mean over reps)
         ph_rms_rand = []
         ph_rms_shuffle: List[float] = []
@@ -300,8 +380,10 @@ def main() -> None:
             )
             ph_rms_rand.append(pr)
             if args.auric:
-                bits_A = rho_A_from_yperp(ypr, threshold=args.auric_rhoA_threshold)
-                bits_B = rho_B_from_npath(npr)
+                # Protocol-fixed axis u computed from the real-chain y_perp (shared across nulls).
+                # Note: uvec is defined below after real lift, and reused here.
+                bits_A = rho_A_from_yperp(ypr, u=tuple(uvec.tolist()), u_mode="fixed", threshold=args.auric_rhoA_threshold)
+                bits_B = auric_rhoB_bits(ypr, npr, uvec)
                 for m in auric_ms:
                     if args.auric_readouts in {"A", "all"}:
                         folded = fold_sliding_windows_bits(bits_A, m=m)
@@ -327,8 +409,8 @@ def main() -> None:
             )
             ph_rms_shuffle.append(pr)
             if args.auric:
-                bits_A = rho_A_from_yperp(yps, threshold=args.auric_rhoA_threshold)
-                bits_B = rho_B_from_npath(nps)
+                bits_A = rho_A_from_yperp(yps, u=tuple(uvec.tolist()), u_mode="fixed", threshold=args.auric_rhoA_threshold)
+                bits_B = auric_rhoB_bits(yps, nps, uvec)
                 for m in auric_ms:
                     if args.auric_readouts in {"A", "all"}:
                         folded = fold_sliding_windows_bits(bits_A, m=m)
@@ -355,8 +437,8 @@ def main() -> None:
                 )
                 ph_rms_block[int(kblk)].append(pr)
                 if args.auric:
-                    bits_A = rho_A_from_yperp(yps, threshold=args.auric_rhoA_threshold)
-                    bits_B = rho_B_from_npath(nps)
+                    bits_A = rho_A_from_yperp(yps, u=tuple(uvec.tolist()), u_mode="fixed", threshold=args.auric_rhoA_threshold)
+                    bits_B = auric_rhoB_bits(yps, nps, uvec)
                     for m in auric_ms:
                         if args.auric_readouts in {"A", "all"}:
                             folded = fold_sliding_windows_bits(bits_A, m=m)
@@ -398,8 +480,8 @@ def main() -> None:
                 last[f"ph_rms_blockshuffle_k{int(kblk)}_mean"] = float(np.mean(xs)) if len(xs) else float("nan")
 
         if args.auric:
-            bits_A_real = rho_A_from_yperp(y_perp, threshold=args.auric_rhoA_threshold)
-            bits_B_real = rho_B_from_npath(n_path)
+            bits_A_real = rho_A_from_yperp(y_perp, u=tuple(uvec.tolist()), u_mode="fixed", threshold=args.auric_rhoA_threshold)
+            bits_B_real = auric_rhoB_bits(y_perp, n_path, uvec)
             for m in auric_ms:
                 if args.auric_readouts in {"A", "all"}:
                     folded = fold_sliding_windows_bits(bits_A_real, m=m)
@@ -425,6 +507,7 @@ def main() -> None:
                         "delta_type_entropy_real_vs_shuffle": cliffs_delta_one_vs_many(float(met["type_entropy"]), ent_shuf) if len(ent_shuf) else float("nan"),
                         "pct_type_entropy_real_vs_random": percentile_among_null(float(met["type_entropy"]), ent_rand),
                         "pct_type_entropy_real_vs_shuffle": percentile_among_null(float(met["type_entropy"]), ent_shuf),
+                        "z_type_entropy_real_vs_shuffle": zscore_against_null(float(met["type_entropy"]), ent_shuf),
                         "type_support_real": float(met["type_support"]),
                         "run1_mean_real": float(met["run1_mean"]),
                         "run1_max_real": float(met["run1_max"]),
@@ -435,6 +518,7 @@ def main() -> None:
                         "delta_smb_rate_hat_real_vs_shuffle": cliffs_delta_one_vs_many(float(met["smb_rate_hat"]), smb_shuf) if len(smb_shuf) else float("nan"),
                         "pct_smb_rate_hat_real_vs_random": percentile_among_null(float(met["smb_rate_hat"]), smb_rand),
                         "pct_smb_rate_hat_real_vs_shuffle": percentile_among_null(float(met["smb_rate_hat"]), smb_shuf),
+                        "z_smb_rate_hat_real_vs_shuffle": zscore_against_null(float(met["smb_rate_hat"]), smb_shuf),
                     }
                     for kblk in block_ks:
                         eb = np.asarray(auric_ctrl_block.get(("A", m, int(kblk), "type_entropy"), []), dtype=np.float64)
@@ -470,6 +554,7 @@ def main() -> None:
                         "delta_type_entropy_real_vs_shuffle": cliffs_delta_one_vs_many(float(met["type_entropy"]), ent_shuf) if len(ent_shuf) else float("nan"),
                         "pct_type_entropy_real_vs_random": percentile_among_null(float(met["type_entropy"]), ent_rand),
                         "pct_type_entropy_real_vs_shuffle": percentile_among_null(float(met["type_entropy"]), ent_shuf),
+                        "z_type_entropy_real_vs_shuffle": zscore_against_null(float(met["type_entropy"]), ent_shuf),
                         "type_support_real": float(met["type_support"]),
                         "run1_mean_real": float(met["run1_mean"]),
                         "run1_max_real": float(met["run1_max"]),
@@ -480,6 +565,7 @@ def main() -> None:
                         "delta_smb_rate_hat_real_vs_shuffle": cliffs_delta_one_vs_many(float(met["smb_rate_hat"]), smb_shuf) if len(smb_shuf) else float("nan"),
                         "pct_smb_rate_hat_real_vs_random": percentile_among_null(float(met["smb_rate_hat"]), smb_rand),
                         "pct_smb_rate_hat_real_vs_shuffle": percentile_among_null(float(met["smb_rate_hat"]), smb_shuf),
+                        "z_smb_rate_hat_real_vs_shuffle": zscore_against_null(float(met["smb_rate_hat"]), smb_shuf),
                     }
                     for kblk in block_ks:
                         eb = np.asarray(auric_ctrl_block.get(("B", m, int(kblk), "type_entropy"), []), dtype=np.float64)
@@ -534,6 +620,35 @@ def main() -> None:
         f"- ph_rms_random_mean: {df['ph_rms_random_mean'].median():.3f}",
         "",
     ]
+    if args.auric:
+        try:
+            adf = pd.read_csv(auric_out_csv)
+        except Exception:
+            adf = pd.DataFrame()
+        if len(adf) and args.auric_readouts == "all":
+            for metric in ["type_entropy", "smb_rate_hat"]:
+                zcol = f"z_{metric}_real_vs_shuffle"
+                if zcol not in adf.columns:
+                    continue
+                lines.append(f"## Cross-readout agreement (corr of z vs shuffle) — {metric}")
+                for m in sorted(adf["m"].dropna().unique().tolist()):
+                    subA = adf[(adf["readout"] == "A") & (adf["m"] == m)][["pdb_id", zcol]].copy()
+                    subB = adf[(adf["readout"] == "B") & (adf["m"] == m)][["pdb_id", zcol]].copy()
+                    if len(subA) == 0 or len(subB) == 0:
+                        continue
+                    subA = subA.rename(columns={zcol: "zA"})
+                    subB = subB.rename(columns={zcol: "zB"})
+                    j = subA.merge(subB, on="pdb_id", how="inner")
+                    zA = j["zA"].to_numpy(dtype=np.float64)
+                    zB = j["zB"].to_numpy(dtype=np.float64)
+                    mask = np.isfinite(zA) & np.isfinite(zB)
+                    zA = zA[mask]
+                    zB = zB[mask]
+                    if len(zA) < 3:
+                        continue
+                    corr = float(np.corrcoef(zA, zB)[0, 1])
+                    lines.append(f"- m={int(m)}: corr(z_A,z_B)={corr:.3f} (n={len(zA)})")
+            lines.append("")
     report_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
     dt = time.perf_counter() - t0
