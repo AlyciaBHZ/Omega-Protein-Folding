@@ -1,0 +1,176 @@
+\section{Results under the unique encoding \texorpdfstring{$\mu^\ast$}{mu*}}
+\label{sec:results}
+
+Throughout this section we fix the unique encoding $\mu^\ast$ from Theorem~\ref{thm:unique_encoding}.
+
+\subsection{Control-boundary optimization and the unique encoding}
+\label{sec:control_boundary_results}
+
+The encoding search is performed over the finite set of $24$ bijections $\mu:\{A,C,G,U\}\to\{00,01,10,11\}$.
+Using the control set $\mathcal{K}=\{\mathrm{AUG,UAA,UAG,UGA}\}$ and the boundary-hit score $S(\mu)$ (Definition~\ref{def:control_boundary_score}), the exhaustive scan yields a unique maximizer $\mu^\ast$.
+The full histogram is recorded in Appendix~\ref{app:generated_tables}.
+\input{sections/generated/control_objective_brief}
+
+\subsection{Control codon table under \texorpdfstring{$\mu^\ast$}{mu*}}
+\label{sec:control_codon_table}
+
+Under the unique optimum $\mu^\ast$, the four control codons have the following folded signatures:
+\begin{center}
+\small
+\setlength{\tabcolsep}{6pt}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{llllrrl}
+\toprule
+codon & bits & $N$ & $\mathrm{Fold}_6(N)$ & $V$ & $\Delta$ & boundary? \\
+\midrule
+\input{sections/generated/control_codons_rows}
+\end{tabular}
+\end{center}
+
+\subsection{The start--stop \texorpdfstring{$14/48$}{14/48} symmetry: same boundary, different uplift}
+\label{sec:start_stop_symmetry}
+
+Under $\mu^\ast$, the start codon and the canonical stop codon satisfy:
+\[
+N_{\mu^\ast}(\mathrm{AUG})=14,\qquad
+N_{\mu^\ast}(\mathrm{UAA})=48,
+\qquad
+w_{\mu^\ast}(\mathrm{AUG})=w_{\mu^\ast}(\mathrm{UAA})=100001\in X_6^{\mathrm{bdry}}.
+\]
+By Proposition~\ref{prop:boundary_preimages}, $\{14,48\}$ is exactly the boundary preimage pair of $100001$.
+Hence start and stop share the same topological boundary type, while their uplift variables split:
+\[
+\Delta_{\mu^\ast}(\mathrm{AUG})=0,\qquad
+\Delta_{\mu^\ast}(\mathrm{UAA})=34.
+\]
+\begin{remark}[Interpretation layer (non-premise)]
+The equal folded boundary type but split uplift values provide a natural gate model: a low-uplift preimage (start) corresponds to a purely window-visible boundary, while the $F_9$-uplifted preimage (stop) corresponds to the same local boundary carrying an external load.
+This interpretive picture is not used in any proof.
+\end{remark}
+
+\subsection{Bitwise complement matches Watson--Crick complement (emergent)}
+\label{sec:bitwise_complement}
+
+The encoding $\mu^\ast$ has an additional property not used in the identification criterion:
+Watson--Crick complement corresponds to bitwise negation:
+\[
+A\leftrightarrow U \quad\Longleftrightarrow\quad 00\leftrightarrow 11,\qquad
+C\leftrightarrow G \quad\Longleftrightarrow\quad 01\leftrightarrow 10.
+\]
+This makes base-pair complementarity a literal logical symmetry at the two-bit layer.
+\cite{WatsonCrick1953,Alberts2014}
+\input{sections/generated/encoding_symmetry_summary}
+
+\subsection{Stop codon fine structure}
+\label{sec:stop_fine_structure}
+
+The three standard stop codons exhibit three distinct structures under $\mu^\ast$:
+\begin{definition}[Stop-codon structural classes at window length $6$]
+\label{def:stop_classes}
+Fix $\mu^\ast$.
+For a stop codon $c\in\{\mathrm{UAA,UAG,UGA}\}$, define:
+\begin{itemize}
+\item \emph{boundary stop} if $w_{\mu^\ast}(c)\in X_6^{\mathrm{bdry}}$;
+\item \emph{uplifted blocker} if $w_{\mu^\ast}(c)\notin X_6^{\mathrm{bdry}}$ but $\Delta_{\mu^\ast}(c)=34$;
+\item \emph{projection mismatch} if $\Delta_{\mu^\ast}(c)=55$ (the maximal window-$6$ uplift).
+\end{itemize}
+These are purely arithmetic classes induced by $(w_{\mu^\ast}(c),\Delta_{\mu^\ast}(c))$.
+\end{definition}
+
+\begin{center}
+\small
+\setlength{\tabcolsep}{6pt}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{lllllll}
+\toprule
+Stop codon & $\mathrm{code}_{\mu^\ast}$ & $N$ & $\mathrm{Fold}_6(N)$ & $V$ & $\Delta$ & type \\
+\midrule
+\input{sections/generated/stop_fine_structure_rows}
+\end{tabular}
+\end{center}
+
+In particular, $\mathrm{UAA}$ is the only stop codon that lands in the boundary sector, and it shares its boundary type with $\mathrm{AUG}$.
+The codon $\mathrm{UAG}$ lands on a high-$V$ cyclic state while carrying the same $34$ uplift as $\mathrm{UAA}$.
+The codon $\mathrm{UGA}$ exhibits an extreme mismatch: a large input index $N$ with a very small folded value $V$, and the largest uplift observed at window length $6$.
+Appendix~\ref{app:generated_tables} records the corresponding stop-codon signatures across $m\in\{6,7,8,9\}$ under $\mu^\ast$.
+
+\subsection{The boundary sector contains exactly six codons}
+\label{sec:boundary_sector_codons}
+
+Since each of the three boundary words has exactly two preimages, the boundary sector contains exactly six microstate indices:
+\[
+\{14,17,19,48,51,53\}=\mathrm{Fold}_6^{-1}(X_6^{\mathrm{bdry}}).
+\]
+Under $\mu^\ast$, these indices correspond to the following six codons:
+\begin{center}
+\small
+\setlength{\tabcolsep}{6pt}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{rllll}
+\toprule
+$N$ & codon & amino acid & boundary word & uplift split \\
+\midrule
+\input{sections/generated/boundary_sector_codons_rows}
+\end{tabular}
+\end{center}
+
+Thus, at the minimal folding level, the boundary sector forms a small ``control and hinge'' cluster involving start/stop and a specific subset of $\{\mathrm{His},\mathrm{Tyr},\mathrm{Ser}\}$ codons.
+
+\begin{remark}[A testable enrichment hypothesis]
+The appearance of $\mathrm{His}$, $\mathrm{Ser}$, and $\mathrm{Tyr}$ in the boundary sector is mathematically forced by $\mu^\ast$ and the fixed boundary preimage set.
+In the biological interpretation layer, these residues are widely associated with enzymatic catalysis and signaling mechanisms \cite{NelsonCox2017,Alberts2014}.
+This motivates an enrichment test: compare boundary-hit rates $B(i)$ near annotated functional sites against background codon pools (Appendix~\ref{app:boundary_enrichment}).
+\end{remark}
+
+\subsection{Amino-acid Zeckendorf spectra and notable extrema}
+\label{sec:aa_spectra}
+
+For each amino acid $a$, consider the multiset of Zeckendorf levels $\{V_{\mu^\ast}(c): \mathsf{Gen}(c)=a\}$ over its synonymous codons.
+This defines an amino-acid spectrum interval $[V_{\min}(a),V_{\max}(a)]$ and a discrete spectrum set.
+Appendix~\ref{app:generated_tables} records the full table generated by the scripts.
+Here we highlight two extrema.
+
+\paragraph{Minimal level ($V=0$).}
+There are exactly four codons at $V=0$:
+\[
+\{\mathrm{AAA}(\mathrm{Lys}),\ \mathrm{CCC}(\mathrm{Pro}),\ \mathrm{GAG}(\mathrm{Glu}),\ \mathrm{UCU}(\mathrm{Ser})\}.
+\]
+
+\paragraph{Maximal level ($V=20$).}
+There are exactly two codons at $V=20$:
+\[
+\{\mathrm{CCA}(\mathrm{Pro}),\ \mathrm{UCG}(\mathrm{Ser})\}.
+\]
+
+\paragraph{Full-spectrum proline.}
+Among amino acids with four synonymous codons, proline achieves the maximal possible spectral span:
+\[
+V_{\min}(\mathrm{Pro})=0,\qquad V_{\max}(\mathrm{Pro})=20.
+\]
+\begin{remark}[A falsifiable codon-usage hypothesis]
+The fact that a single residue can be called by both minimal and maximal Zeckendorf levels motivates a testable hypothesis: in organisms with strong codon-usage bias, proline synonym choices may show systematic shifts in the distribution of $(V_{\mu^\ast}(c),\Delta_{\mu^\ast}(c))$ across structural contexts.
+Appendix~\ref{app:stat_tests} specifies codon-usage tests against folding spectra.
+\end{remark}
+
+\subsection{Exploratory correlations and negative results}
+\label{sec:hydrophobicity}
+
+The folding template induces several natural scalar summaries per amino acid.
+We report two simple correlation tests against standard physicochemical scales, as exploratory diagnostics rather than premises.
+
+\paragraph{A negative result for $V$.}
+Let $V_\mathrm{mean}(a)$ be the uniform-codon average of the Zeckendorf level $V_{\mu^\ast}(c)$ over synonymous codons of amino acid $a$.
+We find that $V_\mathrm{mean}$ is \emph{not} strongly correlated with either the Kyte--Doolittle hydrophobicity index \cite{KyteDoolittle1982} or amino-acid molecular mass \cite{NelsonCox2017}:
+\input{sections/generated/vmean_property_correlations}
+This indicates that the window-visible folding level $V$ is not a simple linear proxy for hydrophobicity or mass in the minimal model.
+
+\paragraph{An exploratory correlation for the input index.}
+In contrast, if we use the input-level statistic
+\[
+N_{\max}(a):=\max\{N_{\mu^\ast}(c): \mathsf{Gen}(c)=a\},
+\]
+we obtain a moderate positive correlation with hydrophobicity:
+\input{sections/generated/hydrophobicity_correlation}
+This should be interpreted cautiously, as it depends on the particular statistic ($N_{\max}$) and does not by itself establish a mechanistic link.
+
+

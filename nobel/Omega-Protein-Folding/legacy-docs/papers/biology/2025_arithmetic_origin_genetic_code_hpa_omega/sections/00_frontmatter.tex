@@ -1,0 +1,43 @@
+\begin{abstract}
+The genetic code maps $64$ RNA codons to $20$ amino acids and stop signals, a structured many-to-one compression often attributed to historical contingency or evolutionary tradeoffs \cite{Crick1968,Wong1975,HaigHurst1991}. Motivated by the finite-resolution \texorpdfstring{Zeckendorf--Hilbert}{Zeckendorf--Hilbert} folding template in the HPA--$\Omega$ program \cite{Ma2025RF}, we propose a computable and falsifiable arithmetic--topological characterization in which codons are embedded into a $6$-bit microstate space via an \emph{unknown} bijective two-bit nucleotide encoding, and are then projected by a Zeckendorf-window folding operator to a stable type space of size $21$. We test resolution sensitivity across window lengths $m\in\{6,7,8,9\}$. At codon scale ($N\le 63$), $m=6$ is the minimal resolution that identifies $\mu^\ast$, while $m\ge 9$ saturates (lossless folding, hence $\Delta_m\equiv 0$) and serves only as a consistency check.
+
+Concretely, let $\Omega_6=\{0,1\}^6$ and let $X_6\subset\{0,1\}^6$ be the golden-mean admissible set (no adjacent ones), so $|X_6|=21$ and $X_6$ splits into $18$ cyclic states and $3$ boundary states. For each integer $N\in\{0,\dots,63\}$, $\mathrm{Fold}_6(N)\in X_6$ is defined as the first six Zeckendorf digits of $N$ (Fibonacci base) \cite{Zeckendorf1972}. Given a nucleotide encoding $\mu:\{A,C,G,U\}\to\{00,01,10,11\}$, a codon $c$ induces an integer microstate index $N_\mu(c)\in\{0,\dots,63\}$, a folded type $w_\mu(c)=\mathrm{Fold}_6(N_\mu(c))$, and a Zeckendorf spectral level $V_\mu(c)=V(w_\mu(c))\in\{0,\dots,20\}$.
+
+We formulate genetic-code reverse compilation as an identification problem over the finite search space of $4!=24$ encodings. As a minimal control prior, we take the translation control set
+\[
+\mathcal{K}=\{\mathrm{AUG},\mathrm{UAA},\mathrm{UAG},\mathrm{UGA}\},
+\]
+and select the encoding that maximizes boundary embedding $\sum_{c\in\mathcal{K}}\mathbf{1}\{w_\mu(c)\in X_6^{\mathrm{bdry}}\}$. Exhaustive search yields a unique optimum $\mu^\ast$:
+\[
+\mu^\ast:\quad A\mapsto 00,\quad C\mapsto 01,\quad G\mapsto 10,\quad U\mapsto 11,
+\]
+Under this encoding, $\mathrm{AUG}$ and $\mathrm{UAA}$ fold to the \emph{same} boundary word $100001$ and occupy its two Zeckendorf preimages $\{14,48\}$, separated by the Fibonacci weight $34=F_9$. This yields a rigid and testable \emph{start--stop $14/48$ boundary symmetry}: the same topological boundary is realized by a low-uplift local preimage (start) and a high-uplift preimage (stop).
+
+We further derive a fine structure of stop codons under $\mu^\ast$: $\mathrm{UAA}$ is boundary-aligned and $\mathrm{UAG}$ projects to a high-$V$ interior state. The codon $\mathrm{UGA}$ exhibits a projection mismatch with maximal uplift $\Delta=55$ and small projected value $V=1$ (Section~\ref{sec:stop_fine_structure}). Finally, we define an \emph{uplift} variable $\Delta_\mu(c)=N_\mu(c)-V_\mu(c)$ and a sequence-level $Z$-spectrum.
+As a concrete sanity check, we apply the pipeline to two human transcripts: HBB (\path{NM_000518.5}) exhibits the $\mathrm{AUG}$--$\mathrm{UAA}$ boundary symmetry, while INS (\path{ENST00000381330.5}) terminates by $\mathrm{UAG}$ and exhibits a non-boundary stop signature \cite{NCBIRefSeqNM000518,EnsemblENST00000381330,NCBIRefSeq,Ensembl}.
+To connect the codon-level theory to empirical sequence statistics, we scan the human RefSeq mRNA corpus at genome scale \cite{NCBIRefSeq}, reporting terminal-stop usage, coding-region boundary-hit rates, stop-context uplift windows, a codon-usage null-model test conditioned on amino-acid composition, and compact $Z$-spectrum fingerprint metrics.
+To support replication beyond a single transcriptome, we also evaluate a small cross-domain corpus panel (Eukaryota/Bacteria/Archaea), including stop-context effect sizes and fixed-effect meta-analysis targets across multiple window radii.
+Finally, we mine GenBank \texttt{transl\_except} annotations to obtain a Sec/Pyl recoding dataset \cite{NCBIGenBank} and report quantitative uplift-context comparisons against CDS-deduplicated terminal-stop baselines, with within-CDS and composition-adjusted controls, and we scan NCBI translation tables (\texttt{gc.prt}) \cite{NCBIGCPRT,NCBIGeneticCodes} to test the predicted rigidity of boundary stops across nonstandard codes.
+\end{abstract}
+
+\begin{sloppypar}
+\textbf{Keywords}: genetic code; Zeckendorf representation; Hilbert addressing; resolution folding; boundary states; reverse compilation; control codons; $Z$-spectrum; start--stop symmetry.
+\end{sloppypar}
+
+\paragraph{Conventions.}
+Unless otherwise stated, $\log$ denotes the natural logarithm.
+We use Fibonacci numbers $F_1=F_2=1$, $F_{n+1}=F_n+F_{n-1}$.
+For $N\in\{0,\dots,63\}$, the Zeckendorf digits $c_k\in\{0,1\}$ satisfy $c_k c_{k+1}=0$ and
+\[
+N=\sum_{k\ge 1} c_k F_{k+1}.
+\]
+The folding map is $\mathrm{Fold}_6(N)=(c_1,\dots,c_6)\in X_6$, with padding by zeros as needed.
+
+\paragraph{Layered audit rule.}
+We separate a \emph{mathematical layer} (finite-resolution definitions, exact finite searches over bounded candidate sets, and reproducible tables) from an \emph{identification layer} (biological interpretations and interface hypotheses stated in a falsifiable form).
+Appendix~\ref{app:isomorphism_dictionary} records a shared protocol-level template that connects stable-sector folding descriptions, genetic reverse compilation over bounded encoding domains, and the control-theoretic dual viewpoint of active correction.
+
+\tableofcontents
+\newpage
+
+

@@ -1,0 +1,414 @@
+# -*- coding: utf-8 -*-
+"""
+One-command end-to-end driver:
+  - optional dataset fetch (data/manifest.json)
+  - regenerate all LaTeX fragments (sections/generated/)
+  - run transcriptome-scale RefSeq scan (sharded) and merge
+  - build main.pdf via latexmk
+
+Standard library only.
+"""
+
+from __future__ import annotations
+
+import argparse
+import subprocess
+import sys
+from pathlib import Path
+
+from exp_recoding_sites import ANALYSIS_VERSION as RECODING_ANALYSIS_VERSION
+from exp_refseq_transcriptome import ANALYSIS_VERSION as REFSEQ_ANALYSIS_VERSION
+
+
+def root_dir() -> Path:
+    return Path(__file__).resolve().parent.parent
+
+
+def run(cmd: list[str], *, cwd: Path) -> None:
+    p = subprocess.run(cmd, cwd=str(cwd))
+    if p.returncode != 0:
+        raise SystemExit(p.returncode)
+
+
+def parse_args() -> argparse.Namespace:
+    p = argparse.ArgumentParser(description="Reproduce all experiments and build the paper PDF.")
+    p.add_argument("--download", dest="download", action="store_true", help="Fetch latest data bundle (GitHub Release) and/or upstream datasets.")
+    p.add_argument("--no-download", dest="download", action="store_false", help="Do not fetch any datasets; assume data/ is already present.")
+    p.set_defaults(download=True)
+    p.add_argument("--insecure", action="store_true", help="Disable TLS certificate verification for downloads.")
+    p.add_argument("--refseq-stop-window", type=int, default=10, help="Stop-context window radius k for RefSeq scan.")
+    p.add_argument(
+        "--refseq-stop-window-list",
+        default="3,5,10,20",
+        help="Comma-separated list of stop-context window radii k to compute in one pass (empty disables).",
+    )
+    p.add_argument(
+        "--refseq-progress-every",
+        type=int,
+        default=20000,
+        help="Print progress every N records per RefSeq shard (0 disables).",
+    )
+    p.add_argument(
+        "--refseq-max-records",
+        type=int,
+        default=0,
+        help="Optional max records per RefSeq shard for quick runs (0 = no limit).",
+    )
+    p.add_argument(
+        "--refseq-max-shards",
+        type=int,
+        default=0,
+        help="Optional max number of RefSeq shard files to process (0 = all).",
+    )
+    p.add_argument("--recoding-k", type=int, default=10, help="Window radius k for recoding-site context.")
+    p.add_argument(
+        "--recoding-k-list",
+        default="3,5,10,20",
+        help="Comma-separated list of window radii k for recoding-site context (empty disables).",
+    )
+    p.add_argument("--recoding-max-files", type=int, default=0, help="Optional limit on number of GenBank files for recoding (0=all).")
+    p.add_argument("--panel-max-records", type=int, default=0, help="Optional max records per dataset for corpus panel (0 = no limit).")
+    p.add_argument("--nonstandard-max-records", type=int, default=0, help="Optional max records per dataset for nonstandard sequence tests (0 = no limit).")
+    p.add_argument("--force", action="store_true", help="Force recomputation (ignore cached results).")
+    p.add_argument("--pdf", action="store_true", help="Build main.pdf with latexmk.")
+    return p.parse_args()
+
+
+def main() -> None:
+    args = parse_args()
+    cwd = root_dir()
+    py = sys.executable or "python3"
+
+    refseq_quick = int(args.refseq_max_records) > 0 or int(args.refseq_max_shards) > 0
+    recoding_quick = int(args.recoding_max_files) > 0
+    panel_quick = int(args.panel_max_records) > 0
+    nonstandard_quick = int(args.nonstandard_max_records) > 0
+
+    quick_dir = cwd / "data" / "_quick" / "run_all"
+
+    # 1) Optional downloads
+    if args.download:
+        cmd = [py, "scripts/fetch_datasets.py", "--dataset", "all"]
+        if args.insecure:
+            cmd.append("--insecure")
+        run(cmd, cwd=cwd)
+
+    # 2) Core encoding scan + codon tables
+    run([py, "scripts/exp_genetic_code_decompiler.py", *(["--force"] if args.force else [])], cwd=cwd)
+    run([py, "scripts/exp_mutual_information_rank.py", *(["--force"] if args.force else [])], cwd=cwd)
+    run([py, "scripts/exp_encoding_symmetry.py", *(["--force"] if args.force else [])], cwd=cwd)
+    run([py, "scripts/exp_control_objective_null_brief.py", *(["--force"] if args.force else [])], cwd=cwd)
+
+    # 2b) Fold_m resolution scan (m>6)
+    run([py, "scripts/exp_foldm_resolution_scan.py", *(["--force"] if args.force else [])], cwd=cwd)
+    run([py, "scripts/exp_foldm_control_objective_stability.py", *(["--force"] if args.force else [])], cwd=cwd)
+    run([py, "scripts/exp_foldm_control_objective_stability_maintex.py", *(["--force"] if args.force else [])], cwd=cwd)
+    run([py, "scripts/exp_foldm_boundary_sector_counts.py", *(["--force"] if args.force else [])], cwd=cwd)
+    run([py, "scripts/exp_stop_fine_structure_foldm.py", *(["--force"] if args.force else [])], cwd=cwd)
+    run([py, "scripts/exp_start_stop_homology_foldm.py", *(["--force"] if args.force else [])], cwd=cwd)
+    run([py, "scripts/exp_foldm_boundary_preimages_codon_range.py", *(["--force"] if args.force else [])], cwd=cwd)
+    run([py, "scripts/exp_foldm_boundary_word_coverage.py", *(["--force"] if args.force else [])], cwd=cwd)
+    run([py, "scripts/exp_foldm_boundary_codon_list_mu_star.py", *(["--force"] if args.force else [])], cwd=cwd)
+    run([py, "scripts/exp_foldm_control_objective_argmax_list.py", *(["--force"] if args.force else [])], cwd=cwd)
+
+    # 3) Nonstandard translation tables
+    run([py, "scripts/exp_nonstandard_codes.py", *(["--force"] if args.force else [])], cwd=cwd)
+
+    # 4) Recoding sites (Sec/Pyl)
+    rec_cmd = [py, "scripts/exp_recoding_sites.py", "--k", str(int(args.recoding_k))]
+    if str(args.recoding_k_list or "").strip():
+        rec_cmd += ["--k-list", str(args.recoding_k_list)]
+    if int(args.recoding_max_files) > 0:
+        rec_cmd += ["--max-files", str(int(args.recoding_max_files))]
+    if recoding_quick:
+        quick_dir.mkdir(parents=True, exist_ok=True)
+        rec_cmd += [
+            "--no-latex",
+            "--out-jsonl",
+            str((quick_dir / "recoding_sites.jsonl").relative_to(cwd)),
+            "--out-summary-json",
+            str((quick_dir / "recoding_sites_summary.json").relative_to(cwd)),
+        ]
+    if args.force:
+        rec_cmd += ["--force"]
+    run(rec_cmd, cwd=cwd)
+
+    # 4b) Boundary enrichment inputs + tests (recoding CDS ORFs)
+    be_in_cmd = [py, "scripts/exp_recoding_boundary_enrichment_inputs.py", "--k-window", str(int(args.recoding_k))]
+    if int(args.recoding_max_files) > 0:
+        be_in_cmd += ["--max-files", str(int(args.recoding_max_files))]
+    if args.force:
+        be_in_cmd += ["--force"]
+    run(be_in_cmd, cwd=cwd)
+    be_cmd = [
+        py,
+        "scripts/exp_boundary_enrichment.py",
+        "--fasta",
+        "data/boundary_enrichment/recoding_cds_orfs.fasta.gz",
+        "--positions-tsv",
+        "data/boundary_enrichment/recoding_site_sets.tsv",
+        "--dataset",
+        "recoding_genbank_orf",
+        *(["--force"] if args.force else []),
+    ]
+    run(be_cmd, cwd=cwd)
+
+    # 4d) Fold_m boundary enrichment (multi-resolution) on the same recoding ORF dataset/position sets.
+    foldm_be_cmd = [
+        py,
+        "scripts/exp_foldm_boundary_enrichment.py",
+        "--fasta",
+        "data/boundary_enrichment/recoding_cds_orfs.fasta.gz",
+        "--positions-tsv",
+        "data/boundary_enrichment/recoding_site_sets.tsv",
+        "--dataset",
+        "recoding_genbank_orf",
+        "--m-list",
+        "6,7,8,9",
+        *(["--force"] if args.force else []),
+    ]
+    run(foldm_be_cmd, cwd=cwd)
+
+    # 4f) Codon-level contribution decomposition for Fold_m boundary enrichment (explains sign flips across m).
+    foldm_be_decomp_cmd = [
+        py,
+        "scripts/exp_foldm_boundary_enrichment_decomp.py",
+        "--m-list",
+        "6,7,8,9",
+        *(["--force"] if args.force else []),
+    ]
+    run(foldm_be_decomp_cmd, cwd=cwd)
+
+    # 4g) AA-preserving decomposition of Fold_m boundary enrichment differences (AA vs synonymous components).
+    foldm_be_aa_decomp_cmd = [
+        py,
+        "scripts/exp_foldm_boundary_enrichment_aa_decomp.py",
+        "--m-list",
+        "6,7,8,9",
+        *(["--force"] if args.force else []),
+    ]
+    run(foldm_be_aa_decomp_cmd, cwd=cwd)
+
+    # 4h) AA-level drivers for Fold_m boundary enrichment components (top AA contributors).
+    foldm_be_aa_drivers_cmd = [
+        py,
+        "scripts/exp_foldm_boundary_enrichment_aa_drivers.py",
+        "--m-list",
+        "6,7,8,9",
+        "--top-k",
+        "5",
+        *(["--force"] if args.force else []),
+    ]
+    run(foldm_be_aa_drivers_cmd, cwd=cwd)
+
+    # 4i) Compact cross-m driver matrix (top AA drivers for syn(sub) and AA(comp)).
+    foldm_be_driver_matrix_cmd = [
+        py,
+        "scripts/exp_foldm_boundary_enrichment_driver_matrix.py",
+        "--m-list",
+        "6,7,8,9",
+        "--top-k",
+        "3",
+        *(["--force"] if args.force else []),
+    ]
+    run(foldm_be_driver_matrix_cmd, cwd=cwd)
+
+    # 4c) Rank-based discrimination summary (AUC) for recoding vs baselines (k-primary only).
+    # Uses the JSONL produced by exp_recoding_sites.py (cached when available).
+    rec_disc_cmd = [
+        py,
+        "scripts/exp_recoding_discrimination.py",
+        "--analysis-version",
+        str(int(RECODING_ANALYSIS_VERSION)),
+        "--k",
+        str(int(args.recoding_k)),
+        *(["--force"] if args.force else []),
+    ]
+    run(rec_disc_cmd, cwd=cwd)
+
+    # 4e) Multi-resolution (Fold_m) AUC summaries (requires window sequences in recoding_sites.jsonl).
+    rec_disc_m_cmd = [
+        py,
+        "scripts/exp_recoding_discrimination_foldm.py",
+        "--analysis-version",
+        str(int(RECODING_ANALYSIS_VERSION)),
+        "--k",
+        str(int(args.recoding_k)),
+        *(["--force"] if args.force else []),
+    ]
+    run(rec_disc_m_cmd, cwd=cwd)
+    run([py, "scripts/exp_recoding_discrimination_foldm_stability.py", *(["--force"] if args.force else [])], cwd=cwd)
+    run(
+        [
+            py,
+            "scripts/exp_recoding_controlc_foldm_stratified.py",
+            "--analysis-version",
+            str(int(RECODING_ANALYSIS_VERSION)),
+            "--k",
+            str(int(args.recoding_k)),
+            "--m-list",
+            "6,7,8",
+            "--min-n",
+            "40",
+            *(["--force"] if args.force else []),
+        ],
+        cwd=cwd,
+    )
+    run(
+        [
+            py,
+            "scripts/exp_recoding_controlc_foldm_gc_coupling.py",
+            "--analysis-version",
+            str(int(RECODING_ANALYSIS_VERSION)),
+            "--k",
+            str(int(args.recoding_k)),
+            "--m-list",
+            "6,7,8",
+            "--min-n",
+            "200",
+            *(["--force"] if args.force else []),
+        ],
+        cwd=cwd,
+    )
+    run(
+        [
+            py,
+            "scripts/exp_recoding_controlc_foldm_codon_decomp.py",
+            "--analysis-version",
+            str(int(RECODING_ANALYSIS_VERSION)),
+            "--k",
+            str(int(args.recoding_k)),
+            "--aa",
+            "Sec",
+            "--codon-rna",
+            "UGA",
+            "--domain",
+            "Eukaryota",
+            "--m-list",
+            "6,7,8",
+            "--min-n",
+            "200",
+            "--top-n",
+            "12",
+            *(["--force"] if args.force else []),
+        ],
+        cwd=cwd,
+    )
+
+    # 5) RefSeq transcriptome scan (sharded) + merge
+    if refseq_quick:
+        quick_dir.mkdir(parents=True, exist_ok=True)
+        shards_dir = quick_dir / "refseq_shards" / f"k{int(args.refseq_stop_window)}_v{REFSEQ_ANALYSIS_VERSION}_mr{int(args.refseq_max_records)}_ms{int(args.refseq_max_shards)}"
+        merge_out_json = quick_dir / "transcriptome_summary.json"
+    else:
+        shards_dir = cwd / "data" / "refseq_hsapiens_mrna" / "shards" / f"k{int(args.refseq_stop_window)}_v{REFSEQ_ANALYSIS_VERSION}"
+        merge_out_json = cwd / "data" / "refseq_hsapiens_mrna" / "transcriptome_summary.json"
+    shards_dir.mkdir(parents=True, exist_ok=True)
+
+    if args.force:
+        for fp in shards_dir.glob("*.json"):
+            fp.unlink()
+        for fp in shards_dir.glob("*.meta.json"):
+            fp.unlink()
+
+    shard_files = sorted((cwd / "data" / "refseq_hsapiens_mrna").glob("human.*.rna.fna.gz"))
+    if not shard_files:
+        raise SystemExit("No RefSeq FASTA shards found under data/refseq_hsapiens_mrna/. Run with --download.")
+    if int(args.refseq_max_shards) > 0:
+        shard_files = shard_files[: int(args.refseq_max_shards)]
+
+    for fp in shard_files:
+        out = shards_dir / f"{fp.name}.json"
+        refseq_cmd = [
+            py,
+            "scripts/exp_refseq_transcriptome.py",
+            "--input",
+            str(fp.relative_to(cwd)),
+            "--stop-window",
+            str(int(args.refseq_stop_window)),
+        ]
+        if str(args.refseq_stop_window_list or "").strip():
+            refseq_cmd += ["--stop-window-list", str(args.refseq_stop_window_list)]
+        refseq_cmd += [
+            "--no-latex",
+            "--progress-every",
+            str(int(args.refseq_progress_every)),
+            "--max-records",
+            str(int(args.refseq_max_records)),
+            "--out-json",
+            str(out.relative_to(cwd)),
+            "--write-meta",
+            *(["--force"] if args.force else []),
+        ]
+        run(
+            refseq_cmd,
+            cwd=cwd,
+        )
+
+    merge_cmd = [
+        py,
+        "scripts/exp_refseq_transcriptome_merge.py",
+        "--in-dir",
+        str(shards_dir.relative_to(cwd)),
+        "--out-json",
+        str(merge_out_json.relative_to(cwd)),
+        *(["--no-latex"] if refseq_quick else []),
+        *(["--force"] if args.force else []),
+    ]
+    run(merge_cmd, cwd=cwd)
+
+    # 6) Cross-domain corpus panel + sequence-level nonstandard-code tests.
+    panel_cmd = [py, "scripts/exp_corpus_panel.py", "--panel", "corpus_panel_v2"]
+    if int(args.panel_max_records) > 0:
+        panel_cmd += ["--max-records", str(int(args.panel_max_records))]
+    if panel_quick:
+        quick_dir.mkdir(parents=True, exist_ok=True)
+        panel_cmd += [
+            "--no-latex",
+            "--out-json",
+            str((quick_dir / "corpus_panel_summary.json").relative_to(cwd)),
+        ]
+    if args.force:
+        panel_cmd += ["--force"]
+    run(panel_cmd, cwd=cwd)
+    run([py, "scripts/exp_foldm_corpus_panel_codon_usage_null.py", *(["--force"] if args.force else [])], cwd=cwd)
+    run(
+        [py, "scripts/exp_foldm_corpus_panel_codon_usage_null_stability.py", *(["--force"] if args.force else [])],
+        cwd=cwd,
+    )
+    run(
+        [
+            py,
+            "scripts/exp_foldm_corpus_panel_codon_usage_null_driver_matrix.py",
+            *(["--force"] if args.force else []),
+        ],
+        cwd=cwd,
+    )
+
+    # 6b) Fold_m stop-context meta-analysis across eukaryotic RefSeq corpora (best ORF).
+    run([py, "scripts/exp_foldm_stop_context_eukaryota.py", *(["--force"] if args.force else [])], cwd=cwd)
+
+    ns_cmd = [py, "scripts/exp_nonstandard_sequence_tests.py", "--panel", "nonstandard_examples_v1"]
+    if int(args.nonstandard_max_records) > 0:
+        ns_cmd += ["--max-records", str(int(args.nonstandard_max_records))]
+    if nonstandard_quick:
+        quick_dir.mkdir(parents=True, exist_ok=True)
+        ns_cmd += [
+            "--no-latex",
+            "--out-json",
+            str((quick_dir / "nonstandard_sequence_tests.json").relative_to(cwd)),
+        ]
+    if args.force:
+        ns_cmd += ["--force"]
+    run(ns_cmd, cwd=cwd)
+
+    # 7) Optional PDF build
+    if args.pdf:
+        # latexmk is the simplest robust driver; assume it is available in the environment.
+        run(["latexmk", "-pdf", "-interaction=nonstopmode", "-halt-on-error", "main.tex"], cwd=cwd)
+
+
+if __name__ == "__main__":
+    main()
+
+

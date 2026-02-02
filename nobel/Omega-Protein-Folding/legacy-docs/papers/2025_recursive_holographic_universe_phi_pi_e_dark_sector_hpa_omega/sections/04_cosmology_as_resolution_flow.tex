@@ -1,0 +1,143 @@
+
+\section{Cosmology as resolution flow: initialization, inflation, and folding capacity}
+\label{sec:cosmology_resolution_flow}
+
+This section translates the finite-resolution folding structure into cosmological language.
+The mathematical core is the growth of the stable type count $|X_m|=F_{m+2}$ and the complementary growth of mean folding degeneracy $2^m/|X_m|$.
+
+\subsection{The big bang as resolution initialization}
+\label{subsec:big_bang_init}
+
+In a readout cosmology, the big bang is interpreted not as a singular breakdown of laws, but as a \emph{resolution initialization} of the readout hardware.
+The system starts with small address order $n$ and short window length $m$, and rapidly enters a regime in which nontrivial stable types exist and can be maintained under projection.
+
+The balanced interface $m=2n$ highlights a minimal ``bootstrappable'' coupling between a spatial grid and a local readout window:
+\[
+|\Lambda_n|=2^{2n}=2^m=|\Omega_m|.
+\]
+At $(n,m)=(3,6)$, this becomes a literal $64$-point grid coupled to a $64$-state local readout alphabet, and the nontrivial projection $64\to 21$ becomes available (Lemma~\ref{lem:Xm_fib_count}).
+We treat this as the smallest computable layer at which stable matter-like readout can appear.
+
+\subsection{Inflation as exponential growth of stable capacity}
+\label{subsec:inflation_capacity}
+
+As the window length increases from $m$ to $m+\Delta m$, the stable type count grows as
+\[
+|X_m|=F_{m+2}\sim \frac{\varphi^{m+2}}{\sqrt{5}},
+\]
+so the stable sector expands asymptotically at rate $\varphi^m$.
+This provides a purely combinatorial capacity-growth mechanism: without introducing an additional inflaton field, an early phase of rapid resolution growth naturally increases the number of stable types available for macroscopic structure.
+If the effective window length grows approximately linearly in an early epoch, $m(t)\approx m_0+\alpha t$, then the stable capacity grows exponentially in $t$:
+\[
+|X_{m(t)}|=F_{m(t)+2}\asymp \varphi^{m(t)}\asymp \e^{(\alpha\log\varphi)\,t}.
+\]
+This provides a quantitative readout-capacity analog of an inflationary exponential stage.
+For standard inflationary motivation and phenomenological benchmarks, see \cite{Guth1981}.
+
+\subsection{Folding degeneracy growth and dark-sector capacity}
+\label{subsec:degeneracy_growth}
+
+The folding map compresses $2^m$ microstates into $F_{m+2}$ stable types.
+A basic global statistic is the mean folding degeneracy
+\[
+d_m:=\frac{|\Omega_m|}{|X_m|}=\frac{2^m}{F_{m+2}}.
+\]
+Using $F_{m+2}\asymp \varphi^{m}$, we obtain
+\[
+d_m\asymp \left(\frac{2}{\varphi}\right)^m,
+\qquad \frac{2}{\varphi}>1.
+\]
+Hence the \emph{average amount of hidden redundancy per stable type grows exponentially} with resolution.
+\begin{proposition}[Asymptotic dominance of the hidden sector]
+\label{prop:hidden_dominance}
+Let $f_{\mathrm{stab}}(m)=F_{m+2}/2^m$ and $f_{\mathrm{hid}}(m)=1-f_{\mathrm{stab}}(m)$.
+Then $f_{\mathrm{stab}}(m)\to 0$ and $f_{\mathrm{hid}}(m)\to 1$ as $m\to\infty$.
+Moreover, the dark-to-stable ratio satisfies
+\[
+\frac{f_{\mathrm{hid}}(m)}{f_{\mathrm{stab}}(m)}=\frac{2^m}{F_{m+2}}-1=d_m-1\asymp \left(\frac{2}{\varphi}\right)^m.
+\]
+\end{proposition}
+
+\begin{proof}
+Since $F_{m+2}\asymp \varphi^m$ and $\varphi<2$, we have $F_{m+2}/2^m\to 0$, hence $f_{\mathrm{stab}}(m)\to 0$ and $f_{\mathrm{hid}}(m)\to 1$.
+The ratio identity is algebraic, and the exponential growth follows from $d_m=2^m/F_{m+2}\asymp (2/\varphi)^m$.
+\end{proof}
+
+In the minimal case, the hidden count is already nontrivial:
+\[
+|\Omega_6|-|X_6|=64-21=43.
+\]
+The explicit preimage classification of $\mathrm{Fold}_6$ (Theorem~\ref{thm:fold6_preimages}) provides a finite, computable model of how hidden degrees of freedom are distributed among stable outputs.
+
+\subsection{A minimal discrete fit: present-day energy budget and an effective window length}
+\label{subsec:energy_budget_fit}
+
+Define the \emph{stable fraction} and the \emph{hidden fraction} at window length $m$ by
+\[
+f_{\mathrm{stab}}(m):=\frac{|X_m|}{|\Omega_m|}=\frac{F_{m+2}}{2^m},
+\qquad
+f_{\mathrm{hid}}(m):=1-f_{\mathrm{stab}}(m).
+\]
+\begin{lemma}[Monotonicity of the stable fraction]
+\label{lem:f_stab_monotone}
+For $m\ge 1$, the function $f_{\mathrm{stab}}(m)=F_{m+2}/2^m$ is strictly decreasing in $m$.
+\end{lemma}
+
+\begin{proof}
+Using the Fibonacci recursion $F_{m+3}=F_{m+2}+F_{m+1}$ and $F_{m+1}<F_{m+2}$ for $m\ge 1$, we have
+\[
+\frac{f_{\mathrm{stab}}(m+1)}{f_{\mathrm{stab}}(m)}
+=\frac{F_{m+3}}{2F_{m+2}}
+=\frac{F_{m+2}+F_{m+1}}{2F_{m+2}}
+<1.
+\]
+\end{proof}
+\begin{assumption}[Readout-occupancy energy accounting]
+\label{ass:occupancy_energy}
+Fix an effective readout window length $m$.
+Assume that, on sufficiently coarse scales, the fractional contribution of a sector to the cosmic energy budget is proportional to the long-time occupancy of the corresponding readout microstate subset.
+On a homogeneous background and under a maximal-ignorance (equiprobable) approximation at fixed resolution, this occupancy is approximated by counting measure on $\Omega_m$, so that
+\[
+\Omega_{\mathrm{vis},0}\approx f_{\mathrm{stab}}(m),
+\qquad
+\Omega_{\mathrm{dark},0}\approx f_{\mathrm{hid}}(m)=1-f_{\mathrm{stab}}(m).
+\]
+This is a minimal information-theoretic closure consistent with the view that information capacity and energetic accounting are physically linked \cite{Bekenstein1973,Jacobson1995,Landauer1961}.
+\end{assumption}
+
+Interpreting $f_{\mathrm{stab}}(m)$ as the late-time stable visible-sector fraction and $f_{\mathrm{hid}}(m)$ as the complementary dark sector (Assumption~\ref{ass:occupancy_energy}), we obtain a discrete, parameter-free matching condition:
+\[
+f_{\mathrm{stab}}(m_\ast)\approx \Omega_{\mathrm{vis},0},
+\]
+where $\Omega_{\mathrm{vis},0}$ is the present-day visible-sector energy fraction \cite{Planck2018CosmoParams}.
+By Lemma~\ref{lem:f_stab_monotone}, this discrete matching selects a unique effective window length $m_\ast$ once a target visible fraction is fixed.
+Using Planck 2018 (radiation negligible at $z=0$), the baryon fraction is $\Omega_{\mathrm{b},0}\approx 0.0493$ and the dark-sector fraction is $\Omega_{\mathrm{dark},0}=1-\Omega_{\mathrm{b},0}\approx 0.951$ \cite{Planck2018CosmoParams}.
+We take $\Omega_{\mathrm{vis},0}\approx \Omega_{\mathrm{b},0}$ as the minimal visible-sector proxy at the background level.
+The Fibonacci ratio realizes this value at a small integer window length:
+\[
+\frac{F_{17}}{2^{15}}=\frac{1597}{32768}\approx 0.0487.
+\]
+Thus the minimal discrete fit yields
+\[
+m_\ast \approx 15.
+\]
+This choice is the unique best integer match in the immediate neighborhood:
+\[
+\begin{array}{c|c|c}
+m & f_{\mathrm{stab}}(m)=F_{m+2}/2^m & \abs{f_{\mathrm{stab}}(m)-\Omega_{\mathrm{b},0}} \\
+\hline
+14 & 987/16384\approx 0.06024 & \approx 1.09\times 10^{-2}\\
+15 & 1597/32768\approx 0.04874 & \approx 5.6\times 10^{-4}\\
+16 & 2584/65536\approx 0.03943 & \approx 9.9\times 10^{-3}
+\end{array}
+\]
+so $m_\ast=15$ fits the baryon fraction at the percent level with no continuous parameters.
+Equivalently, the mean degeneracy at this scale is
+\[
+d_{m_\ast}=\frac{2^{m_\ast}}{F_{m_\ast+2}}\approx \frac{2^{15}}{F_{17}}\approx 20.5,
+\]
+so the implied dark-to-stable ratio is $d_{m_\ast}-1\approx 19.5$, close to the observed present-day ratio $(1-\Omega_{\mathrm{b},0})/\Omega_{\mathrm{b},0}\approx 19.3$ \cite{Planck2018CosmoParams}.
+The role of the $m=6$ model is not to claim that cosmic accounting is literally performed at $6$ bits, but to provide the smallest layer where the folding mechanism is fully explicit and testable; the fit indicates that the present effective readout window may be at moderate resolution while remaining in the same universality class.
+
+
+

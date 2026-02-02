@@ -1,0 +1,71 @@
+\documentclass[11pt]{article}
+
+% --------- Minimal Nature-like preprint style (LaTeX) ----------
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{hyperref}
+\usepackage{microtype}
+\usepackage{enumitem}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue,
+  citecolor=blue,
+  urlcolor=blue
+}
+
+% Root figures live at ../../figures/ relative to this legacy folder.
+\graphicspath{{../../figures/}{figures/}}
+
+\title{\textbf{Omega v1: An auditable protein-folding agent built from Z128 operator programs and 6D icosahedral phason projectors}}
+\author{Project Omega Consortium\footnote{Correspondence: \texttt{[redacted]}.}}
+\date{Manuscript v1.0 (LaTeX export) --- 2026-02-01}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Protein folding is often framed as an intractable search over an astronomically large conformational space.
+Modern structure predictors achieve remarkable final-state accuracy, but they typically provide limited access to \emph{auditable trajectories} and do not expose explicit, machine-checkable certificates that a generated folding path respects interpretable constraints.
+Here we present \textbf{Omega v1}, a proof-of-concept \emph{folding agent} that represents folding as a discrete, replayable \textbf{operator program} over a signed-bit register (\textbf{Z128}), augmented with (i) \textbf{Ramanujan-style spectral certificates} for operator banks, (ii) \textbf{wormhole macro-operators} selected by a data-dependent \textbf{impedance} signal $\mathrm{Imp}(p;D)$, and (iii) a \textbf{6D icosahedral quasicrystal feasibility controller} that we treat as a dynamical degree of freedom (a \emph{phason}) rather than a static filter.
+We show that a tight phason threshold $\theta_\star$ is \emph{not} satisfied by a hard reject gate, but becomes feasible once the gate is upgraded into a \textbf{phason projector} that actively relaxes the slice offset $w_0$.
+We further show that \textbf{alphabet expressivity} (Pair-72 \textrightarrow{} Triple-232) sets an empirical ceiling on achievable quality, and that Triple-232 unlocks a ``0.9 regime'' on long-chain and membrane targets.
+Finally, in a \textbf{Blind Sprint} where we remove oracle losses (TM-score and native membrane alignment) and replace them with semantic residual proxies (distogram residual and a sequence-only hydrophobic belt prior), Omega retains a strong advantage over a baseline configuration.
+Together, these results suggest a path towards \emph{explainable, auditable folding} in which geometry and discrete operator semantics constrain and \emph{repair} trajectories rather than merely scoring end states.
+\end{abstract}
+
+\section*{Introduction}
+Protein folding remains a central problem in molecular biology and biophysics, with direct consequences for enzyme function, signalling, and drug discovery.
+State-of-the-art predictors such as AlphaFold2 and RoseTTAFold deliver high-quality static structures for many proteins, but the inference process is largely opaque: it is difficult to recover an \emph{explicit folding program} with checkpoints, counterfactual branches, and machine-verifiable ``why'' explanations for each committed move.
+Meanwhile, classical sampling approaches (Monte Carlo, MD) are transparent but often prohibitively expensive for long chains or rare events.
+
+Omega v1 explores a complementary approach: rather than approximating continuous dynamics directly, we treat folding as an \textbf{auditable compilation problem}.
+A folding trajectory is a \emph{program} over discrete operators that update an internal state, with every decision logged, replayable, and comparable across counterfactual runs.
+We focus on two themes:
+(1) \textbf{operator intelligence} (adaptive selection of macro-operators under a budget), and
+(2) \textbf{geometric feasibility} (a 6D-to-3D cut-and-project prior, operationalized as a phason constraint and projector).
+
+\section*{Overview of the Omega architecture}
+Omega represents state as a \textbf{Z128} dual-rail signed-bit register $Z=(M,F)$ with the invariant $M \wedge F = 0$, giving each bit a ternary interpretation $\{+1,0,-1\}$.
+Programs apply a small instruction set (e.g., \texttt{NEG}, \texttt{ZADD}, \texttt{SHIFT}, \texttt{RELAX}) plus macro-operators called \textbf{wormholes} (\texttt{SHIFT+PATCH+RELAX}).
+Crucially, Omega emits \textbf{audit-grade traces}: per-step operator identity, patch locations, rejection reasons, and deterministic digests for reproducibility.
+
+Operator banks are screened by a \textbf{spectral certificate} (Ramanujan-style SpecTest) to ensure expansion/connectivity properties in the discrete operator graph.
+At runtime, candidate wormholes are chosen by an adaptive \textbf{impedance} signal $\mathrm{Imp}(p;D)$, where $D$ denotes the current residual in a semantic space (contact proxy, distogram residual, torsion residual).
+This turns Omega into a \emph{policy-guided} search process rather than a fixed heuristic.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.95\linewidth]{omega_overview_diagram.png}
+  \caption{\textbf{Omega v1 overview.} Folding is treated as an \emph{auditable operator program} over Z128 state, with wormhole macro-operators selected by impedance $\mathrm{Imp}(p;D)$ and regulated by a 6D quasicrystal phason controller.
+  The phason gate is upgraded from a hard reject filter into a projector that relaxes the slice offset $w_0$ to recover feasibility under a tight threshold $\theta_\star$.}
+  \label{fig:overview}
+\end{figure}
+
+% (Legacy file retained; remainder unchanged.)
+\end{document}
+

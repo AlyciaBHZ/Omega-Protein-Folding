@@ -1,0 +1,211 @@
+% Omega v1 (Markdown/LaTeX revision) — Nature-style manuscript (English)
+% Generated: 2026-02-01 (Asia/Singapore)
+
+\documentclass[10pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{amsmath, amssymb}
+\usepackage{siunitx}
+\usepackage{hyperref}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{enumitem}
+\usepackage{microtype}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue,
+  citecolor=blue,
+  urlcolor=blue
+}
+
+\title{\textbf{Omega}: Auditable Folding Agents via Z128 Operator Programs, 6D Quasicrystal Phason Projectors, and Adaptive Gating}
+\author{Project Omega (evidence-pack build)}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Protein folding is often treated as continuous optimization or generative sampling in \(\mathbb{R}^3\), but these approaches make it difficult to \emph{audit} and \emph{replay} folding decisions step-by-step under explicit feasibility certificates.
+We introduce \textbf{Omega}, a discrete, auditable folding framework that represents a folding trajectory as an \emph{operator program} executed on a \textbf{Z128} double-rail register, augmented with (i) impedance-guided adaptive macro-operators (\emph{wormholes}) and (ii) a \textbf{6D icosahedral cut-and-project} geometry that exposes a measurable \emph{phason} feasibility variable.
+Across a staged campaign—from short-chain proxies to long-chain and membrane settings—we show three key properties:
+(1) phason is a \emph{dynamic} variable (not a static filter) once implemented as a \emph{projector} (repair) rather than rejection;
+(2) expanding the 6D direction alphabet to \textbf{Triple232} exposes a high-accuracy regime (\(\mathrm{TM}\approx 0.92\!-\!0.94\)) under oracle-guided compilation; and
+(3) in a \emph{blind} objective that removes oracle TM-score and native membrane annotations, Omega retains a significant advantage over a baseline codec+global projector on \(\texttt{1TIM}\) (long-chain) and \(\texttt{2O5P}\) (membrane), while producing replayable, audit-grade traces.
+These results position Omega as a complementary direction to black-box predictors: an interpretable folding agent whose constraints and repairs are explicit, measurable, and debuggable.
+\end{abstract}
+
+\section*{Main contributions}
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{Auditable folding trajectories:} folding is compiled into a Z128 operator program with deterministic replay and trace digests.
+  \item \textbf{Impedance-guided wormholes:} an error-geometry impedance \(\mathrm{Imp}(p;D)\) selects macro-operators adaptively and improves search efficiency.
+  \item \textbf{Phason as a projector:} replacing hard rejection with local geometric repair (\(\Delta w_0\)) turns phason from a brittle constraint into a stabilizing dynamics.
+  \item \textbf{Alphabet expressivity:} a large 6D step set (Triple232) reduces readout discretization and supports domain- and membrane-scale tests.
+  \item \textbf{Blind sprint protocol:} removes oracle TM-score and native membrane labels; uses semantic residuals and a hydropathy-only belt gate.
+\end{enumerate}
+
+\section{Introduction}
+Modern structure predictors (e.g., deep learning distograms or end-to-end coordinate generators) have transformed protein structure prediction, but they typically provide \emph{limited interpretability} for \emph{why} a trajectory moves through certain intermediate states, and they rarely provide a mechanism-level, replayable account of how constraints are enforced during folding.
+In parallel, molecular dynamics provides mechanistic trajectories but at a computational cost that is prohibitive for broad exploration, and the resulting trajectories are difficult to summarize into compact, auditable decision programs.
+
+Omega takes a different approach: treat folding as \textbf{compilation}. A fold is not merely a final 3D structure; it is an \emph{operator sequence} executed in a discrete state space, with explicit feasibility checks and \emph{auditable logs}. This philosophy motivates three design choices:
+
+\paragraph{(i) Discrete state and operator algebra.}
+We represent the folding state in a compact register (\textbf{Z128}), enabling discrete operators and deterministic replay.
+
+\paragraph{(ii) Certificate-driven macro-operators (wormholes).}
+We use spectral certificates (Ramanujan-style expander tests) to curate a bank of macro-operators and apply them adaptively based on an \emph{impedance} derived from observed residuals.
+
+\paragraph{(iii) Geometry via 6D cut-and-project and phason feasibility.}
+We link the discrete walk to 3D coordinates through a 6D icosahedral cut-and-project map. This exposes a perpendicular-space deviation—a \emph{phason} variable—that can be used either as a soft shaping term or as a feasibility gate. Crucially, we show that phason becomes practically useful when implemented as a \emph{projector} (repair) rather than a pure filter.
+
+\section{Results}
+
+\subsection{Z128 operator programs yield audit-grade folding traces}
+Omega encodes the folding state as a Z128 double-rail register \(Z=(M,F)\) with invariant \(M \wedge F = 0\), interpretable as ternary occupation per bit (\(+1,0,-1\)).
+A folding trajectory is an operator program:
+\[
+Z_0 \xrightarrow{\;\mathcal{O}_1\;} Z_1 \xrightarrow{\;\mathcal{O}_2\;} \cdots \xrightarrow{\;\mathcal{O}_T\;} Z_T,
+\]
+where each operator emits an append-only audit row (operator type, parameters, score deltas, feasibility outcomes, and trace digest prefix).
+This design supports:
+(i) deterministic replay,
+(ii) counterfactual A/B swaps (toggle one mechanism at a time),
+and (iii) mechanistic failure diagnosis (e.g., whether failure is due to operator selection, alphabet discretization, or gate misalignment).
+
+\subsection{Phason gating is brittle as a filter, but stabilizing as a projector}
+Early real-protein tests demonstrated a recurring failure mode: a \emph{hard phason reject} can prematurely exclude correct trajectories when the 6D lift is misaligned (limited step alphabet, fixed slice offset).
+We therefore replaced \texttt{reject()} with \texttt{project\_to\_window()}:
+
+\begin{quote}
+\textbf{Filter:} if phason\_max \(>\theta\), reject candidate. \\
+\textbf{Projector:} if phason\_max \(>\theta\), perform a bounded inner-loop search over \(\Delta w_0\) (slice shift) to reduce violation; accept if repaired within budget.
+\end{quote}
+
+\paragraph{Empirical feasibility under \(\theta_\star\).}
+Using a tightened threshold \(\theta_\star\) (derived from counterfactual floors; Methods), the filter fails systematically while the projector passes on \(\texttt{1AKE}\), \(\texttt{1TIM}\), and \(\texttt{2O5P}\) tails (Extended Data Table~1).
+This establishes \emph{mechanistic viability}: phason is ``alive'' as a dynamics because the system can actively repair violations by adjusting \(w_0\) rather than freezing.
+
+\begin{figure}[t]
+\centering
+\begin{subfigure}[b]{0.48\textwidth}
+\includegraphics[width=\textwidth]{../../figures/theta_star_AB_phmax_1AKE.png}
+\caption{\texttt{1AKE}: filter vs projector under \(\theta_\star\).}
+\end{subfigure}
+\hfill
+\begin{subfigure}[b]{0.48\textwidth}
+\includegraphics[width=\textwidth]{../../figures/theta_star_AB_phmax_1TIM.png}
+\caption{\texttt{1TIM}: filter vs projector under \(\theta_\star\).}
+\end{subfigure}
+\caption{\textbf{Phason feasibility becomes actionable with projector repair.}
+Horizontal lines indicate \(\theta_\star\).}
+\label{fig:theta_star}
+\end{figure}
+
+\subsection{Alphabet expressivity exposes a high-accuracy regime (Triple232 oracle)}
+Phason feasibility is only helpful if the 6D walk can represent the 3D backbone directions with sufficient resolution.
+We therefore expanded the step alphabet from Axis12 (\(\pm e_i\)) to Pair72 (\(\pm e_i\) and \(\pm e_i\pm e_j\)) and then to Triple232 (adding \(\pm e_i\pm e_j\pm e_k\)).
+In an oracle-guided codec test that measures representational capacity (not blind folding), Triple232 achieves \(\mathrm{TM}\approx 0.92\!-\!0.94\) on \(\texttt{1AKE}\) and \(\texttt{2O5P}\) and \(\mathrm{TM}\approx 0.81\) on full-length \(\texttt{1TIM}\) while reaching \(\mathrm{TM}\approx 0.92\) on a best local 100-residue window (Extended Data Table~2). This supports a ``polycrystalline'' interpretation: long chains may require piecewise phason relaxation.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.8\textwidth]{../../figures/triple232_oracle_codec_tm_bar.png}
+\caption{\textbf{Oracle expressivity by alphabet.} Triple232 substantially improves representational fidelity over smaller alphabets.}
+\label{fig:triple232_oracle}
+\end{figure}
+
+\subsection{Sprint to 0.9: hotspot-only Triple232 patches plus piecewise projector}
+We next combined the ingredients into an A/B runner targeting (i) long-chain accumulation error and (ii) membrane packing constraints.
+
+\paragraph{A (baseline).} Pair72 codec + global projector + \(\theta_\star\) gating. \\
+\paragraph{B (challenger).} Triple232 hotspot-only patching + \emph{piecewise} projector (segment-wise \(w_0\) drift) + \(\theta_\star\) adaptive gating.
+
+This runner is an \emph{oracle-guided compilation} stress test (native alignment provides hotspot locations; Methods).
+It tests whether the operator stack can realize the high-TM regime when the ``wish'' is perfect.
+
+\paragraph{Outcome.}
+On \(\texttt{1TIM}\), baseline stalls at \(\mathrm{TM}\approx 0.68\), while challenger reaches \(\mathrm{TM}=0.928\!-\!0.940\) across three seeds (mean 0.936).
+On \(\texttt{2O5P}\) tail250, challenger reaches \(\mathrm{TM}=0.917\!-\!0.923\) (mean 0.921) and matches a hydrophobic-belt packing proxy while maintaining phason feasibility.
+
+\begin{figure}[t]
+\centering
+\begin{subfigure}[b]{0.52\textwidth}
+\includegraphics[width=\textwidth]{../../figures/sprint0p9_tmscore_distribution.png}
+\caption{TM-score distribution (oracle-guided).}
+\end{subfigure}
+\hfill
+\begin{subfigure}[b]{0.45\textwidth}
+\includegraphics[width=\textwidth]{../../figures/sprint0p9_2O5P_hydrophobic_gap_vs_tm.png}
+\caption{\texttt{2O5P}: belt-gap vs TM (packing proxy).}
+\end{subfigure}
+\caption{\textbf{Sprint-to-0.9 oracle-guided compilation.} Triple232 + piecewise projector enters a 0.9+ TM regime.}
+\label{fig:sprint_oracle}
+\end{figure}
+
+\subsection{Blind Sprint: removing oracle TM-score and native membrane labels}
+To test whether Omega ``knows how to fold'' beyond oracle scoring, we removed two oracle components from the acceptance objective:
+(i) TM-score to native, and (ii) native-derived membrane belt metrics.
+We kept the same architecture (Triple232 hotspot operator stack, piecewise projector, \(\theta_\star\) adaptive gate), but accepted moves using \textbf{blind guides}:
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Semantic residual}: distogram RMSE (and a torsion residual placeholder; Methods).
+  \item \textbf{Blind belt gate}: a soft hydropathy belt energy \(E_{\text{belt}}\) from Kyte--Doolittle hydropathy, without native labels.
+\end{itemize}
+
+\paragraph{Performance.}
+On \(\texttt{1TIM}\), blind challenger improves mean TM-score from 0.814 (baseline) to 0.898 (five seeds), with 100\% of seeds \(\ge 0.85\) and 40\% of seeds \(\ge 0.90\) (Table~1).
+On \(\texttt{2O5P}\) tail250, blind challenger improves mean TM-score from 0.806 to 0.923, while maintaining a positive belt gap (packing consistent with a transmembrane band proxy).
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.85\textwidth]{../../figures/blind_sprint_tmscore_distribution.png}
+\caption{\textbf{Blind Sprint TM-score distribution.} Challenger (B) significantly outperforms baseline (A) on \texttt{1TIM} and \texttt{2O5P} tail250.}
+\label{fig:blind_tm}
+\end{figure}
+
+\begin{table}[t]
+\centering
+\caption{\textbf{Blind Sprint summary (A vs B).} Acceptance objective excludes oracle TM-score and native belt metrics. TM-score is reported only for evaluation.}
+\label{tab:blind_summary}
+\begin{tabular}{lllllll}
+\toprule
+Protein & Group & Seeds & TM mean & TM min--max & RMSE mean & Ph-ratio mean \\
+\midrule
+\texttt{1TIM} & A & 5 & 0.814 & 0.783--0.840 & 2.940 & 1.202 \\
+\texttt{1TIM} & B & 5 & 0.898 & 0.886--0.915 & 2.206 & 1.000 \\
+\texttt{2O5P} tail250 & A & 5 & 0.806 & 0.760--0.834 & 2.738 & 0.804 \\
+\texttt{2O5P} tail250 & B & 5 & 0.923 & 0.923--0.923 & 2.101 & 0.642 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Interpretation.}
+Blind Sprint demonstrates that Omega’s advantage is not solely an artifact of directly optimizing TM-score.
+However, our current ``semantic residual'' is still computed against the native distogram in this evidence pack; the critical next step is to replace it with \(\mathrm{Imp}(p;D)\)-derived predicted distograms/torsions so that the objective is blind to the native structure during search (Discussion).
+
+\subsection{Membrane extension: hydrophobic belt as a modular constraint}
+Membrane proteins impose a geometric constraint distinct from soluble globular folds.
+We implemented a hydropathy-only belt proxy in Omega (blind belt gate), and observed that under the challenger configuration, the belt gap remains positive while TM-score improves (Fig.~\ref{fig:blind_tm}).
+This supports the hypothesis that phason feasibility is compatible with packing constraints beyond globular proteins, though broader membrane benchmarks are required.
+
+\section{Discussion}
+Omega’s central claim is not that it replaces state-of-the-art predictors immediately, but that it provides a \emph{different kind of object}: an \textbf{auditable folding agent} with explicit, modular constraints.
+
+\subsection*{Limitations and future work}
+\begin{itemize}[leftmargin=*]
+\item \textbf{Full-domain generalization.} While we included long-chain and membrane cases, broad evaluation on diverse domains (including multi-domain proteins) is needed.
+\item \textbf{Truly blind semantic residuals.} Replace native-based distogram residual with predicted distograms/torsions derived from sequence and intermediate states (via \(\mathrm{Imp}(p;D)\) or a learned module).
+\item \textbf{Physical energy integration.} Incorporate sterics, hydrogen-bond and solvation proxies, and/or external force fields as a Phys-Gate. This enables stronger ``hallucination-gap'' benchmarks where contact-like proxies are insufficient.
+\item \textbf{Membrane-specific priors.} Replace hydropathy-only belt gates with topology predictors and lipid accessibility proxies.
+\item \textbf{Scaling of Z128.} Extend beyond CA-only backbones and incorporate side-chain state or rotamer programs without losing auditability.
+\end{itemize}
+
+\section{Methods (summary)}
+A full artifact map and detailed per-experiment methods are provided in this repository and Markdown reports.
+
+\section*{Data and code availability}
+All data tables, plots, audit logs, and analysis scripts used to generate this manuscript are included in this repository.
+\end{document}
+

@@ -1,0 +1,18 @@
+\section{Introduction}
+
+Despite decades of progress, protein folding remains challenging to mechanistically model because the search space of 3D conformations grows combinatorially with chain length and because physically meaningful pathways are hard to extract from large-scale sampling. Modern structure predictors can recover native-like folds for many sequences, but they typically provide limited interpretability for \emph{why} a trajectory moves through certain intermediate states, and they rarely provide a mechanism-level, replayable account of how constraints are enforced during folding. Molecular dynamics provides mechanistic trajectories, but at a computational cost that is prohibitive for broad exploration, and the resulting trajectories are difficult to summarize into compact, auditable decision programs.
+
+Omega takes a different approach: treat folding as \textbf{compilation}. A fold is not merely a final 3D structure; it is an \emph{operator sequence} executed in a discrete state space, with explicit feasibility checks and \emph{auditable logs}. This philosophy motivates three design choices:
+
+\paragraph{(i) Discrete state and operator algebra.}
+We represent the folding state in a compact Z128 register, enabling discrete operators and deterministic replay.
+
+\paragraph{(ii) Certificate-driven macro-operators (wormholes).}
+We curate a bank of macro-operators (``wormholes'') and apply them adaptively based on an \emph{impedance} derived from observed residual geometry.
+
+\paragraph{(iii) Geometry via 6D cut-and-project and phason feasibility.}
+We link the discrete walk to 3D coordinates through a 6D icosahedral cut-and-project map. This exposes a perpendicular-space deviation—a \emph{phason} variable—that can be used as a soft shaping term or as a feasibility gate. Crucially, we show that phason becomes practically useful when implemented as a \emph{projector} (repair) rather than a pure filter.
+
+Omega adopts this stance: it represents folding as a program over a Z128 dual-track register and compiles trajectories as sequences of operators (local moves and macro ‘wormholes’) that can be replayed and audited. At the same time, the HPA/Omega hypothesis suggests that biologically realized backbones may concentrate near a low-phason submanifold induced by a 6D icosahedral cut-and-project geometry. This remains a testable hypothesis under our current operational proxy; accordingly, we treat phason not merely as a post hoc descriptor but as an executable dynamical variable that can guide and repair trajectories by projecting states back toward an acceptance window.
+
+For additional conceptual context on the geometric viewpoint (information geometry, geodesics, and priors), see \texttt{docs/theory/protein\_folding\_geometry.md}.

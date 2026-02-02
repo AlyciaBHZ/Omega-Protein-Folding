@@ -1,0 +1,645 @@
+\section{\texorpdfstring{$\zeta$}{zeta} 型对象与有限部：离散读出的解析接口}
+
+\subsection{动力学 \texorpdfstring{$\zeta$}{zeta} 函数（稳定语法层）}
+
+在稳定语法层，考虑黄金均值约束的双边移位空间 $X\subset\{0,1\}^{\ZZ}$（禁止相邻 $11$）及其左移位 $\sigma$。对一般动力系统 $(Y,S)$，动力学 $\zeta$ 函数定义为
+\[
+\zeta_{S}(z):=\exp\left(\sum_{n\ge1}\frac{\#\mathrm{Fix}(S^n)}{n}z^n\right),
+\]
+其中 $\mathrm{Fix}(S^n)$ 为 $n$ 周期点集合。对有限型子移位（由邻接矩阵 $A$ 给出），有标准恒等式
+\[
+\zeta_{\sigma}(z)=\frac{1}{\det(I-zA)}
+\quad\text{且}\quad
+\#\mathrm{Fix}(\sigma^n)=\mathrm{Tr}(A^n)
+\]
+（参见 \cite{LindMarcus1995} 中关于有限型子移位与 $\zeta$ 函数的标准章节）。对黄金均值约束的
+\(
+A=\begin{pmatrix}1&1\\1&0\end{pmatrix}
+\)
+即得到
+\[
+\zeta(z)=\frac{1}{\det(I-zA)}=\frac{1}{1-z-z^2}.
+\]
+其极点结构直接由 $\varphi$ 控制。这提供一个“语法—谱—$\zeta$”的闭合环：黄金比例既决定语法的增长率，也决定 $\zeta$ 的主极点。
+
+\begin{remark}[等式的可审计推导]\label{rem:zeta-derivation}
+上式中 $\#\mathrm{Fix}(\sigma^n)=\mathrm{Tr}(A^n)$ 仅依赖“周期点 $\leftrightarrow$ 长度 $n$ 闭路径”的计数对应；而
+\(
+\exp\!\left(\sum_{n\ge1}\mathrm{Tr}(A^n)\,z^n/n\right)=1/\det(I-zA)
+\)
+来自矩阵恒等式 $\log\det(I-zA)=-\sum_{n\ge 1}\mathrm{Tr}(A^n)z^n/n$（当 $|z|$ 足够小时成立，并由解析延拓得到有理函数等式）。这给出一条完全可核验的“计数 $\Rightarrow$ 行列式”推导链。
+\end{remark}
+
+\subsection{在线归一化同步核的 \texorpdfstring{$\zeta_B$}{zeta\_B} 与 primitive 轨道谱}\label{subsec:zeta-online-kernel}
+第 \ref{subsec:online-delay} 小节的单趟在线延迟转导器，其同步部分给出一个 10 状态 SFT（见附录 B），记邻接矩阵为 $B$。按 SFT 的标准公式，
+\[
+\zeta_B(z)=\frac{1}{\det(I-zB)},\qquad
+a_n:=\#\mathrm{Fix}(\sigma^n)=\mathrm{Tr}(B^n).
+\]
+固定状态顺序与附录 B 一致，并令
+\[
+B_{ij}:=\#\{d\in\{0,1,2\}:\ q_i\xrightarrow{d}q_j\},
+\]
+则由同步转移表逐边计数即可得到该 $B$；其显式矩阵与计算细节见附录 B。
+对该同步核可得显式因式分解（附录 B 给出矩阵与计算）
+\[
+\det(I-zB)=(z-1)(z+1)(3z-1)\bigl(z^3-z^2+z+1\bigr),
+\]
+因此主极点位于 $z_\star=1/3$，对应 Perron--Frobenius 主特征值 $\lambda=3$，并且
+\[
+\zeta_B(z)=\frac{C_B}{1-3z}+O(1),\qquad C_B=\frac{243}{272}
+\]
+（$C_B$ 为该极点留数，见附录 B）。令 $p_n$ 为长度 $n$ 的 primitive 轨道数（按轨道计），则
+\[
+a_n=\sum_{d\mid n} d\,p_d,
+\qquad
+p_n=\frac{1}{n}\sum_{d\mid n}\mu(d)\,a_{n/d}.
+\]
+由 $B$ 的原始性（例如 $B^5$ 全正），得到
+\[
+a_n=3^n+O(\rho^n),\qquad
+p_n=\frac{3^n}{n}+O\!\left(\frac{\rho^n}{n}\right)\quad(\rho<3).
+\]
+对应的“素数计数曲线”定义为 $\Pi_B(N):=\sum_{n\le N}p_n$，其离散主项为
+\[
+\Pi_B(N)\sim \frac{3}{2}\cdot \frac{3^N}{N},
+\]
+并可写成 $X=3^N$ 的 $X/\log X$ 形态（详见附录 B）。可复现实验脚本见 \texttt{scripts/exp\_sync\_kernel\_primitive\_spectrum.py}。
+
+\subsection{从语法到算子：转移算子、C*-代数与 \texorpdfstring{$\zeta$}{zeta}（精确口径）}\label{subsec:operator-zeta-interface}
+
+本小节把“语法—谱—$\zeta$”的联系写成可评估的算子论陈述，并明确本文真正使用的对象是什么。核心点是：在黄金均值 SFT 上，Perron--Frobenius（有限矩阵）与 Ruelle 转移算子（无穷维算子）在柱函数空间上一致；相应的 C*-代数框架（如 Cuntz--Krieger 代数/群胚 C*-代数）提供了把柱投影、最大熵态（Parry 测度）与谱/$\zeta$ 统一表述的标准工具。
+
+\subsubsection{转移算子与 \texorpdfstring{$\zeta$}{zeta} 的 Fredholm 行列式口径}
+
+令 $X_A^+\subset\{0,1\}^{\NN}$ 为由邻接矩阵 $A$ 定义的一侧 SFT（黄金均值约束），令 $\sigma:X_A^+\to X_A^+$ 为左移位。定义零势（计数势）下的 Ruelle 转移算子（对有界函数）
+\[
+(\mathcal{L}f)(x):=\sum_{\sigma y=x} f(y).
+\]
+在 SFT 情形，该求和是有限的。令 $\mathcal{C}_m$ 为由长度-$m$ 柱集指示函数张成的有限维子空间，则 $\mathcal{L}$ 在 $\mathcal{C}_1$ 上等价于矩阵 $A^{\mathsf T}$ 的作用，并由柱函数闭包可追踪到所有有限 $m$。
+
+\begin{definition}[Fredholm 行列式（可审计口径）]\label{def:fredholm-determinant}
+若 $T$ 为迹类算子（在本文使用的有限维/有限秩情形自动成立），定义其 Fredholm 行列式为
+\[
+\det(I-zT):=\exp\left(-\sum_{n\ge 1}\frac{\mathrm{Tr}(T^n)}{n}z^n\right),
+\quad |z|\ \text{充分小}.
+\]
+在有限维情形该定义与通常矩阵行列式一致，并由解析延拓得到有理函数恒等式（参见 \cite{Ruelle1976ZetaExpanding,ParryPollicott1990Zeta}）。
+\end{definition}
+
+\begin{proposition}[\texorpdfstring{$\zeta$}{zeta} 的算子表述（标准）]\label{prop:zeta-as-determinant}
+对有限型子移位（SFT）有
+\[
+\zeta_\sigma(z)=\frac{1}{\det(I-zA)},
+\]
+并且该表达可视为转移算子在（适当的 Banach 空间/有限维柱函数截断上的）Fredholm 行列式（参见 \cite{Ruelle1976ZetaExpanding,Ruelle1978Thermodynamic,ParryPollicott1990Zeta}）。
+\end{proposition}
+
+\begin{proof}
+对由邻接矩阵 $A$ 给出的 SFT，$n$ 周期点与长度 $n$ 的允许闭路径一一对应，故 $\#\mathrm{Fix}(\sigma^n)=\mathrm{Tr}(A^n)$（\cite{LindMarcus1995}）。当 $|z|$ 足够小时，谱半径控制下矩阵级数收敛，并且有标准恒等式
+\[
+\log\det(I-zA)=\mathrm{Tr}\,\log(I-zA)=-\sum_{n\ge 1}\frac{\mathrm{Tr}(A^n)}{n}z^n.
+\]
+两边取指数并代入动力学 $\zeta$ 的定义即得
+\(\zeta_\sigma(z)=1/\det(I-zA)\)。
+
+关于“Fredholm 行列式”口径：由定义 \ref{def:fredholm-determinant}，只要能识别 \(\mathrm{Tr}(\mathcal{L}^n)\) 与 \(\mathrm{Tr}(A^n)\) 的计数对应（SFT 上为周期点/闭路径计数），就得到
+\(
+\det(I-z\mathcal{L})=\det(I-zA)
+\)
+并因此
+\(
+\zeta_\sigma(z)=1/\det(I-z\mathcal{L})
+\)。
+该路线在更一般的（扩张/双曲）系统上给出 \(\zeta\) 的解析延拓与谱解释（见 \cite{Ruelle1976ZetaExpanding,ParryPollicott1990Zeta}）。
+\end{proof}
+
+\subsubsection{柱投影与最大熵态：C*-代数口径}
+
+与附录 \ref{app:op-algebra} 的“投影读出”语言相呼应：在 SFT 上，柱事件对应一族两两正交投影，它们生成一个交换子代数；最大熵态（Parry 测度）给出其上的规范态。更进一步，Cuntz--Krieger 代数 $\mathcal{O}_A$ 为该 SFT 提供一个非交换的普适 C*-代数封装，其对角子代数与柱投影自然同构。
+
+\begin{proposition}[柱投影的 C*-代数封装（精确口径）]\label{prop:ck-diagonal-cylinders}
+令 $A$ 为不可约的 $0$--$1$ 矩阵，$X_A^+$ 为一侧 SFT。设 $\mathcal{O}_A$ 为 Cuntz--Krieger 代数（\cite{CuntzKrieger1980}），并记其标准部分等距元为 $(S_i)_{i\in\mathcal{A}}$（字母表 $\mathcal{A}$ 的索引）。对任意允许词 $\mu=\mu_1\cdots\mu_m$，记 $S_\mu:=S_{\mu_1}\cdots S_{\mu_m}$ 并定义
+\[
+P_\mu:=S_\mu S_\mu^*.
+\]
+则：
+\begin{enumerate}
+  \item \(P_\mu\) 族生成一个交换 C*-子代数 \(\mathcal{D}_A\subset\mathcal{O}_A\)（称为对角子代数）；
+  \item 存在自然同构 \(\mathcal{D}_A\cong C(X_A^+)\)，在该同构下 \(P_\mu\) 对应于长度 \(m\) 柱集 \([\mu]\subset X_A^+\) 的指示函数；
+  \item 因而任何 SFT 上的概率测度（特别是 Parry 最大熵测度）都诱导 \(\mathcal{D}_A\) 上的一个态。
+\end{enumerate}
+\end{proposition}
+
+\begin{proof}
+这是一类标准结构事实：Cuntz--Krieger 关系保证 \(P_\mu\) 为投影且对不同柱集具有正交/包含关系的代数对应，从而它们生成交换子代数。另一方面，\(\mathcal{D}_A\) 可视为由柱集指示函数生成的稠密 *-子代数的 C*-闭包，并与 \(C(X_A^+)\) 自然同构；该同构把 \(P_\mu\) 送到 \(\ind_{[\mu]}\)。详见 \cite{CuntzKrieger1980} 中对“拓扑 Markov 链 \(\leftrightarrow\) C*-代数”对应的基本构造；从群胚角度看亦可在 \cite{Renault1980Groupoid} 的框架下统一表述。
+\end{proof}
+
+\subsubsection{本文的新颖桥接点：分辨率折叠作为可审计的子代数选择}
+
+附录 \ref{app:op-algebra-fold-subalgebra} 给出一个对本文尤为关键、但在标准 PF/热力学形式叙述中并不自动出现的结构：对任意分辨率 $m$，由全部窗口微态投影生成的有限维交换代数 $\mathcal{A}_m$，以及由折叠不变性挑出的子代数 $\mathcal{B}_m$。该子代数选择正是“分辨率压缩/稳定类型化”的算子代数版本：它把可观测量限制为对折叠纤维常值的部分，从而把微态层的巨大自由度压缩为 $|X_m|=F_{m+2}$ 个稳定类型坐标。\par
+在此意义下，本文的算子论新信息不是重新证明 PF/Parry/$\zeta$ 的经典结论，而是给出一条\textbf{从扫描投影读出到语法层算子接口的可计算桥接链}：\[
+\text{扫描-投影二元读出}\ \Rightarrow\ \text{窗口微态投影代数 }\mathcal{A}_m\ \Rightarrow\ \text{折叠不变子代数 }\mathcal{B}_m\ \Rightarrow\ \text{语法层（SFT/sofic）与 }\zeta\text{ 接口}.
+\]
+
+\begin{remark}[折叠专属的新接口：纤维条件期望与多重度]\label{rem:fold-new-invariants}
+在标准的 SFT/\(\zeta\) 叙述中，“对角子代数/柱投影”通常是给定语法后自然出现的；而在本文生成链中，\(\mathcal{B}_m\subset\mathcal{A}_m\) 的出现是由折叠 \(\Fold_m\) 强制的 coarse-graining。更进一步，附录 \ref{prop:fold-conditional-expectation} 给出一个完全显式的条件期望
+\[
+E_m:\mathcal{A}_m\to\mathcal{B}_m,\qquad
+E_m(P_a)=\frac{1}{d_m(\Fold_m(a))}\widetilde P_{\Fold_m(a)},
+\]
+其系数由折叠纤维多重度 \(d_m(x)=|\Fold_m^{-1}(x)|\) 给出。该 \(E_m\) 可视为“信息丢失接口”：它把微态层可观测量压缩为对折叠纤维常值的部分，并将多重度作为一个可审计输入。
+
+在核/同步图层面，本文进一步把“折叠/归一化机制”编码为有限图移位，从而引入一组可比较的不变量族：例如 Abel/Hadamard 有限部常数 \(\log\mathfrak{M}\)、orbit--Mertens 常数 \(\mathsf{M}\)、以及 Dirichlet--Mertens 常数张量与最坏扭曲谱半径比 \(\rho/\lambda\)。这些对象在形式上仍由 \(\zeta=1/\det(I-zA)\) 的解析结构导出，但其\emph{输入矩阵}来自归一化核的同步图（而非仅来自语法本身），因此可作为“折叠专属的谱指纹”用于跨核对比。
+\end{remark}
+
+\subsection{轨道 Dirichlet 级数与 Abel 有限部（扫描层）}
+
+在扫描—投影框架中，另一个自然 $\zeta$ 型对象来自对轨道读出序列的加权求和。设 $f:X\to\CC$ 为可测函数（例如 $f=\ind_W$ 或其中心化版本），定义
+\[
+L(f,s;x)=\sum_{n\ge1}\frac{f(T^n x)}{n^s}.
+\]
+当 $f\equiv 1$ 时退化为经典 $\zeta(s)$。对一般 $f$，可通过 Abel 求和与解析延拓讨论其收敛域外的有限部。本文强调的结构性观点是：
+\begin{itemize}
+  \item 离散读出与有限分辨率折叠导致大量求和对象在临界点附近发散；
+  \item 若将“读出”理解为一种投影仪器，则有限部提取可被视为与折叠相配套的解析层读出规则；
+  \item 因而“离散化—正则化—有限部”可作为生成链中与算术编码并列的稳定接口。
+\end{itemize}
+\begin{definition}[Abel 正则化与 Hadamard 有限部]\label{def:abel-finite-part}
+对任意 $s\in\CC$，若极限存在，定义轨道 Dirichlet 级数的 Abel 正则化为
+\[
+L_{\mathrm{Abel}}(f,s;x):=\lim_{r\uparrow 1}\ \sum_{n\ge1}\frac{f(T^n x)\,r^n}{n^s}.
+\]
+若 $L_{\mathrm{Abel}}(f,s;x)$ 在点 $s_0$ 的某邻域内可作 Laurent 展开
+\[
+L_{\mathrm{Abel}}(f,s;x)=\sum_{k=-K}^{\infty} a_k\,(s-s_0)^k,
+\]
+则称常数项 $a_0$ 为其在 $s_0$ 的 Hadamard 有限部，记为 $\mathrm{fp}_{s=s_0}L_{\mathrm{Abel}}(f,s;x):=a_0$。
+\end{definition}
+
+定义 \ref{def:abel-finite-part} 所用仅为 Abel 求和与解析延拓的标准工具，见 \cite{Apostol1976}。
+
+\begin{proposition}[最小存在性口径]\label{prop:abel-finite-part-minimal}
+若 $f$ 有界，则对任意 $r\in(0,1)$ 级数
+\(
+\sum_{n\ge 1} f(T^n x)\,r^n/n^s
+\)
+在 $\Re(s)>0$ 绝对收敛并定义解析函数；当 $\Re(s)>1$ 时，$r\uparrow 1$ 的极限（若存在）与通常的 Dirichlet 级数 $L(f,s;x)$ 一致。若进一步已知 $L_{\mathrm{Abel}}(f,s;x)$ 在某点 $s_0$ 可作 Laurent 展开，则有限部 $\mathrm{fp}_{s=s_0}$ 作为常数项是标准且不依赖展开方式的对象（见 \cite{Apostol1976}）。
+\end{proposition}
+
+\begin{remark}[同步核的 Abel 有限部读出]\label{rem:abel-sync-kernel}
+对在线归一化同步核，可取 primitive 生成函数 $P_B(z)=\sum_{n\ge 1}p_n z^n$。由 $p_n\sim 3^n/n$，在 $z\to 1/3$ 出现对数发散；按本节 Abel 口径缩放 $r=3z$，即可定义有限部常数 $\mathfrak{M}_B$。其显式数值与可审计计算见附录 B（与定义 \ref{def:abel-finite-part} 同口径）。
+\end{remark}
+
+\begin{remark}[真实输入 40 状态核的 Abel--Hadamard 有限部接口]\label{rem:abel-real-input-40}
+附录 \ref{app:real-input-40-abel} 把“真实算术输入约束”并入同步核状态，得到一个 $|\Sigma|=40$ 的有限图移位，其邻接矩阵记为 $M$，并且其动力学 $\zeta$ 对象严格落在命题 \ref{prop:zeta-as-determinant} 的行列式口径内：
+\[
+\zeta_M(z)=\frac{1}{\det(I-zM)}.
+\]
+令 $p_n$ 为长度 $n$ 的 primitive 轨道数（按轨道计），并记 primitive 生成函数
+\[
+P(z):=\sum_{n\ge 1}p_n z^n.
+\]
+在该核上，Perron--Frobenius 主特征值为 $\lambda=\rho(M)=\varphi^2$，主极点为 $z_\star=\lambda^{-1}$（见附录 \ref{app:real-input-40-abel}）。对齐定义 \ref{def:abel-finite-part} 的 Abel 参数化，令
+\[
+z=\frac{r}{\lambda}\quad(r\uparrow 1),
+\qquad
+P_{\mathrm{Abel}}(r):=P(r/\lambda).
+\]
+则 $r\uparrow 1$ 等价于 $z\uparrow z_\star$，并且存在对数型奇性展开（附录 \ref{app:real-input-40-finite-part}）
+\[
+P_{\mathrm{Abel}}(r)=-\log(1-r)+\log\mathfrak{M}+o(1)\qquad(r\uparrow 1).
+\]
+因此该核的 Abel--Hadamard 有限部常数（与定义 \ref{def:abel-finite-part} 完全同构的“剥离主奇性后取常数项”口径）可写为
+\[
+\log\mathfrak{M}
+=\mathrm{fp}_{r=1}\Bigl(P_{\mathrm{Abel}}(r)+\log(1-r)\Bigr).
+\]
+
+也即：把
+\[
+\widetilde{P}(r):=\sum_{n\ge 1}\frac{p_n}{\lambda^n}r^n\qquad(r\in(0,1))
+\]
+视为对临界点 $r=1$ 的 Abel 正则化，则按定义 \ref{def:abel-finite-part} 的“剥离主奇性后取 Laurent 常数项”口径，
+\[
+\boxed{
+\log\mathfrak{M}
+\;=\;
+\mathrm{fp}_{r=1}\bigl(\widetilde{P}(r)+\log(1-r)\bigr).
+}
+\]
+
+\paragraph{完全闭式（仅用 $\zeta_M$ 的主留数 + Möbius 尾）}
+由 SFT 的 prime 轨道分解（欧拉乘积/幂展开）可写
+\[
+P(z)=\sum_{k\ge 1}\frac{\mu(k)}{k}\log\zeta_M(z^k).
+\]
+并且在 $z\to z_\star$ 时
+\(
+\zeta_M(z)=\frac{C}{1-\lambda z}+O(1)
+\)
+定义主极点留数常数
+\[
+C:=\lim_{z\to z_\star}(1-\lambda z)\,\zeta_M(z).
+\]
+于是 Abel 有限部常数满足可审计闭式
+\[
+\log\mathfrak{M}
+=\log C+\sum_{k\ge 2}\frac{\mu(k)}{k}\log\zeta_M(z_\star^k),
+\]
+右端只需把显式有理函数 $\zeta_M$ 采样在 $z_\star^k$（指数趋零）处即可数值计算。该核上 $C$ 的闭式、数值与复现脚本均见附录 \ref{app:real-input-40-finite-part}。
+
+\paragraph{把 \texorpdfstring{$\log\mathfrak{M}$}{logM} 完全对齐到显式 \texorpdfstring{$\zeta_M$}{zeta\_M}（闭式常数 + 数值）}
+对 40 状态真实输入核，附录 \ref{app:real-input-40-abel} 给出
+\[
+\det(I-zM)=(1-z)^2(1+z)^3(1-3z+z^2)(1+z-z^2),
+\]
+因此主极点为 $z_\star=\varphi^{-2}$（对应 $\lambda=\varphi^2$）。并且主极点留数常数具有代数闭式
+\[
+C=\lim_{z\to z_\star}(1-\lambda z)\,\zeta_M(z)=\frac{47+21\sqrt5}{100}\approx 0.9395742753.
+\]
+将该 $C$ 代入上文的 Möbius--Abel 闭式即可得到 Abel/Hadamard 有限部常数与其导出的 Mertens 常数（数值见附录 \ref{app:real-input-40-finite-part}）：
+\[
+\log\mathfrak{M}\approx -0.254312661901716,\qquad
+\mathfrak{M}\approx 0.7754493106833835,\qquad
+\mathsf{M}=\gamma+\log\mathfrak{M}\approx 0.3229030029998169.
+\]
+
+\paragraph{可计算流程（与“离散化—正则化—有限部”同构）}
+给定一个有限图移位的邻接矩阵 $M$（或加权矩阵族 $M_\theta$），并固定截断阶 $K\ge 2$，可按下述步骤计算有限部常数：
+\begin{enumerate}
+  \item \textbf{离散化：}由图/转导器得到矩阵 $M$（或 $M_\theta$），并定义 $\zeta(z)=1/\det(I-zM)$（或 $\zeta_\theta(z)=1/\det(I-zM_\theta)$）。
+  \item \textbf{主尺度：}计算 Perron--Frobenius 主特征值 $\lambda=\rho(M)$（或 $\lambda(\theta)=\rho(M_\theta)$），并令 $z_\star=1/\lambda$（或 $z_\star(\theta)=1/\lambda(\theta)$）。
+  \item \textbf{留数常数：}计算主极点留数常数
+  \[
+  C:=\lim_{z\to z_\star}(1-\lambda z)\zeta(z)
+  \qquad
+  (\text{或 }C(\theta):=\lim_{z\to z_\star(\theta)}(1-\lambda(\theta)z)\zeta_\theta(z)).
+  \]
+  在“简单极点”情形，$C$ 亦可由行列式导数或特征值乘积表达为闭式（见附录 \ref{app:real-input-40-finite-part}）。
+  \item \textbf{正则化（Abel 采样）：}对 $k=2,\dots,K$，在收敛圆盘内采样 $\log\zeta(z_\star^k)$（或 $\log\zeta_\theta(z_\star(\theta)^k)$）。
+  \item \textbf{有限部：}用 Möbius 尾的截断和近似
+  \[
+  \log\mathfrak{M}\approx \log C+\sum_{k=2}^{K}\frac{\mu(k)}{k}\log\zeta(z_\star^k)
+  \quad
+  (\text{或 }\log\mathfrak{M}(\theta)\approx \log C(\theta)+\sum_{k=2}^{K}\frac{\mu(k)}{k}\log\zeta_\theta(z_\star(\theta)^k)).
+  \]
+  \item \textbf{Mertens 常数输出：}定义
+  \[
+  \mathsf{M}:=\gamma+\log\mathfrak{M},
+  \qquad
+  \mathsf{M}(\theta):=\gamma+\log\mathfrak{M}(\theta).
+  \]
+\end{enumerate}
+由于 $|z_\star|<1$，故 $z_\star^k$ 指数衰减，且 $\log\zeta(z)=O(z)$（$z\to 0$）使得 $\log\zeta(z_\star^k)$ 在 $k$ 上快速趋零，从而该流程在数值上具有很强的稳定性与快速收敛性。
+
+\paragraph{orbit--Mertens 乘积（把 $\mathsf{M}$ 变成可对比标量）}
+定义长度截断的 prime-orbit Mertens 乘积
+\[
+\mathcal{P}(N):=\prod_{\substack{\tau\ \mathrm{primitive}\\|\tau|\le N}}\left(1-\lambda^{-|\tau|}\right)^{-1}.
+\]
+取对数并用 $-\log(1-x)=x+O(x^2)$ 得
+\[
+\log\mathcal{P}(N)=\sum_{n\le N}\frac{p_n}{\lambda^n}+O(1)
+=\log N+\mathsf{M}+o(1),
+\]
+因此
+\[
+\mathcal{P}(N)\sim e^{\mathsf{M}}\,N=e^{\gamma}\mathfrak{M}\,N.
+\]
+若用“轨道范数” $N(\tau):=\lambda^{|\tau|}$ 改写，并令 $x=\lambda^N$（等价于 $N=\log x/\log\lambda$），则得到等价的 $\log x$ 型主项
+\[
+\prod_{N(\tau)\le x}\left(1-\frac{1}{N(\tau)}\right)^{-1}
+\sim \frac{e^{\gamma}\mathfrak{M}}{\log\lambda}\,\log x.
+\]
+
+\paragraph{加权接口与 \texorpdfstring{$\log\mathfrak{M}(\theta)$}{logM(theta)} 相图}
+对边势向量 $\Phi$（例如附录 \ref{app:real-input-40-logm-theta} 中的 $\varphi_e,\varphi_-,\varphi_2$），定义加权矩阵族 $M_\theta$ 与
+\(
+\zeta_\theta(z)=1/\det(I-zM_\theta)
+\)。
+令 $\lambda(\theta)=\rho(M_\theta)$、$z_\star(\theta)=\lambda(\theta)^{-1}$。与上式同口径，定义
+\[
+P_\theta(z)=\sum_{k\ge 1}\frac{\mu(k)}{k}\log\zeta_\theta(z^k),
+\qquad
+\log\mathfrak{M}(\theta)=\mathrm{fp}_{r=1}\Bigl(P_\theta(r/\lambda(\theta))+\log(1-r)\Bigr),
+\]
+并得到可计算闭式
+\[
+\log\mathfrak{M}(\theta)
+=\log C(\theta)+\sum_{k\ge 2}\frac{\mu(k)}{k}\log\zeta_\theta\bigl(z_\star(\theta)^k\bigr),
+\qquad
+C(\theta):=\lim_{z\to z_\star(\theta)}(1-\lambda(\theta)z)\,\zeta_\theta(z).
+\]
+等价地（与附录 \ref{app:real-input-40-logm-theta} 同口径），亦可写成一行 Möbius--Abel 形式
+\[
+\log\mathfrak{M}(\theta)=\log C(\theta)-\sum_{m\ge 2}\frac{P_\theta(\lambda(\theta)^{-m})}{m}.
+\]
+据此定义加权 Mertens 常数
+\(
+\mathsf{M}(\theta):=\gamma+\log\mathfrak{M}(\theta)
+\)，从而把“离散化—正则化—有限部”落实为一条可扫参数的相图接口；数值相图入口脚本见
+\texttt{scripts/exp\_sync\_kernel\_real\_input\_40\_logM\_theta.py}。
+
+\begin{table}[H]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{8pt}
+\renewcommand{\arraystretch}{1.15}
+\caption{$\log\mathfrak{M}(\theta)$ 相图的样本点（真实输入 40 状态核；固定 $\theta_-=0$；Möbius 尾截断 $k_{\max}=250$）。}
+\label{tab:real-input-40-logM-theta-sample}
+\begin{tabular}{@{}ccccc@{}}
+\toprule
+$\theta_e$ & $\theta_2$ & $\lambda(\theta)$ & $\log\mathfrak{M}(\theta)$ & $\mathsf{M}(\theta)=\gamma+\log\mathfrak{M}(\theta)$ \\
+\midrule
+$-1.0$ & $-1.0$ & $1.793239048961$ & $-0.495016484263$ & $0.082199180638$ \\
+$\ \ 0.0$ & $-1.0$ & $2.490012563421$ & $-0.184629246340$ & $0.392586418561$ \\
+$\ \ 1.0$ & $-1.0$ & $3.646591323038$ & $\ \ 0.072379237963$ & $0.649594902864$ \\
+$-1.0$ & $\ \ 0.0$ & $1.863254840922$ & $-0.515448376051$ & $0.061767288851$ \\
+$\ \ 0.0$ & $\ \ 0.0$ & $2.618033988750$ & $-0.254312661902$ & $0.322903003000$ \\
+$\ \ 1.0$ & $\ \ 0.0$ & $3.864122715327$ & $-0.040498237636$ & $0.536717427266$ \\
+$-1.0$ & $\ \ 1.0$ & $2.040720410275$ & $-0.542620915409$ & $0.034594749493$ \\
+$\ \ 0.0$ & $\ \ 1.0$ & $2.948418905502$ & $-0.375618148304$ & $0.201597516597$ \\
+$\ \ 1.0$ & $\ \ 1.0$ & $4.451463505733$ & $-0.259640526249$ & $0.317575138652$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{三维隐含属性的典型密度与协方差密度（\texorpdfstring{$\theta=0$}{theta=0}）}
+在三势 $\theta=(\theta_e,\theta_-,\theta_2)$ 下，$P(\theta)=\log\rho(M_\theta)$ 的梯度与 Hessian 给出三条观测量的典型密度与协方差密度（详见附录 \ref{app:real-input-40-logm-theta} 的复现段落）：
+\[
+\nabla P(0)=\left(\frac{23-7\sqrt5}{20},\frac{5-\sqrt5}{20},\frac{3-\sqrt5}{10}\right)\approx(0.367376,\ 0.138197,\ 0.076393),
+\]
+\[
+\nabla^2P(0)\approx
+\begin{pmatrix}
+0.048741 & 0.032574 & 0.015964\\
+0.032574 & 0.275035 & 0.115735\\
+0.015964 & 0.115735 & 0.067331
+\end{pmatrix}.
+\]
+
+\paragraph{arity-charge 的同一接口并入}
+定义 arity-charge
+\[
+\chi:=\varphi_e-\varphi_2\in\{-1,0,1\}.
+\]
+更一般地，若把 $\chi$ 作为一条额外势并入加权，则它只引入线性重参数化（无需扩展状态空间）：
+\[
+P(\theta_e,\theta_-,\theta_2,\theta_\chi)=P(\theta_e+\theta_\chi,\theta_-,\theta_2-\theta_\chi).
+\]
+在三参数压力 $P(\theta_e,\theta_-,\theta_2)=\log\rho(M_\theta)$ 下，对 $\chi$ 的线性加权对应一维切线
+\[
+P_\chi(t):=P(t,0,-t).
+\]
+因此 $\chi$ 的典型密度与方差密度由
+\(
+P_\chi'(0),P_\chi''(0)
+\)
+读出，并可与同一族 $\log\mathfrak{M}(\theta)$ 在该方向的切片一起作为“素数影子”的分叉维度；具体数值与可复现计算见附录 \ref{app:real-input-40-logm-theta} 与
+\texttt{scripts/exp\_sync\_kernel\_real\_input\_40\_arity.py}。
+
+\paragraph{\texorpdfstring{$\chi$}{chi} 的一维切片相图（可计算流程）}
+固定
+\(
+\theta(t)=(t,0,-t)
+\)
+并令
+\[
+P_\chi(t):=P(\theta(t))=\log\rho(M_{\theta(t)}),
+\qquad
+\log\mathfrak{M}_\chi(t):=\log\mathfrak{M}(\theta(t)).
+\]
+对每个 $t$，按上文“可计算流程”的步骤计算 $\lambda(t)=e^{P_\chi(t)}$、$z_\star(t)=\lambda(t)^{-1}$、$C(t)$，并用截断 Möbius 尾近似
+\[
+\log\mathfrak{M}_\chi(t)\approx \log C(t)+\sum_{k=2}^{K}\frac{\mu(k)}{k}\log\zeta_{\theta(t)}(z_\star(t)^k).
+\]
+该一维切片在 $t=0$ 的统计量由压力导数给出：
+\[
+\mathbb{E}[\chi]=P_\chi'(0),\qquad \mathrm{Var}_\infty(\chi)=P_\chi''(0),
+\]
+并且在真实输入核上（附录 \ref{app:real-input-40-logm-theta}）有闭式与数值
+\[
+\mathbb{E}[\chi]=\frac{17-5\sqrt5}{20}\approx 0.2909830056,
+\qquad
+\mathrm{Var}_\infty(\chi)\approx 0.0841438530.
+\]
+若记三维 Hessian（协方差密度）为 $H=\nabla^2P(0)$，则
+\[
+\mathrm{Var}_\infty(\chi)=H_{ee}+H_{22}-2H_{e2},
+\qquad
+\mathrm{Cov}_\infty(\chi,\varphi_-)=H_{e-}-H_{-2}\approx -0.0831619.
+\]
+\begin{table}[H]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{8pt}
+\renewcommand{\arraystretch}{1.15}
+\caption{$\chi$-切片相图的样本点：$t\mapsto(\lambda_\chi(t),\log\mathfrak{M}_\chi(t),\mathsf{M}_\chi(t))$（真实输入 40 状态核，$\theta(t)=(t,0,-t)$；Möbius 尾截断 $k_{\max}=250$）。}
+\label{tab:real-input-40-logM-chi-sample}
+\begin{tabular}{@{}cccc@{}}
+\toprule
+$t$ & $\lambda_\chi(t)$ & $\log\mathfrak{M}_\chi(t)$ & $\mathsf{M}_\chi(t)=\gamma+\log\mathfrak{M}_\chi(t)$ \\
+\midrule
+$-1.0$ & $2.040720410275$ & $-0.542620915409$ & $0.034594749493$ \\
+$-0.5$ & $2.287538746528$ & $-0.410414288994$ & $0.166801375907$ \\
+$\ \ 0.0$ & $2.618033988750$ & $-0.254312661902$ & $0.322903003000$ \\
+$\ \ 0.5$ & $3.059600073602$ & $-0.087974328977$ & $0.489241335925$ \\
+$\ \ 1.0$ & $3.646591323038$ & $\ \ 0.072379237963$ & $0.649594902864$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+从而把“操作数不一致”的典型密度/涨落与同一切片上的 Abel 有限部常数曲线 $\log\mathfrak{M}_\chi(t)$ 放在同一相图坐标下比较。该曲线的数值生成入口脚本见
+\texttt{scripts/exp\_sync\_kernel\_real\_input\_40\_logM\_chi.py}。
+\end{remark}
+
+\subsubsection{真正 arity 维度的 primitive 素数谱：Dirichlet 分层与 Mertens 常数张量}\label{subsec:arity-dirichlet-mertens-tensor}
+本小节把 40 状态真实输入核（附录 \ref{app:real-input-40-abel}）的 primitive 轨道按三个可加观测量做 Dirichlet 分层，并把每个同余类压缩成一个 Abel/Hadamard 有限部常数项（Mertens 常数漂移）。该输出是“素数影子”的下一层硬量化：既给出同余类的常数张量，也给出等分布收敛的最坏误差指数。
+
+\paragraph{三条分层量（arity-charge + 两类隐藏/触发维度）}
+对一条 primitive 轨道 $\gamma$，记其沿边的三类可加计数为
+$$
+\Phi_e(\gamma),\qquad \Phi_-(\gamma),\qquad \Phi_2(\gamma),
+$$
+它们分别对应附录 \ref{app:real-input-40-logm-theta} 中的三条边势 $\varphi_e,\varphi_-,\varphi_2$ 的轨道和。
+定义轨道层的 arity-charge 与两类事件计数
+$$
+\chi(\gamma):=\Phi_e(\gamma)-\Phi_2(\gamma)\in\ZZ,
+\qquad
+N_-(\gamma):=\Phi_-(\gamma)\in\ZZ,
+\qquad
+N_2(\gamma):=\Phi_2(\gamma)\in\ZZ.
+$$
+在“真实输入 40 状态核”的同步边标记 $(s,d)\mapsto(e,t)$ 口径下，可取每步观测量
+$$
+\chi:=e-\mathbf{1}_{\{d=2\}}\in\{-1,0,1\},
+\qquad
+\nu:=\mathbf{1}_{\{t\in Q_-\}}\in\{0,1\},
+\qquad
+\xi:=\mathbf{1}_{\{d=2\}}\in\{0,1\},
+$$
+从而
+$$
+\Phi_e(\gamma)=\sum_{k=1}^{|\gamma|} e_k,
+\qquad
+\Phi_-(\gamma)=\sum_{k=1}^{|\gamma|} \nu_k,
+\qquad
+\Phi_2(\gamma)=\sum_{k=1}^{|\gamma|} \xi_k,
+$$
+并因此 $\chi(\gamma)=\sum_{k=1}^{|\gamma|}\chi_k$、$N_-(\gamma)=\sum_{k=1}^{|\gamma|}\nu_k$、$N_2(\gamma)=\sum_{k=1}^{|\gamma|}\xi_k$。
+其中 $\chi(\gamma)$ 是真正的 arity-charge（把“二元碰撞如何被吐出/隐藏”的净电荷编码成可加不变量），$N_-(\gamma)$ 记录进入负携带区的事件计数，$N_2(\gamma)$ 记录二元碰撞触发计数。主增长率取真实输入核的 Perron--Frobenius 主特征值
+$$
+\lambda=\rho(M)=\varphi^2\approx 2.61803398875.
+$$
+
+\paragraph{\texorpdfstring{$((2,2,2))$}{(2,2,2)}：arity--Mertens 常数张量}
+记 residue 向量
+$$
+(r_1,r_2,r_3)=\bigl(\chi(\gamma)\bmod 2,\ N_-(\gamma)\bmod 2,\ N_2(\gamma)\bmod 2\bigr)\in(\ZZ/2)^3.
+$$
+令 $p_{n,r_1r_2r_3}$ 表示长度为 $n$ 的 primitive 轨道中落在该 residue 的轨道数（按轨道计）。定义 Mertens 部分和
+$$
+S_{r_1r_2r_3}(N):=\sum_{n\le N}\frac{p_{n,r_1r_2r_3}}{\lambda^n}.
+$$
+则存在常数 $C_{r_1r_2r_3}$ 使得
+$$
+S_{r_1r_2r_3}(N)=\frac{1}{8}\log N + C_{r_1r_2r_3}+o(1),
+\qquad
+\sum_{r_1,r_2,r_3\in\{0,1\}}C_{r_1r_2r_3}=\mathsf{M},
+$$
+其中总 Mertens 常数满足
+$$
+\mathsf{M}\approx 0.322903002999.
+$$
+对应的 $2\times 2\times 2$ 常数张量（按 $\chi(\gamma)\bmod 2$ 分两张 $2\times 2$ 切片；行对应 $N_-(\gamma)\bmod 2$，列对应 $N_2(\gamma)\bmod 2$）为：
+$$
+\chi(\gamma)\bmod 2=0:\quad
+\begin{pmatrix}
+0.537764518482 & -0.083660027163\\
+-0.345745227275 & -0.240811119459
+\end{pmatrix}
+$$
+$$
+\chi(\gamma)\bmod 2=1:\quad
+\begin{pmatrix}
+0.887714851820 & -0.260094574998\\
+-0.026170064140 & -0.146095354270
+\end{pmatrix}.
+$$
+
+\paragraph{Dirichlet 型误差指数（等分布收敛速率）}
+令 $\rho_{2,2,2}$ 为所有非平凡扭曲角色（对三条同余分量引入 $\{\pm 1\}$ 角色）下的最大谱半径。则最坏收敛速率由比值 $\rho_{2,2,2}/\lambda$ 给出：
+$$
+\frac{\rho_{2,2,2}}{\lambda}\approx 0.927372804879,
+\qquad
+\rho_{2,2,2}\approx 2.427893523415.
+$$
+并且同余类计数满足
+$$
+p_{n,r_1r_2r_3}=\frac{p_n}{8}+O\!\left(\frac{\rho_{2,2,2}^n}{n}\right),
+\qquad
+p_n\sim\frac{\lambda^n}{n}.
+$$
+
+\paragraph{\texorpdfstring{$((3,2,2))$}{(3,2,2)}：把 arity 维度提升为真正 Dirichlet 分层}
+把第一维升级为
+$$
+(a,b,c)=\bigl(\chi(\gamma)\bmod 3,\ N_-(\gamma)\bmod 2,\ N_2(\gamma)\bmod 2\bigr)\in(\ZZ/3)\times(\ZZ/2)\times(\ZZ/2),
+$$
+并令 $p_{n,a,b,c}$ 为相应同余类的 primitive 轨道计数，定义
+$$
+S_{a,b,c}(N):=\sum_{n\le N}\frac{p_{n,a,b,c}}{\lambda^n}.
+$$
+则同样有
+$$
+S_{a,b,c}(N)=\frac{1}{12}\log N + C_{a,b,c}+o(1),
+\qquad
+\sum_{a\in\{0,1,2\}}\sum_{b,c\in\{0,1\}}C_{a,b,c}=\mathsf{M}.
+$$
+常数张量 $C_{a,b,c}$（按 $a=0,1,2$ 给三张 $2\times 2$ 切片；行对应 $b$，列对应 $c$）为：
+$$
+\chi(\gamma)\bmod 3=0:\quad
+\begin{pmatrix}
+0.391118940498 & -0.021847740745\\
+-0.224228494837 & -0.165125387935
+\end{pmatrix}
+$$
+$$
+\chi(\gamma)\bmod 3=1:\quad
+\begin{pmatrix}
+0.861471422552 & -0.167152624145\\
+0.079106678811 & -0.072918331974
+\end{pmatrix}
+$$
+$$
+\chi(\gamma)\bmod 3=2:\quad
+\begin{pmatrix}
+0.172889007252 & -0.154754237271\\
+-0.226793475389 & -0.148862753819
+\end{pmatrix}.
+$$
+其最坏误差指数由非平凡扭曲的最大谱半径给出，并满足
+$$
+\frac{\rho_{3,2,2}}{\lambda}\approx 0.927372804879,
+\qquad
+\rho_{3,2,2}=\rho_{2,2,2}\approx 2.427893523415,
+$$
+其中最坏扭曲来自 $\chi(\gamma)\bmod 3$ 不扭曲、但同时扭曲 $N_-(\gamma)\bmod 2$ 与 $N_2(\gamma)\bmod 2$ 的角色。
+
+\paragraph{\texorpdfstring{$((3,3,3))$}{(3,3,3)}：三维 Dirichlet--Mertens 常数张量}
+进一步把三条观测量同时提升到模 $3$ 的 Dirichlet 分层：
+$$
+(a,b,c)=\bigl(\chi(\gamma)\bmod 3,\ N_-(\gamma)\bmod 3,\ N_2(\gamma)\bmod 3\bigr)\in(\ZZ/3)^3.
+$$
+令 $p_{n,a,b,c}$ 表示长度为 $n$ 的 primitive 轨道中落在该 residue 的轨道数（按轨道计），并定义
+$$
+S_{a,b,c}(N):=\sum_{n\le N}\frac{p_{n,a,b,c}}{\lambda^n}.
+$$
+则存在常数张量 $C^{(3,3,3)}_{a,b,c}$ 使得
+$$
+S_{a,b,c}(N)=\frac{1}{27}\log N + C^{(3,3,3)}_{a,b,c}+o(1),
+\qquad
+\sum_{a,b,c\in\{0,1,2\}} C^{(3,3,3)}_{a,b,c}=\mathsf{M}.
+$$
+对应的常数张量数值（含一维边际常数、以及最坏扭曲角色索引）由脚本
+\texttt{scripts/exp\_sync\_kernel\_real\_input\_40\_arity\_3d.py}
+直接生成并输出为可 \verb|\input| 的 \LaTeX\ 片段：
+\input{sections/generated/tab_real_input_40_arity_dirichlet_mertens_333}
+
+\paragraph{指数级误差：最坏扭曲谱半径比}
+令 $\omega_3:=e^{2\pi i/3}$。对每个非平凡角色 $(j_1,j_2,j_3)\in(\ZZ/3)^3\setminus\{(0,0,0)\}$，定义三变量扭曲矩阵为
+$$
+M(\omega_3^{j_1},\omega_3^{j_2},\omega_3^{j_3})
+$$
+（即沿边对三条可加观测量分别施加角色权重），并令
+$$
+\rho_{3,3,3}
+:=
+\max_{(j_1,j_2,j_3)\neq(0,0,0)}
+\rho\bigl(M(\omega_3^{j_1},\omega_3^{j_2},\omega_3^{j_3})\bigr).
+$$
+其数值输出亦包含在上述 \verb|\input| 片段中。
+因此同余类趋于等分布的误差为指数级：
+$$
+p_{n,a,b,c}=\frac{p_n}{27}+O\!\left(\frac{\rho_{3,3,3}^n}{n}\right),
+\qquad
+p_n\sim\frac{\lambda^n}{n}.
+$$
+
+\paragraph{\texorpdfstring{$((5,5,5))$}{(5,5,5)}：更高模数的三维 Dirichlet--Mertens 常数张量（全表）}
+为进一步提高同余分层的分辨率，可把三条观测量同时提升到模 $5$：
+$$
+(a,b,c)=\bigl(\chi(\gamma)\bmod 5,\ N_-(\gamma)\bmod 5,\ N_2(\gamma)\bmod 5\bigr)\in(\ZZ/5)^3.
+$$
+对应的 $5\times 5\times 5$ 常数张量（共 $125$ 个数）、以及最坏扭曲谱半径比 $\rho_{5,5,5}/\lambda$ 与达到最坏的角色索引，均由脚本
+\texttt{scripts/exp\_sync\_kernel\_real\_input\_40\_arity\_3d.py}
+直接生成并输出为可 \verb|\input| 的 \LaTeX\ 片段：
+\input{sections/generated/tab_real_input_40_arity_dirichlet_mertens_555}
+
+\paragraph{为何称为“真正的 arity 维度素数谱”}
+上述输出同时给出三层可审计结构：
+\begin{itemize}
+  \item primitive 轨道作为“素数类对象”，满足 $p_n\sim \lambda^n/n$；
+  \item $\chi(\gamma)$ 作为真正的 arity-charge，把二元碰撞的吐出/隐藏机制编码成可加电荷；
+  \item Dirichlet--Mertens 常数张量（例如 \(((2,2,2))\)、\(((3,2,2))\)、\(((3,3,3))\)）给出同余类的常数漂移（Abel/Hadamard 有限部），而 $\rho/\lambda$ 给出同余类趋于等分布的指数误差。
+\end{itemize}

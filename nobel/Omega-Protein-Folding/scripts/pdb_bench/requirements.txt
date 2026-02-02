@@ -1,0 +1,6 @@
+requests>=2.31
+biopython>=1.83
+numpy>=1.23
+pandas>=2.0
+matplotlib>=3.7
+torch

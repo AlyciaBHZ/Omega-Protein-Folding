@@ -1,0 +1,122 @@
+
+\section{Dynamical closure: from overhead fields to effective gravity and cosmological equations}
+\label{sec:dynamical_closure}
+
+Sections~\ref{sec:folding_64_21}--\ref{sec:dark_sector} provide a finite-resolution classification and a micro-to-macro identification.
+To make the framework predictive, we need a dynamical closure that maps folding and overhead statistics into metric dynamics.
+We adopt the computational action principle in the HPA--$\Omega$ program \cite{Ma2025CAP,Ma2025FoP}.
+
+\subsection{Computational action principle and the \texorpdfstring{$\Omega$}{Omega} action}
+\label{subsec:cap_action}
+
+The computational action principle treats readout consistency, overhead minimization, and invariance constraints as variational principles.
+In a conservative formulation, one considers an action functional of the form
+\[
+S[g,\chi,\Psi]=S_{\mathrm{grav}}[g]+S_{\chi}[g,\chi]+S_{\mathrm{m}}[g,\Psi],
+\]
+where $g$ is the effective metric, $\Psi$ denotes visible matter fields, and $\chi$ is an overhead-derived scalar (Section~\ref{subsec:de_grid_tension}).
+Variation yields an effective Einstein-type equation
+\[
+G_{\mu\nu}+\Lambda g_{\mu\nu}=8\pi G_{\mathrm{eff}}\left(T_{\mu\nu}^{(\mathrm{m})}+T_{\mu\nu}^{(\chi)}\right).
+\]
+The exact form of $T_{\mu\nu}^{(\chi)}$ depends on the chosen kinetic term and potential $V(\chi)$; for a canonical scalar it is the standard stress tensor.
+
+\subsection{Newtonian limit: Poisson equation and the identification of the potential}
+\label{subsec:newton_limit}
+
+In the weak-field, slow-motion regime, one writes \cite{Wald1984}
+\[
+g_{00}\approx -(1+2\Phi/c^2),
+\]
+where $\Phi$ is the Newtonian potential.
+The computational action principle is designed to recover the Poisson equation
+\[
+\nabla^2\Phi = 4\pi G_{\mathrm{eff}}\rho_{\mathrm{m}}
+\]
+in the appropriate limit.
+In the overhead interpretation, the lapse is determined by a dimensionless overhead field $\chi$ and a coupling strength $\gamma$ (Definition~\ref{def:degeneracy_overhead}; Appendix~\ref{app:overhead_lapse}):
+\[
+N(x)=\e^{-\gamma\chi(x)}.
+\]
+Thus
+\[
+g_{00}(x)\approx -N(x)^2=-\e^{-2\gamma\chi(x)}
+\approx -(1-2\gamma\chi(x)),
+\]
+and comparing with $g_{00}\approx -(1+2\Phi/c^2)$ yields the leading-order identification
+\[
+\Phi(x)= -\gamma c^2\bigl(\chi(x)-\chi_0\bigr),
+\]
+where $\chi_0$ is an arbitrary reference (a constant shift of $\chi$ does not change forces).
+Consequently, the effective source associated with an overhead field can be written as
+\[
+\rho_{\mathrm{eff}}(x):=\frac{1}{4\pi G_{\mathrm{eff}}}\nabla^2\Phi(x)
+=-\frac{\gamma c^2}{4\pi G_{\mathrm{eff}}}\nabla^2\chi(x).
+\]
+This is the closed bridge from folding statistics to an effective gravitational source once $\chi$ is specified by the folding degeneracy (Section~\ref{subsec:micro_to_macro}).
+
+\subsection{A minimal halo fit: rotation curves as a constraint on \texorpdfstring{$\gamma$}{gamma}}
+\label{subsec:rotation_fit}
+
+For a static, spherically symmetric configuration, circular velocity satisfies
+\[
+v_c^2(r)=r\,\Phi'(r)= -\gamma c^2\, r\,\chi'(r).
+\]
+In particular, a flat rotation curve ($v_c(r)\approx v_{\mathrm{flat}}$ over a range of radii) implies
+\[
+\chi(r)= -\frac{v_{\mathrm{flat}}^2}{\gamma c^2}\log\frac{r}{r_0},
+\]
+and yields the standard isothermal effective density profile
+\[
+\rho_{\mathrm{eff}}(r)=\frac{1}{4\pi G_{\mathrm{eff}}}\nabla^2\Phi(r)
+=\frac{v_{\mathrm{flat}}^2}{4\pi G_{\mathrm{eff}}\,r^2}
+\]
+\cite{BinneyTremaine2008}.
+Therefore, once $\chi(r)$ is reconstructed from folding statistics (Appendix~\ref{app:data_protocol}), the observed $v_{\mathrm{flat}}$ constrains $\gamma$ by a one-parameter fit:
+the product $\gamma\Delta\chi$ over the relevant radial interval must match $v_{\mathrm{flat}}^2/c^2$.
+Flat rotation curves are empirically ubiquitous in disk galaxies \cite{SofueRubin2001}.
+For example, a typical spiral-galaxy value $v_{\mathrm{flat}}\sim 200\,\mathrm{km/s}$ corresponds to $v_{\mathrm{flat}}^2/c^2\sim 4\times 10^{-7}$; if the reconstructed $\Delta\chi$ across the flat region is $O(1)$, then $\gamma$ is naturally at the $10^{-7}$ scale.
+
+\paragraph{Least-squares estimator for $\gamma$.}
+Given rotation-curve measurements $\{(r_i,v_i,\sigma_i)\}_{i=1}^N$ (with $\sigma_i$ the uncertainty on $v_i$) and a reconstructed profile $\chi(r)$, define
+\[
+v_{\mathrm{pred}}^2(r_i;\gamma):=-\gamma c^2\, r_i\,\chi'(r_i).
+\]
+Estimating $\chi'(r_i)$ by finite differences (e.g.\ a central difference $\chi'(r_i)\approx(\chi(r_{i+1})-\chi(r_{i-1}))/(r_{i+1}-r_{i-1})$), define
+\[
+y_i:=v_i^2,
+\qquad
+x_i:=-c^2 r_i\,\chi'(r_i),
+\qquad
+\sigma_{y,i}\approx 2v_i\sigma_i,
+\]
+where $\sigma_{y,i}$ is the propagated uncertainty on $v_i^2$ in the small-error regime.
+One then obtains a one-parameter weighted least-squares fit:
+\[
+\widehat{\gamma}=\arg\min_{\gamma>0}\sum_{i=1}^N \frac{(\gamma x_i-y_i)^2}{\sigma_{y,i}^2}
+=\frac{\sum_{i=1}^N \left(\frac{x_i y_i}{\sigma_{y,i}^2}\right)}{\sum_{i=1}^N \left(\frac{x_i^2}{\sigma_{y,i}^2}\right)}.
+\]
+Under standard independent Gaussian noise assumptions on $y_i$, the estimator variance is
+\[
+\Var(\widehat{\gamma})=\left(\sum_{i=1}^N \frac{x_i^2}{\sigma_{y,i}^2}\right)^{-1}.
+\]
+
+\subsection{Micro-to-macro interface: folding statistics as an overhead definition}
+\label{subsec:micro_to_macro}
+
+The closure requires a concrete mapping from local folding statistics to $\chi$.
+We adopt the degeneracy-based definition (Definition~\ref{def:degeneracy_overhead}):
+\[
+\chi(B)=\log\frac{\bar{g}_m(B)}{\bar{g}_0},
+\qquad
+\bar{g}_m(B)=\mathbb{E}_{N\sim\mu_B}\bigl(g_m(N)\bigr),
+\qquad
+g_m(N)=\bigl|\mathrm{Fold}_m^{-1}(\mathrm{Fold}_m(N))\bigr|.
+\]
+In practice, if only coarse binary data are available, one may use the local grammar-defect density $\bar{D}_\varphi(B)$ as a proxy statistic, since $\varphi$-defects are necessary for leaving the admissible sector.
+
+The minimal model provides a fully explicit calibration point: for $m=6$, the preimages of $\mathrm{Fold}_6$ are known exactly (Appendix~\ref{app:fold6_table}), so $\bar{g}_6$ can be computed without approximation once a local input distribution is specified.
+This makes the micro-to-macro interface executable: it is not merely qualitative but a data pipeline (Appendix~\ref{app:data_protocol}).
+
+
+

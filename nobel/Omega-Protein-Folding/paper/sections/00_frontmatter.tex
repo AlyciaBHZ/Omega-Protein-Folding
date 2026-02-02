@@ -1,0 +1,17 @@
+\title{Omega: Auditable protein-folding agents via Z128 operator programs and 6D quasicrystal phason projectors}
+\subtitle{A v1 integrated manuscript (Nature-style) with complete experimental evidence and auditable artifacts}
+\author{(authors omitted for blinded review)}
+\date{Version: v1.0 | Date: 2026-02-01}
+\maketitle
+\begin{abstract}
+Protein folding is a paradigmatic hard inference problem: even when the final structure is known, the combinatorial complexity of exploring folding pathways complicates mechanistic interpretation, reproducibility and controllable interventions. Recent deep-learning systems predict static structures with remarkable accuracy, yet they typically provide limited access to interpretable, replayable dynamics. Here we present Omega, a discrete folding framework that treats folding as a compilable program executed on a Z128 dual-track register with an auditable operator trace. Omega couples (i) an impedance-guided wormhole policy that adaptively selects macro-operators from error geometry, (ii) a 6D icosahedral cut-and-project embedding whose perpendicular-space violation (phason) is used as a dynamically annealed gate, and (iii) a phason projector that repairs (rather than rejects) out-of-window states by optimizing the slice offset $w_0$. Across a staged benchmark suite—from N=24 hallucination-gap stress tests to N$\approx$250 long-chain and membrane-protein targets—we show that (a) low-resolution objectives can induce high-contact yet physically inconsistent ‘hallucinations’, (b) hard phason constraints become feasible-tight only when combined with projection-style repair, and (c) increasing the 6D step alphabet expressivity (Triple232) enables full-length TM-score >0.9 on a 247-residue TIM-barrel (1TIM) and a 250-residue membrane-protein segment (2O5P tail250) under an auditable $\theta^\star$ hard gate. These results establish a practical route from static compilation to a dynamic, interpretable folding agent where geometric priors act as executable dynamical variables.
+\end{abstract}
+
+\section*{Main contributions}
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{Auditable folding trajectories:} folding is compiled into a Z128 operator program with deterministic replay and trace digests.
+  \item \textbf{Impedance-guided wormholes:} an error-geometry impedance $\mathrm{Imp}(p;D)$ selects macro-operators adaptively and improves search efficiency.
+  \item \textbf{Phason as a projector:} replacing hard rejection with local geometric repair ($\Delta w_0$) turns phason from a brittle constraint into a stabilizing dynamics.
+  \item \textbf{Alphabet expressivity:} a large 6D step set (Triple232) reduces readout discretization and supports domain- and membrane-scale tests.
+  \item \textbf{Blind sprint protocol:} removes oracle TM-score and native membrane labels; uses semantic residuals and a hydropathy-only belt gate.
+\end{enumerate}

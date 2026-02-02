@@ -1,0 +1,58 @@
+\section*{Supplementary Information}
+\addcontentsline{toc}{section}{Supplementary Information}
+
+This v1 manuscript integrates results from a multi-stage experimental campaign. The evidence repository contains all raw outputs, intermediate summaries, plots and audit logs.
+
+Below we provide an inventory mapping each experiment family to its primary artifacts (reports, CSVs, plots).
+
+\subsection*{Impedance-guided wormhole selector (Imp; adaptive operator policy)}
+\begin{itemize}
+  \item Report: \texttt{artifacts/reports/imp\_adaptive\_v2\_benchmark\_report.md}
+  \item Summary CSV: \texttt{data/processed/imp\_adaptive\_v2\_benchmark\_summary.csv}
+  \item Primary figure: \texttt{paper/assets/figures/fig2.png}
+\end{itemize}
+
+\subsection*{Contact-only hallucination-gap A/B (N=24, 1UBQ/2CI2/5PTI)}
+\begin{itemize}
+  \item Report: \texttt{artifacts/reports/contact\_only\_phason\_ab\_report.md}
+  \item Plots: \texttt{figures/} (see files matching \texttt{contact\_only\_*.png} where available)
+\end{itemize}
+
+\subsection*{Phason projector upgrade and $\theta^\star$ feasibility}
+\begin{itemize}
+  \item Projector on 1EMA: \texttt{artifacts/reports/omega\_phason\_projector\_L3\_1EMA\_report.md} and Fig.~\ref{fig:4}--Fig.~\ref{fig:5}
+  \item $\theta^\star$ pass/fail: \texttt{data/processed/theta\_star\_AB\_success\_1AKE\_1TIM.csv} and Fig.~\ref{fig:6}--Fig.~\ref{fig:7}
+\end{itemize}
+
+\subsection*{Alphabet expressivity ceiling (axis12/pair72/triple232 oracle)}
+\begin{itemize}
+  \item Reports: \texttt{artifacts/reports/step1\_theta\_star\_step2\_triple232\_evidence\_pack.md}, \texttt{artifacts/reports/pdb\_oracle\_codec\_bench\_n50\_seed0.md} (and related)
+  \item Primary figures: \texttt{paper/assets/figures/fig8.png} and \texttt{figures/triple232\_oracle\_codec\_tm\_bar.png}
+  \item Large-scale PDB extension: \texttt{artifacts/reports/pdb\_oracle\_codec\_bench\_n200\_seed0\_dirscale.md} and \texttt{figures/pdb\_bench/oracle\_codec\_tm\_hist\_n200\_seed0\_dirscale.png}, \texttt{figures/pdb\_bench/oracle\_codec\_tm\_ecdf\_n200\_seed0\_dirscale.png}
+\end{itemize}
+
+\subsection*{Large-scale PDB phason proxy statistics (window sanity check)}
+\begin{itemize}
+  \item Report: \texttt{artifacts/reports/pdb\_phason\_stats\_n1000\_seed0\_triple232.md}
+  \item Samples CSV (long-form): \texttt{data/processed/pdb\_bench/phason\_stats\_samples\_n1000\_seed0\_triple232.csv}
+  \item Summary CSV (per-protein): \texttt{data/processed/pdb\_bench/phason\_stats\_summary\_n1000\_seed0\_triple232.csv}
+  \item Figures: \texttt{figures/pdb\_bench/phason\_phrms\_box\_triple232\_n1000\_seed0\_triple232.png}, \texttt{figures/pdb\_bench/phason\_phrms\_ecdf\_triple232\_n1000\_seed0\_triple232.png}, \texttt{figures/pdb\_bench/phason\_phrms\_vs\_N\_triple232\_n1000\_seed0\_triple232.png}
+  \item Piecewise slice extension (seg=64): \texttt{artifacts/reports/pdb\_phason\_stats\_n1000\_seed0\_triple232\_piecewise64.md}, \texttt{data/processed/pdb\_bench/phason\_stats\_summary\_n1000\_seed0\_triple232\_piecewise64.csv}, and corresponding figures under \texttt{figures/pdb\_bench/} matching \texttt{*piecewise64*.png}
+  \item Satisfiability vs discriminability note (negative result summary): \texttt{artifacts/reports/phason\_satisfiability\_vs\_discriminability\_1k.md}
+\end{itemize}
+
+\subsection*{Large-scale PDB chain-consistent 6D beam-lift benchmark}
+\begin{itemize}
+  \item Report: \texttt{artifacts/reports/pdb\_beam\_lift\_bench\_n1000\_seed0\_pair72\_beam8.md}
+  \item Summary CSV: \texttt{data/processed/pdb\_bench/beam\_lift\_bench\_summary\_n1000\_seed0\_pair72\_beam8.csv}
+  \item Figures: \texttt{figures/pdb\_bench/beam\_lift\_phrms\_box\_n1000\_seed0\_pair72\_beam8.png}, \texttt{figures/pdb\_bench/beam\_lift\_phrms\_ecdf\_n1000\_seed0\_pair72\_beam8.png}, \texttt{figures/pdb\_bench/beam\_lift\_tm\_hist\_n1000\_seed0\_pair72\_beam8.png}
+  \item High-end configuration (triple232 + piecewise seg=64): \texttt{artifacts/reports/pdb\_beam\_lift\_bench\_n1000\_seed0\_triple232\_beam8\_pw64.md}, \texttt{data/processed/pdb\_bench/beam\_lift\_bench\_summary\_n1000\_seed0\_triple232\_beam8\_pw64.csv}, and figures \texttt{figures/pdb\_bench/beam\_lift\_*\_n1000\_seed0\_triple232\_beam8\_pw64.png}
+\end{itemize}
+
+\subsection*{Sprint-to-0.9 A/B (1TIM \& 2O5P tail250)}
+\begin{itemize}
+  \item Oracle-guided compilation runner report: \texttt{artifacts/reports/sprint0p9\_AB\_runner\_report.md}
+  \item Blind Sprint report: \texttt{artifacts/reports/blind\_sprint\_AB\_report\_v1.md}
+  \item CSV summary used by paper tables: \texttt{data/processed/sprint\_to\_0p9\_AB\_summary.csv} (Blind Sprint A/B) and \texttt{data/processed/sprint\_to\_0p9\_ab\_runs.csv} (per-seed)
+  \item Figures: Fig.~\ref{fig:9}--Fig.~\ref{fig:12} (oracle sprint) and Fig.~\ref{fig:13} (Blind Sprint)
+\end{itemize}

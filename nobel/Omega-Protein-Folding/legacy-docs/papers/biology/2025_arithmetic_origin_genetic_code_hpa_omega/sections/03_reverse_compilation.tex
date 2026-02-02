@@ -1,0 +1,233 @@
+\section{Genetic interface and reverse compilation over 24 encodings}
+\label{sec:reverse_compilation}
+
+\subsection{Two-bit nucleotide encodings and codon indices}
+\label{sec:encoding}
+
+Let $\Sigma=\{A,C,G,U\}$ be the RNA alphabet.
+A two-bit nucleotide encoding is a bijection
+\[
+\mu:\Sigma\to\{00,01,10,11\}.
+\]
+There are $4!=24$ such encodings.
+
+\begin{remark}[Encoding symmetries (what is invariant and what is not)]
+The $24$ encodings form the full permutation group of the four $2$-bit blocks.
+Symmetries of the label space $\{00,01,10,11\}$ (e.g.\ swapping the two bits or applying a fixed affine relabeling) permute encodings and can permute which simple linear observable (a bit or an XOR) corresponds to a given nucleotide dichotomy.
+Accordingly, encoding-independent statements are those expressed purely in terms of the index set $\{0,\dots,63\}$ and the folding map $\mathrm{Fold}_6$ (e.g.\ the boundary preimage set), whereas statements about \emph{which codons} realize a given index set necessarily depend on the chosen encoding $\mu$.
+\end{remark}
+
+Given a codon $c=b_1 b_2 b_3\in\Sigma^3$, define the $6$-bit microstate word by concatenation
+\[
+\mathrm{code}_\mu(c):=\mu(b_1)\,\mu(b_2)\,\mu(b_3)\in\{0,1\}^6,
+\]
+and define the integer microstate index $N_\mu(c)\in\{0,\dots,63\}$ by interpreting $\mathrm{code}_\mu(c)$ as a binary integer with the leftmost bit as most significant.
+
+Composing with the folding map defines the folded type and its spectral level:
+\[
+w_\mu(c):=\mathrm{Fold}_6(N_\mu(c))\in X_6,\qquad
+V_\mu(c):=V(w_\mu(c))\in\{0,\dots,20\}.
+\]
+
+We also define the \emph{uplift} variable:
+\[
+\Delta_\mu(c):=N_\mu(c)-V_\mu(c).
+\]
+Intuitively, $V_\mu(c)$ is the window-visible Zeckendorf content, while $\Delta_\mu(c)$ measures the window-external contribution that is invisible to $\mathrm{Fold}_6$.
+By Lemma~\ref{lem:delta_values}, at window length $m=6$ the uplift is constrained to the discrete set
+\[
+\Delta_\mu(c)\in\{0,21,34,55\}=\{0,F_8,F_9,F_{10}\},
+\]
+for every codon $c$ and every two-bit encoding $\mu$.
+
+\begin{remark}[Low/high split]
+It is sometimes useful to view
+\[
+V_{\mathrm{low},\mu}(c):=V_\mu(c),\qquad V_{\mathrm{high},\mu}(c):=\Delta_\mu(c),
+\]
+so that the microstate index decomposes as $N_\mu(c)=V_{\mathrm{low},\mu}(c)+V_{\mathrm{high},\mu}(c)$.
+\end{remark}
+
+\subsection{Control-boundary alignment as a minimal objective}
+\label{sec:control_objective}
+
+We treat the following as minimal and widely accepted translation-control semantics \cite{Alberts2014,Crick1966,NirenbergMatthaei1961}:
+\begin{itemize}
+\item $\mathrm{AUG}$ is a canonical start codon;
+\item $\mathrm{UAA}$, $\mathrm{UAG}$, $\mathrm{UGA}$ are standard stop codons.
+\end{itemize}
+
+Let
+\[
+\mathcal{K}:=\{\mathrm{AUG},\mathrm{UAA},\mathrm{UAG},\mathrm{UGA}\}.
+\]
+
+\begin{definition}[Control-boundary alignment score]
+\label{def:control_boundary_score}
+For an encoding $\mu$, define
+\[
+S(\mu):=\sum_{c\in\mathcal{K}}\mathbf{1}\{w_\mu(c)\in X_6^{\mathrm{bdry}}\}.
+\]
+\end{definition}
+
+We select encodings that maximize $S(\mu)$.
+This objective intentionally does \emph{not} impose that start and stop coincide on the same boundary word; any such coincidence, if present, is an emergent consequence of the folding geometry and the finite encoding search.
+
+\subsection{A structural limitation: stop codons cannot all be boundary}
+\label{sec:stop_limit}
+
+By Proposition~\ref{prop:boundary_preimages}, the boundary sector has a fixed preimage set of $6$ integer indices:
+\[
+\mathrm{Fold}_6^{-1}(X_6^{\mathrm{bdry}})=\{14,17,19,48,51,53\}.
+\]
+Hence, for a codon $c$, the condition $w_\mu(c)\in X_6^{\mathrm{bdry}}$ is equivalent to the membership test $N_\mu(c)\in\{14,17,19,48,51,53\}$.
+
+\begin{proposition}[At most one standard stop codon can land in the boundary sector]
+\label{prop:stop_hits_at_most_one}
+For any bijective two-bit encoding $\mu$, among the three standard stop codons
+\[
+S_{\mathrm{stop}}=\{\mathrm{UAA},\mathrm{UAG},\mathrm{UGA}\},
+\]
+at most one satisfies $w_\mu(c)\in X_6^{\mathrm{bdry}}$ (equivalently $N_\mu(c)\in\{14,17,19,48,51,53\}$).
+In particular, it is impossible to map all three stop codons into the boundary sector in the minimal $m=6$ interface.
+\end{proposition}
+
+\begin{proof}
+Write $u:=\mu(U)$, $a:=\mu(A)$, and $g:=\mu(G)$ as $2$-bit blocks, with $u,a,g$ distinct by bijectivity.
+The three stop codons correspond to $6$-bit block triples:
+\[
+\mathrm{UAA}: (u,a,a),\qquad
+\mathrm{UAG}: (u,a,g),\qquad
+\mathrm{UGA}: (u,g,a).
+\]
+The boundary-index set $\{14,17,19,48,51,53\}$ corresponds to the following $2$-bit block forms (write each $N$ in binary and group into three blocks):
+\[
+\begin{aligned}
+14&=(00,11,10),&\qquad 17&=(01,00,01),&\qquad 19&=(01,00,11),\\
+48&=(11,00,00),&\qquad 51&=(11,00,11),&\qquad 53&=(11,01,01).
+\end{aligned}
+\]
+We distinguish cases by $u$.
+
+\emph{Case $u=10$.} None of the boundary block triples begins with $10$, so no stop codon can be boundary.
+
+\emph{Case $u=00$.} The only boundary triple beginning with $00$ is $(00,11,10)$, which cannot equal $(u,a,a)$ because its last two blocks differ. Hence $\mathrm{UAA}$ is not boundary.
+If $\mathrm{UAG}$ is boundary, then necessarily $(u,a,g)=(00,11,10)$, forcing $(a,g)=(11,10)$. Then $\mathrm{UGA}=(00,10,11)$ is not among the boundary triples, so at most one stop is boundary.
+
+\emph{Case $u=01$.} The boundary triples beginning with $01$ are $(01,00,01)$ and $(01,00,11)$, both of which have second block $00$. Thus if $\mathrm{UAG}$ is boundary then $a=00$, which makes it impossible for $\mathrm{UGA}=(01,g,00)$ to match either boundary triple (their third block is $01$ or $11$). Also $\mathrm{UAA}=(01,00,00)$ is not boundary. Hence at most one stop is boundary.
+
+\emph{Case $u=11$.} The boundary triples beginning with $11$ are $(11,00,00)$, $(11,00,11)$, and $(11,01,01)$. If $\mathrm{UAA}$ is boundary then $(u,a,a)$ must be $(11,00,00)$ or $(11,01,01)$, forcing $a=00$ or $a=01$.
+If $a=00$, then $\mathrm{UAG}=(11,00,g)$ would have to match $(11,00,11)$ to be boundary, implying $g=11=u$, contradicting bijectivity; and $\mathrm{UGA}=(11,g,00)$ cannot match any boundary triple because its third block is $00$ while the only boundary triple with third block $00$ is $(11,00,00)$ which would force $g=00=a$.
+If $a=01$, then $\mathrm{UAG}=(11,01,g)$ can only match $(11,01,01)$, forcing $g=01=a$, again impossible. Thus at most one stop can be boundary.
+
+In all cases, at most one of $\{\mathrm{UAA},\mathrm{UAG},\mathrm{UGA}\}$ can land in the boundary sector.
+\end{proof}
+
+\begin{remark}[Exhaustive scan confirmation]
+The exhaustive scan over all $24$ encodings reproduces the histogram $\{0:16,1:8,2:0,3:0\}$ for the number of stop codons landing in $X_6^{\mathrm{bdry}}$, recorded in Appendix~\ref{app:generated_tables}.
+\end{remark}
+
+\subsection{Unique optimizer and emergent start--stop homology}
+\label{sec:uniqueness}
+
+The next theorem is the main identifiability result under the control objective.
+
+\begin{lemma}[A sharp upper bound for the control score]
+\label{lem:control_score_upper_bound}
+For any encoding $\mu$, the control-boundary score satisfies $S(\mu)\le 2$.
+Moreover, $S(\mu)=2$ if and only if $\mathrm{AUG}$ is boundary and at least one of the three stop codons is boundary.
+\end{lemma}
+
+\begin{proof}
+By Proposition~\ref{prop:stop_hits_at_most_one}, among the three stop codons $\{\mathrm{UAA,UAG,UGA}\}$ at most one can land in the boundary sector, hence their total contribution to $S(\mu)$ is at most $1$.
+Since the remaining control codon is $\mathrm{AUG}$, we obtain $S(\mu)\le 1+\mathbf{1}\{w_\mu(\mathrm{AUG})\in X_6^{\mathrm{bdry}}\}\le 2$.
+If $S(\mu)=2$, then $\mathrm{AUG}$ is boundary and at least one stop codon is boundary.
+Conversely, if $\mathrm{AUG}$ is boundary and at least one stop codon is boundary, then exactly two elements of $\mathcal{K}$ are boundary (because at most one stop can be boundary), so $S(\mu)=2$.
+\end{proof}
+
+\begin{theorem}[Unique encoding selected by control-boundary alignment]
+\label{thm:unique_encoding}
+Among the $24$ bijective two-bit encodings $\mu:\{A,C,G,U\}\to\{00,01,10,11\}$, the maximal score in Definition~\ref{def:control_boundary_score} is $2$, and it is achieved by a unique encoding $\mu^\ast$:
+\[
+\mu^\ast:\quad A\mapsto 00,\quad C\mapsto 01,\quad G\mapsto 10,\quad U\mapsto 11.
+\]
+Moreover, under $\mu^\ast$ the start and the $\mathrm{UAA}$ stop codon fold to the same boundary word:
+\[
+N_{\mu^\ast}(\mathrm{AUG})=14,\qquad N_{\mu^\ast}(\mathrm{UAA})=48,
+\qquad
+w_{\mu^\ast}(\mathrm{AUG})=w_{\mu^\ast}(\mathrm{UAA})=100001.
+\]
+\end{theorem}
+
+\begin{proof}
+Lemma~\ref{lem:control_score_upper_bound} gives $S(\mu)\le 2$ for every encoding $\mu$.
+Under $\mu^\ast$, direct computation shows that both $\mathrm{AUG}$ and $\mathrm{UAA}$ are boundary, hence $S(\mu^\ast)=2$.
+Therefore the maximal score equals $2$.
+
+It remains to prove uniqueness.
+Assume $S(\mu)=2$.
+By Lemma~\ref{lem:control_score_upper_bound}, $\mathrm{AUG}$ is boundary and at least one stop codon is boundary.
+Write the $2$-bit blocks $u:=\mu(U)$, $a:=\mu(A)$, $g:=\mu(G)$, $c:=\mu(C)$.
+
+\emph{Claim 1: the boundary stop must be $\mathrm{UAA}$.}
+Suppose $\mathrm{UAG}$ is boundary.
+Then $(u,a,g)$ is one of the boundary triples listed in the proof of Proposition~\ref{prop:stop_hits_at_most_one}.
+Since $\mathrm{AUG}$ is also boundary, the triple $(a,u,g)$ must also be boundary.
+We consider cases by $u$.
+If $u=00$, then $(u,a,g)=(00,11,10)$ forcing $(a,g)=(11,10)$, but then $(a,u,g)=(11,00,10)$ is not a boundary triple.
+If $u=01$, then $(u,a,g)\in\{(01,00,01),(01,00,11)\}$ forces $a=00$, but then $(a,u,g)$ begins with $00$ while no boundary triple begins with $00$ and has second block $01$.
+If $u=11$, then $(u,a,g)\in\{(11,00,00),(11,00,11),(11,01,01)\}$, and distinctness of $a,g$ forces $(a,g)=(00,11)$, hence $(a,u,g)=(00,11,11)$ which is not a boundary triple.
+Therefore $\mathrm{UAG}$ cannot be boundary when $\mathrm{AUG}$ is boundary.
+
+Similarly, suppose $\mathrm{UGA}$ is boundary.
+Then $(u,g,a)$ is boundary and $(a,u,g)$ is boundary.
+If $u=00$, then $(u,g,a)=(00,11,10)$ forces $(g,a)=(11,10)$, hence $(a,u,g)=(10,00,11)$ begins with $10$, impossible for a boundary triple.
+If $u=01$, then $(u,g,a)\in\{(01,00,01),(01,00,11)\}$ forces $g=00$, so $(a,u,g)$ ends with $00$, but the only boundary triple ending with $00$ is $(11,00,00)$, which would force $a=11$ and $u=00$, contradiction.
+If $u=11$, then $(u,g,a)\in\{(11,00,00),(11,00,11),(11,01,01)\}$ and distinctness of $g,a$ forces $(g,a)=(00,11)$, so $(a,u,g)=(11,11,00)$ which is not admissible and in particular not a boundary triple.
+Thus $\mathrm{UGA}$ cannot be boundary when $\mathrm{AUG}$ is boundary.
+
+Consequently, the only possible boundary stop is $\mathrm{UAA}$.
+
+\emph{Claim 2: $\mu=\mu^\ast$.}
+Since $\mathrm{UAA}$ is boundary, $(u,a,a)$ is a boundary triple.
+From the boundary list, this forces $u=11$ and $a\in\{00,01\}$.
+If $a=01$, then $(a,u,g)=(01,11,g)$ cannot be a boundary triple for any $g$, contradicting that $\mathrm{AUG}$ is boundary.
+Therefore $a=00$.
+Now $\mathrm{AUG}$ being boundary implies $(a,u,g)=(00,11,g)$ is a boundary triple, forcing $g=10$.
+Bijectivity then forces $c=01$, so $\mu=\mu^\ast$.
+
+Finally, under $\mu^\ast$, the bit patterns of $\mathrm{AUG}$ and $\mathrm{UAA}$ are $001110$ and $110000$.
+Therefore,
+\[
+N_{\mu^\ast}(\mathrm{AUG})=14,\qquad N_{\mu^\ast}(\mathrm{UAA})=48.
+\]
+A direct evaluation gives $w_{\mu^\ast}(\mathrm{AUG})=w_{\mu^\ast}(\mathrm{UAA})=100001$.
+\end{proof}
+
+\begin{remark}[Null probability under the uniform encoding prior]
+Under the uniform prior on the $24$ encodings, the event of attaining the maximal score $S(\mu)=2$ has probability $1/24$, since $\mu^\ast$ is the unique maximizer.
+\end{remark}
+
+\begin{remark}[Control-set non-genericity under a 4-codon null]\label{rem:control_set_null}
+To quantify how special this identifiability is \emph{within} the same $24$-encoding model, we also enumerate the entire null space of $4$-codon control sets:
+for every subset $\mathcal{K}\subset\Sigma^3$ with $|\mathcal{K}|=4$, we maximize $S_{\mathcal{K}}(\mu)=\sum_{c\in\mathcal{K}}\mathbf{1}\{w_\mu(c)\in X_6^{\mathrm{bdry}}\}$ over the $24$ encodings and record both the maximal score and the argmax multiplicity.
+Appendix~\ref{app:control_set_null} reports the exact distribution over all $\binom{64}{4}$ subsets, the exact frequency with which $\mu^\ast$ appears as the \emph{unique} maximizer under this null, and a stop-fixed variant that conditions on the standard stop set $\{\mathrm{UAA,UAG,UGA}\}$.
+\input{sections/generated/control_objective_null_brief}
+\end{remark}
+
+\subsection{An information-theoretic alignment diagnostic (optional)}
+\label{sec:mutual_information}
+
+Beyond the hard control objective above, we also report an auxiliary information-theoretic diagnostic that compares the genetic code map $\mathsf{Gen}$ with the folding-induced compression by encoding-dependent joint statistics.
+For a codon random variable $C$ under a chosen prior (e.g.\ uniform on $64$ codons), we may consider the mutual information
+\[
+I\bigl(\mathsf{Gen}(C);\ w_\mu(C)\bigr),
+\]
+which measures how informative the folded type is about amino-acid identity under encoding $\mu$.
+We compute this quantity for all encodings as an auxiliary diagnostic; it is not used as a premise in the identification theorem.
+\cite{CoverThomas2006}
+\input{sections/generated/mutual_information_brief}
+\input{sections/generated/mutual_information_rank}
+Additional scan details (including the top encodings by mutual information) are recorded in Appendix~\ref{app:generated_tables}.
+
+

@@ -1,0 +1,137 @@
+\section{Readout as a \texorpdfstring{$q$}{q}-expansion: from continuous data to discrete integers}
+\label{sec:readout_as_q_expansion}
+
+The bridge from continuous analytic data to discrete arithmetic data is canonically realized at a cusp via Fourier/$q$-expansion. This section formalizes the slogan ``discreteness lives at cusps'' as a protocol-level interface: cusp expansions provide a standard, symmetry-compatible discretization map.
+
+\subsection{Modular forms and cusp expansions}
+\label{sec:modular_forms_qexp}
+
+Let $f$ be a modular form of weight $k$ for $\PSL_2(\ZZ)$ (or a congruence subgroup). At the cusp $\infty$, one has a $q$-expansion
+\begin{equation}
+f(\tau)=\sum_{n\ge 0} a_n q^n,\qquad q=\e^{2\pi \iu \tau}.
+\end{equation}
+For a cusp form, $a_0=0$. Many arithmetic objects have integral (or algebraic-integer) coefficients $a_n$. A central example is the discriminant modular form
+\begin{equation}
+\Delta(q)=q\prod_{n\ge 1}(1-q^n)^{24}=\sum_{n\ge 1}\tau(n)q^n,
+\end{equation}
+whose coefficients $\tau(n)$ are the Ramanujan tau function.
+Standard references for modular forms, $q$-expansions, and the arithmetic nature of Fourier coefficients include \cite{Serre1973,Apostol1990,DiamondShurman2005}.
+
+\begin{proposition}[discreteness from \texorpdfstring{$T$}{T}-periodicity at the cusp]
+\label{prop:qexp_from_T_periodicity}
+Let $f$ be holomorphic on $\HH$ and $T$-periodic: $f(\tau+1)=f(\tau)$. Writing $\tau=x+\iu y$, the function $x\mapsto f(x+\iu y)$ is $1$-periodic for every fixed $y>0$ and therefore admits a Fourier expansion
+\begin{equation}
+f(x+\iu y)=\sum_{n\in\ZZ} a_n(y)\,\e^{2\pi \iu n x},
+\qquad
+a_n(y)=\int_0^1 f(x+\iu y)\,\e^{-2\pi \iu n x}\,\dd x.
+\end{equation}
+If, in addition, $f$ has at most polynomial growth as $y\to\infty$ (the standard cusp-growth condition satisfied by modular forms), then $a_n(y)=0$ for all $n<0$, and the nonnegative modes can be written as a $q$-series
+\begin{equation}
+f(\tau)=\sum_{n\ge 0} a_n\,q^n,
+\qquad q=\e^{2\pi\iu\tau},
+\end{equation}
+with $a_n$ independent of $y$.
+\end{proposition}
+\begin{remark}
+This proposition makes the constitution-level point precise: \emph{the integer mode index is forced by the $T$-quotient}. The cusp parameter $q$ is simply the holomorphic packaging of the Fourier modes. See standard treatments in \cite{Apostol1990,Serre1973}.
+\end{remark}
+
+\paragraph{Protocol-level reading.}
+If $\tau$ is treated as a scan coordinate, then the monomials $q^n$ serve as canonical ``cusp modes'', and the $q$-expansion maps a continuous analytic object to a discrete coefficient sequence $\{a_n\}$. In finite-resolution readout, one naturally accesses only a truncated or windowed subset of these modes; this aligns with O5, where probabilities are induced by finite-resolution effects rather than externally postulated sampling rules.
+
+\paragraph{Generative versus retrieval (interpretation-layer viewpoint).}
+One may additionally emphasize a \emph{generative} perspective: the discrete sequence $\{a_n\}$ is not treated as ``downloaded'' from a static database, but as \emph{rendered} by a scan--projection procedure applied to a generating object $f$ at a cusp. This is a Layer~2 viewpoint about the semantics of readout and does not alter the Layer~0/1 mathematical content.
+
+\begin{remark}[interpretation-layer metaphor: dispersion into coefficients]
+In the same semantic vocabulary, one may view the cusp interface as a ``prism'': an undifferentiated generating object $f$ is dispersed into discrete coefficient labels $\{a_n\}$ by the $q$-expansion, and finite-resolution readout corresponds to accessing only a band-limited or truncated portion of that spectrum. This is a Layer~2 metaphor and is not used as a premise.
+\end{remark}
+
+\begin{remark}[what is and is not claimed]
+We do \emph{not} claim as a theorem that physical particle spectra must equal $\{a_n\}$. The only constitution-level claim is that cusp expansions provide a clean, auditable discretization interface: if a physical readout is dominated by cusp Fourier modes, then the discrete output inherits arithmetic structure.
+\end{remark}
+
+\subsection{Ramanujan's differential system: a canonical \texorpdfstring{$q$}{q}-flow on modular data}
+\label{sec:ramanujan_differential_system}
+
+The cusp parameter $q=\e^{2\pi\iu\tau}$ provides not only an expansion interface but also a canonical derivation
+\begin{equation}
+D:=q\frac{\dd}{\dd q}=\frac{1}{2\pi\iu}\frac{\dd}{\dd\tau},
+\end{equation}
+which differentiates along the cusp coordinate.
+For level~$1$, the differential closure of modular forms is controlled by the weight-$2$ Eisenstein series
+\begin{equation}
+E_2(\tau)=1-24\sum_{n\ge 1}\sigma_1(n)\,q^n,
+\end{equation}
+which is \emph{quasi}-modular rather than modular.
+The classical Ramanujan identities state that
+\begin{equation}
+DE_2=\frac{E_2^2-E_4}{12},\qquad
+DE_4=\frac{E_2E_4-E_6}{3},\qquad
+DE_6=\frac{E_2E_6-E_4^2}{2},
+\label{eq:ramanujan_differential_system}
+\end{equation}
+and, equivalently, the logarithmic derivative of the discriminant satisfies
+\begin{equation}
+D\log \Delta = E_2.
+\label{eq:ramanujan_log_delta}
+\end{equation}
+These identities are standard and can be found in classical references such as \cite{Serre1973,Apostol1990}.
+
+\paragraph{Constitution-level role.}
+Equations \eqref{eq:ramanujan_differential_system}--\eqref{eq:ramanujan_log_delta} make explicit that the cusp interface comes with a rigid differential calculus: once $q$ is adopted as the canonical local coordinate, modular data is organized not only by discrete coefficients but also by a canonical $q$-flow (the Ramanujan vector field).
+In the present constitution this provides an arithmetic-dynamical meaning to the slogan ``viewed from the cusp'': the same canonical coordinate that produces discrete $q$-coefficients also supports a closed differential system relating the distinguished generators $E_4,E_6,\Delta$.
+
+\subsection{Modular symbols and periods: critical \texorpdfstring{$L$}{L}-values as period data}
+\label{sec:modular_periods_lvalues}
+
+The $q$-expansion interface produces discrete coefficients. A complementary, equally standard interface produces \emph{period data} from modular forms: integrals of modular differentials along rational paths on the modular curve (modular symbols). These integrals are periods in the sense of Kontsevich--Zagier \cite{KontsevichZagier2001} and, from the motivic viewpoint, encode comparison data between Betti and de~Rham realizations.
+
+\paragraph{Modular symbols (period integrals).}
+Let $f$ be a cusp form of weight $k\ge 2$ for a congruence subgroup (in particular for $\SL_2(\ZZ)$). For integers $m$ with $1\le m\le k-1$ and for cusps/rational endpoints $r,s\in\QQ\cup\{\infty\}$, one considers integrals of the form
+\begin{equation}
+\label{eq:modular_symbol_integral}
+\{r,s\}_f^{(m)}:=\int_{r}^{s} f(z)\,z^{m-1}\,\dd z,
+\end{equation}
+where the path is taken in $\HH$ and endpoints are interpreted as cusps. These modular symbol values generate a finite-dimensional period lattice attached to $f$; see standard accounts in \cite{Shimura1971,DiamondShurman2005,Stein2007}.
+
+\paragraph{Mellin transform and \texorpdfstring{$L$}{L}-values.}
+The Dirichlet series
+\begin{equation}
+\label{eq:hecke_L_function}
+L(f,s):=\sum_{n\ge 1}\frac{a_n}{n^s}
+\end{equation}
+admits the classical Mellin transform representation (for $\Re(s)$ large, with analytic continuation thereafter):
+\begin{equation}
+\label{eq:mellin_L_value}
+(2\pi)^{-s}\Gamma(s)\,L(f,s)=\int_0^\infty f(\iu t)\,t^{s-1}\,\dd t.
+\end{equation}
+In particular, critical values $L(f,m)$ for integers $1\le m\le k-1$ can be expressed in terms of the period data generated by \eqref{eq:modular_symbol_integral}; see \cite{Shimura1971,Deligne1979,Stein2007}.
+
+\paragraph{Algebraicity after period normalization (standard theorem).}
+For a normalized Hecke eigen cusp form $f$ with coefficient field $K_f$, there exist nonzero periods $\Omega_f^\pm$ (depending on $f$ but not on $m$) such that for each critical integer $m$ one has
+\begin{equation}
+\label{eq:deligne_shimura_algebraicity}
+\frac{L(f,m)}{(2\pi\iu)^m\,\Omega_f^{\pm}}\in K_f,
+\end{equation}
+with the choice of sign determined by the parity dictated by complex conjugation (see \cite{Deligne1979,Shimura1971}). This is the precise sense in which critical $L$-values are periods up to algebraic factors.
+
+\paragraph{Constitution-level role.}
+Equation \eqref{eq:deligne_shimura_algebraicity} provides a \emph{period interface} parallel to the $q$-expansion interface: it converts the same underlying modular object into numeric invariants that are stable under changes of realization. In the broader HPA--$\Omega$ program, MAI (\cite{Ma2025MAI}) supplies a protocol-level period-realization interface for scan averages, and the remaining objective is to align that interface with modular period data and with the Hecke/Frobenius invariants on the \'{e}tale side.
+
+\subsection{Induced measures: probability from window kernels}
+\label{sec:induced_measures}
+
+O5 states that finite-resolution readout is encoded by effects $\{E_k^{(\varepsilon)}\}$, yielding
+\begin{equation}
+P_k^{(\varepsilon)} = \omega_{\mathrm{eff}}\!\left(E_k^{(\varepsilon)}\right),\qquad \sum_k E_k^{(\varepsilon)}=\ind.
+\end{equation}
+This has a direct ``cusp mode'' interpretation: a window kernel can be understood as a finite bandwidth or finite depth in $n$ for which the coefficients $a_n$ are operationally accessible. Probability is then an induced measure built from the spectral data and the window.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.98\linewidth]{fig04_window_induced_measure}
+\caption{Protocol-level schematic of induced probability: scan dynamics on a phase circle is paired with a finite-resolution instrument (effects/windows), producing induced outcome probabilities by evaluation in an effective state.}
+\label{fig:window_induced_measure}
+\end{figure}
+
+

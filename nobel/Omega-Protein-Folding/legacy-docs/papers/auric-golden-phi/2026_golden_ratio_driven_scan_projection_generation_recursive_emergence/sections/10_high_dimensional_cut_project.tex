@@ -1,0 +1,93 @@
+\section{高维切投影与 \texorpdfstring{$(e,\pi,\varphi)$}{(e, pi, varphi)} 的统一出现：纯数学表述}
+
+本节给出与“高维晶格—旋转—黄金投影—二元读出”相一致的纯数学模型，以说明 $(e,\pi)$ 并非作为额外常数“输入”，而是紧随群表示与紧群几何自然出现；$\varphi$ 在相关的代数方向/膨胀结构中\textbf{可作为}投影方向与自相似尺度常数出现（并非声称其在所有几何/稳定性准则下具有唯一性）。
+
+\subsection{高维晶格与切投影（cut-and-project）}
+
+取格子 $\Lambda=\ZZ^d\subset\RR^d$，选择直和分解
+\[
+\RR^d=E_{\parallel}\oplus E_{\perp},
+\]
+其中 $E_{\parallel}$ 为“外空间”（维数 $m$），$E_{\perp}$ 为“内空间”（维数 $d-m$）。设 $\pi_{\parallel},\pi_{\perp}$ 为相应投影。给定窗集 $W\subset E_{\perp}$，定义切投影集
+\[
+\Sigma=\{\pi_{\parallel}(\lambda):\lambda\in\Lambda,\ \pi_{\perp}(\lambda)\in W\}.
+\]
+当分解方向包含由 $\varphi$ 决定的无理斜率（例如五次/二十面体对称相关的代数方向）时，$\Sigma$ 具有准周期自相似结构；其尺度变换与 $\varphi$ 的代数性质一致。这一构造在 $d=6,m=3$ 的情形提供典型“六维到三维”的准晶数学模型。
+
+更一般地，模型集（model set）与切投影方法提供了一条标准事实：当内外空间分解由代数数域决定、且存在一个膨胀映射将晶格保持到有限指数子格时，所得点集常伴随严格的自相似与有限局部复杂度；$\varphi$ 等二次数可作为膨胀因子出现（参见 \cite{BaakeGrimmAperiodicOrder1,MeyerAlgebraicNumbers,QueffelecSubstitution}）。
+在 $d=6,m=3$ 的典型准晶模型中，可取分解方向来自五次对称相关的代数子空间；此时存在与黄金比例相关的膨胀/收缩方向，从而使得投影点集与由窗集诱导的局部编码呈现严格的自相似层级。本文仅使用这一层的结论：代数无理方向可强制给出稳定的准周期结构，并使得跨分辨率比较可由无量纲不变量（如稳定类型直方图、增长率与主谱）来完成。
+
+\begin{definition}[正则模型集（regular model set）]\label{def:regular-model-set}
+称由切投影方案得到的 $\Sigma$ 为正则模型集，若窗集 $W\subset E_\perp$ 为相对紧可测集并满足边界零测条件
+\[
+\mathrm{vol}_{E_\perp}(\partial W)=0,
+\]
+且切投影方案满足标准的无歧义条件（例如：$\pi_\parallel$ 在 $\{\lambda\in\Lambda:\pi_\perp(\lambda)\in W\}$ 上单射）。
+\end{definition}
+
+\begin{theorem}[正则模型集的唯一遍历与补丁频率]\label{thm:regular-model-set-unique-ergodic}
+设 $\Sigma$ 为正则模型集，并令其平移 hull 记为 $\mathbb{X}_\Sigma$（取 $\Sigma$ 的所有平移极限并赋局部拓扑）。则 $(\mathbb{X}_\Sigma,\RR^{m})$ 是唯一遍历系统；特别地，对任意有限补丁类型 $P$，补丁频率 $\mathrm{freq}(P)$ 存在且与所选典型实现无关（参见 \cite{BaakeGrimmAperiodicOrder1,MeyerAlgebraicNumbers}）。
+\end{theorem}
+
+\begin{remark}[与第 4 节的“边界零测口径”一致]
+当二元读出由窗集指示函数 $\ind_W$ 产生时，$\mathrm{vol}(\partial W)=0$ 正是保证“唯一遍历 $\Rightarrow$ 指示函数的统计结论对相位无关”的标准可检验条件，与注 \ref{rem:unique-ergodic-indicator} 的使用口径一致。
+\end{remark}
+
+\subsection{旋转、角色与 \texorpdfstring{$(e,\pi)$}{(e, pi)}}
+
+紧阿贝尔群（如环面 $\TT^n=(\RR/\ZZ)^n$）的角色（characters）由
+\[
+\chi_k(x)=e^{2\pi i\langle k,x\rangle},\quad k\in\ZZ^n
+\]
+给出。因而在任何以 $\TT^n$ 或其子群为相空间的扫描模型中，$(e,\pi)$ 将作为角色与指数映射不可避免地出现：
+\begin{itemize}
+  \item $e$ 作为指数函数的底数属于函数论结构；
+  \item $\pi$ 作为圆周群的基本周期常数属于几何结构。
+\end{itemize}
+因此在本文的“扫描—投影”设置下，$(e,\pi)$ 由紧群角色结构强制出现；而 $\varphi$ 则由无理方向与重整化自相似结构决定。
+
+\subsection{可计算例：二维 Fibonacci 模型集中的 \texorpdfstring{$(e,\pi,\varphi)$}{(e, pi, varphi)}}\label{subsec:fib-model-set-e-pi-phi}
+
+本小节给出一个可直接计算的低维例子，展示三者如何在同一推导链中同时出现：$\varphi$ 作为切投影方向/膨胀因子出现，$(e,\pi)$ 作为紧群角色与 Fourier 系数的基本常数出现。
+
+\begin{example}[二维 Fibonacci 模型集与显式 Fourier 系数]\label{ex:fib-model-set}
+取 $d=2$，$\Lambda=\ZZ^2$。令 $\varphi' = 1-\varphi = -\varphi^{-1}$ 为 $\varphi$ 的共轭根。定义投影
+\[
+\pi_{\parallel}(m,n)=m+n\varphi\in\RR,\qquad
+\pi_{\perp}(m,n)=m+n\varphi'\in\RR,\qquad (m,n)\in\ZZ^2.
+\]
+取窗集为区间 $W=[0,1)\subset\RR$，定义切投影集（Fibonacci 模型集）
+\[
+\Sigma=\{\pi_{\parallel}(m,n): (m,n)\in\ZZ^2,\ \pi_{\perp}(m,n)\in W\}.
+\]
+则：
+\begin{enumerate}
+  \item \textbf{$\varphi$ 的出现（膨胀/自相似）}：对任意 $(m,n)\in\ZZ^2$ 有
+  \[
+  \varphi\,\pi_{\parallel}(m,n)=\varphi(m+n\varphi)=n+(m+n)\varphi=\pi_{\parallel}(n,m+n),
+  \]
+  因而乘以 $\varphi$ 在物理坐标上对应于对格子系数施加整数矩阵变换 $(m,n)\mapsto(n,m+n)$。同理，
+  \[
+  \varphi'\,\pi_{\perp}(m,n)=\pi_{\perp}(n,m+n),
+  \]
+  这正是“代数无理方向 $\Rightarrow$ 存在整数膨胀映射”的最基本实例（参见 \cite{MeyerAlgebraicNumbers,BaakeGrimmAperiodicOrder1}）。
+  \item \textbf{$(e,\pi)$ 的出现（角色与显式系数）}：将 $\TT^2$ 上的角色写为
+  \(
+  \chi_k(x)=e^{2\pi i\langle k,x\rangle}
+  \)
+ （$k\in\ZZ^2$）。在模型集/平移 hull 的谱分析中，窗集指示函数的 Fourier 系数是基本输入；对区间窗 $W=[0,1)$，其一维 Fourier 变换可直接写为
+  \[
+  \widehat{\ind_W}(\xi)=\int_0^1 e^{-2\pi i\xi y}\,\dd y=
+  \begin{cases}
+    1,& \xi=0,\\[2pt]
+    \dfrac{e^{-2\pi i\xi}-1}{-2\pi i\xi},& \xi\neq 0,
+  \end{cases}
+  \]
+  其中 $e$ 来自角色的指数形式，$\pi$ 来自圆周群的基本周期常数。该显式公式在把几何窗集与谱/频率数据连接起来时充当“解析接口”的原型（更一般背景见 \cite{BaakeGrimmAperiodicOrder1,MeyerAlgebraicNumbers}）。
+\end{enumerate}
+\end{example}
+
+\subsection{二元读出与不可约投影}
+
+在切投影或旋转扫描中，窗集 $W$ 的指示函数提供二元读出；当窗集由代数无理方向决定时，读出诱导的语法与折叠结构在许多情形下具有不可约性（例如相应迁移算子/邻接结构的 Perron--Frobenius 主特征不可约）。这为“离散读出导致不可约投影结构”的严格数学化提供接口。
+

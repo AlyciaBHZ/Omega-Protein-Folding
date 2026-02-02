@@ -1,0 +1,66 @@
+\documentclass[11pt]{article}
+
+% Nature-style single-column submission scaffold (compile with XeLaTeX recommended).
+% !TEX program = xelatex
+
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{amsmath, amssymb}
+\usepackage{enumitem}
+\usepackage{microtype}
+\usepackage{etoolbox}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{caption}
+\usepackage{subcaption}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue,
+  citecolor=blue,
+  urlcolor=blue
+}
+
+% A simple \subtitle implementation
+\makeatletter
+\providecommand{\subtitle}[1]{%
+  \apptocmd{\@title}{\par\large #1 \par}{}{}%
+}
+\makeatother
+
+% Include figure if assets exist; otherwise show placeholder box.
+\newcommand{\maybeincludegraphics}[2][]{%
+  \IfFileExists{#2.pdf}{\includegraphics[#1]{#2.pdf}}{%
+  \IfFileExists{#2.png}{\includegraphics[#1]{#2.png}}{%
+  \IfFileExists{#2.jpg}{\includegraphics[#1]{#2.jpg}}{%
+  \fbox{Missing file: #2.(pdf|png|jpg)}%
+  }}}%
+}
+
+\newcommand{\maybeincludetable}[1]{%
+  \IfFileExists{#1}{\input{#1}}{\fbox{Missing file: #1}}%
+}
+
+\begin{document}
+
+% Manuscript entrypoint.
+% Content lives in paper/sections/*.tex and is kept in sync with:
+% - docs/manuscript/Omega_v1_NatureStyle_EN_v1p2.md
+% - paper/source/Omega_v1_NatureStyle_EN_v1p2.tex
+%
+% Build products (*.aux/*.log/*.out/*.pdf) are intentionally ignored by .gitignore.
+
+% INPUTS_START
+\input{sections/00_frontmatter.tex}
+\input{sections/01_introduction.tex}
+\input{sections/02_omega_as_an_auditable_folding_program.tex}
+\input{sections/03_results.tex}
+\input{sections/04_discussion.tex}
+\input{sections/05_methods.tex}
+\input{sections/06_data_and_code_availability.tex}
+\input{sections/07_references.tex}
+\input{sections/90_supplementary.tex}
+% INPUTS_END
+
+\end{document}

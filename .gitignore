@@ -1,0 +1,22 @@
+# NOTE:
+# This git repository is rooted at Desktop, but we only want to version-control
+# the Omega project under `nobel/Omega-Protein-Folding/`.
+# Everything else on Desktop is ignored to avoid accidentally committing
+# personal files (pdf/pptx/etc.) and large binaries.
+
+# Ignore everything by default
+/*
+
+# Keep this file
+!.gitignore
+
+# Allow the nobel folder to be visible
+!nobel/
+
+# Ignore all other content inside nobel by default
+nobel/*
+
+# Track ONLY Omega-Protein-Folding
+!nobel/Omega-Protein-Folding/
+!nobel/Omega-Protein-Folding/**
+

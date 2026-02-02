@@ -1,0 +1,53 @@
+book/
+.DS_Store
+!.claude/settings.local.json
+*.aux
+*.glob
+docs/**/formals/**/*.v*
+!docs/**/formals/**/*.v
+docs/**/formals/**/.lia.cache
+src/**/*.v*
+!src/**/*.v
+src/**/.lia.cache
+.tmp*
+.ci_cache/
+*.out
+*.log
+*.toc
+*.bbl
+*.blg
+*.pdf
+*.fdb_latexmk
+*.fls
+*.zip
+*.xdv
+__pycache__
+
+# --- local dev environments / caches ---
+.venv/
+venv/
+.env
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# --- large local caches / generated outputs ---
+artifacts/
+data/raw/pdb_cache/
+data/processed/
+figures/
+
+# 论文数据文件（使用 GitHub Release 存储）
+docs/papers/biology/2025_arithmetic_origin_genetic_code_hpa_omega/data/
+
+# 论文数据打包输出（Release 资产在本地生成后上传）
+docs/papers/biology/2025_arithmetic_origin_genetic_code_hpa_omega/dist/
+docs/papers/2025_z128_standard_model_stable_sector_hpa_omega/scripts/_cache/*
+docs/papers/math/2026_hpa_64to21_slack_product_trellis_wl/scripts/_cache/*
+docs/papers/math/2026_dyadic_zeckendorf_window_folding_kernel/.cache/
+docs/papers/**/artifacts/*
+
+# Supabase secrets (local only; do not commit)
+docs/papers/biology/2025_arithmetic_origin_genetic_code_hpa_omega/supabase.env*
+!docs/papers/biology/2025_arithmetic_origin_genetic_code_hpa_omega/supabase.env.template
+.sisyphus/ralph-loop.local.md

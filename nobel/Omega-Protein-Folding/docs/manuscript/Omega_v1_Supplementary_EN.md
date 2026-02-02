@@ -1,0 +1,89 @@
+# Omega v1 — Supplementary Notes (v1.0)
+
+**Project Omega Consortium**  
+**Supplementary Notes — 2026-02-01**
+
+This document provides detailed experiment-by-experiment context, additional tables, and a complete index of artifacts included in this repository.
+
+> **Reading guide.** The main manuscript highlights the v1 core claims: (i) **phason feasibility requires a projector**, (ii) **alphabet expressivity** unlocks the 0.9 regime, and (iii) **Blind Sprint** performance without oracle losses.  
+> This Supplementary records the full method evolution from early contact-map proxies to long-chain and membrane case studies.
+
+---
+
+## Supplementary Note 1 | Experiment timeline and method evolution
+
+Omega evolved through the following stages (each stage is backed by audit logs and CSV outputs):
+
+1. **Discrete folding proxy (Contact-map / Z128 low-bit embedding)**  
+   Goal: verify that wormhole macro-operators and expander/Ramanujan shaping measurably change search trajectories under a low-resolution readout.
+
+2. **6D cut-and-project feasibility diagnostics (phason proxy tests)**  
+   Goal: test whether 6D lifting produces a discriminative signal between native proteins and controls; identify why naïve lifting underperforms without global constraints.
+
+3. **Impedance-guided wormhole selection (\(\mathrm{Imp}(p;D)\))**  
+   Goal: turn Omega from a static compiler into an adaptive agent that chooses macro-operators based on residual geometry, with audit-grade traces.
+
+4. **Phason gating and the “hallucination gap”**  
+   Goal: show that contact-map success can be hallucinated; introduce semantic residuals and gate-induced separation.
+
+5. **From phason filter to phason projector**  
+   Goal: resolve “hard reject freezes the search” by adding an inner-loop projector that adjusts \(w_0\) to restore feasibility.
+
+6. **Scaling: long chains and a membrane case**  
+   Goal: stress-test topology and packing; introduce piecewise \(w_0\) drift for long-range strain accumulation.
+
+7. **Sprint experiments**  
+   - *Oracle Sprint (upper bound)*: demonstrate an attainable ceiling under native-derived guidance.  
+   - *Blind Sprint*: remove oracle TM and native membrane terms; replace with semantic residual proxies + sequence-only belt priors.
+
+---
+
+## Supplementary Note 2 | Early contact-map proxy benchmarks (wormholes / expander shaping / zeta shaping)
+
+**Purpose.** Establish that (a) wormhole macro-operators change hit-rate and trajectory quality under a budget, and (b) spectral shaping influences the search distribution.
+
+**Targets.** 1UBQ(A) and 2CI2(I), with \(N=16\) (contact bits = 120) and a contact definition Cα–Cα < 8Å.
+
+**Key readout.** Contact map F1 between the discrete proxy and the target contact map.
+
+**Summary table.**
+
+| Variant             |   Mean best F1 |   s.d. |   Exact-hit rate |   n |
+|:--------------------|---------------:|-------:|-----------------:|----:|
+| wormhole_random     |         0.972  | 0.017  |              0.1 |  10 |
+| omega_full_random   |         0.9655 | 0.0158 |              0   |  10 |
+| baseline            |         0.9646 | 0.0203 |              0   |  10 |
+| wormhole_expander   |         0.9627 | 0.0251 |              0.1 |  10 |
+| zeta_only           |         0.959  | 0.025  |              0   |  10 |
+| omega_full_expander |         0.9515 | 0.0184 |              0   |  10 |
+
+**Interpretation.** Wormholes increase exact-hit probability under small budgets, even when the mean F1 uplift is modest. Zeta shaping stabilizes the trajectory distribution but can become overly conservative under this low-resolution readout.
+
+Artifacts:
+- `../../artifacts/reports/small_sample_hpa_omega_protein_experiments.md`
+- `../../data/processed/small_sample_contactmap_proxy_results.csv`
+
+---
+
+## Supplementary Note 3 | Icosa-direction codec: 12-direction quantization advantage
+
+**Purpose.** Test whether icosahedral vertex directions form an effective discrete direction codec for protein backbone steps (Cα–Cα vectors).
+
+**Setup.** For each protein, quantize 15 backbone step directions using either:
+- 12 icosahedral vertex directions; or
+- 200 random 12-direction dictionaries (baseline).
+
+**Result.**
+
+| PDB   |   icosa_mean_deg |   rand12_mean_deg_mean |   rand12_mean_deg_std |   icosa_better_than_frac |
+|:------|-----------------:|-----------------------:|----------------------:|-------------------------:|
+| 1UBQ  |            24.29 |                  29.86 |                  5.38 |                     87   |
+| 1CRN  |            24.12 |                  29.62 |                  4.65 |                     88.5 |
+| 2CI2  |            23.87 |                  29.01 |                  4.36 |                     91   |
+| 5PTI  |            21.04 |                  28.81 |                  5.09 |                     95.5 |
+
+**Interpretation.** This does **not** prove “proteins are icosahedral”, but it does show that if a finite direction alphabet is desired, an icosahedral dictionary yields systematically smaller quantization error than random dictionaries of the same size—supporting its use as an **inner (non-orthogonal) codec layer**.
+
+Artifacts:
+- `../../data/processed/icosa_quantization_results.csv`
+

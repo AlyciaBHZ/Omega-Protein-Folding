@@ -1,0 +1,97 @@
+% Omega v1 Supplementary Information (inventory + synthesis)
+% Generated: 2026-02-01
+
+\documentclass[10pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{microtype}
+
+\title{Supplementary Information: Omega v1 Evidence Pack (All Tests)}
+\author{Project Omega (evidence-pack build)}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section*{Scope}
+This document is a structured index and synthesis of all experiments executed in the Omega v0.2 \(\rightarrow\) v1 campaign.
+Raw CSVs, plots, and audit logs are stored in \texttt{../../data/processed/}, \texttt{../../figures/}, and \texttt{../../artifacts/logs/}, with detailed narratives in \texttt{../../artifacts/reports/}.
+
+\section{Artifact map (what to open first)}
+\begin{itemize}[leftmargin=*]
+\item Main manuscripts:
+  \begin{itemize}
+    \item \texttt{Omega\_v1\_NatureStyle\_EN\_v1p2.tex} (this folder)
+    \item \texttt{../../docs/manuscript/Omega\_v1\_NatureStyle\_EN\_v1p2.md}
+  \end{itemize}
+\item Blind Sprint (v1): \texttt{../../artifacts/reports/blind\_sprint\_AB\_report\_v1.md}
+  \begin{itemize}
+    \item summary: \texttt{../../artifacts/reports/blind\_sprint\_ab\_summary\_v1.csv}
+    \item effects: \texttt{../../artifacts/reports/blind\_sprint\_ab\_effects\_v1.csv}
+    \item plots: \texttt{../../figures/blind\_sprint\_*.png}
+  \end{itemize}
+\item Sprint-to-0.9 (oracle-guided compilation): \texttt{../../artifacts/reports/sprint0p9\_AB\_runner\_report.md}
+  \begin{itemize}
+    \item data: \texttt{../../data/processed/sprint0p9\_ab\_runs.csv}, \texttt{../../data/processed/sprint0p9\_ab\_summary.csv}
+    \item audits: \texttt{../../artifacts/logs/sprint0p9\_*\_audit.csv}
+    \item plots: \texttt{../../figures/sprint0p9\_*.png}
+  \end{itemize}
+\item \(\theta_\star\) feasibility (filter vs projector): \texttt{../../artifacts/reports/step1\_theta\_star\_step2\_triple232\_evidence\_pack.md}
+  \begin{itemize}
+    \item tables: \texttt{../../data/processed/theta\_star\_AB\_success\_1AKE\_1TIM.csv}, \texttt{../../data/processed/theta\_star\_counterfactual\_passfail.csv}
+    \item plots: \texttt{../../figures/theta\_star\_AB\_phmax\_*.png}
+  \end{itemize}
+\end{itemize}
+
+\section{Complete test inventory (by theme)}
+
+\subsection{S1: Short-chain proxies}
+\begin{itemize}[leftmargin=*]
+\item Contact-map proxy A/B (wormholes + \(\zeta\) shaping): \texttt{../../artifacts/reports/small\_sample\_hpa\_omega\_protein\_experiments.md}, raw \texttt{../../data/processed/small\_sample\_contactmap\_proxy\_results.csv}.
+\item Contact-only Phason A/B: \texttt{../../artifacts/reports/contact\_only\_phason\_ab\_report.md}, raw \texttt{../../data/processed/contact\_only\_phason\_ab\_*.csv}.
+\end{itemize}
+
+\subsection{S2: Geometry priors}
+\begin{itemize}[leftmargin=*]
+\item Icosa-direction codec quantization: raw \texttt{../../data/processed/icosa\_quantization\_results.csv}.
+\end{itemize}
+
+\subsection{S3: Phason tests and hallucination-gap forcing}
+\begin{itemize}[leftmargin=*]
+\item Early phason proxy on PDB vs controls: \texttt{../../artifacts/reports/exp\_phason\_small\_sample\_report.md}, raw \texttt{../../data/processed/phason\_test\_small\_sample.csv}.
+\item Synthetic necessity stress: \texttt{../../artifacts/reports/exp\_synthetic\_phason\_necessity\_ab\_report.md}.
+\item Semantic residual + hard phason gate: \texttt{../../artifacts/reports/semantic\_residual\_hard\_phason\_ab\_report.md}.
+\item Projector repair vs filter: \texttt{../../artifacts/reports/omega\_phason\_projector\_L3\_1EMA\_report.md} and extensions.
+\end{itemize}
+
+\subsection{S4: Impedance-guided operator selection (Imp agent)}
+\begin{itemize}[leftmargin=*]
+\item Imp selector progression: \texttt{../../artifacts/reports/imp\_adaptive\_wormhole\_selector\_report.md}, \texttt{../../artifacts/reports/imp\_adaptive\_v2\_benchmark\_report.md}, \texttt{../../artifacts/reports/imp\_agent\_v5\_v7\_report.md}.
+\end{itemize}
+
+\subsection{S5: Stage I/II integration and scaling}
+\begin{itemize}[leftmargin=*]
+\item Long-chain L1\(\rightarrow\)L2\(\rightarrow\)L3: \texttt{../../artifacts/reports/omega\_long\_L1\_L2\_L3\_report.md}.
+\end{itemize}
+
+\subsection{S6: Final capability \& intelligence tests}
+\begin{itemize}[leftmargin=*]
+\item Sprint-to-0.9 (oracle-guided compilation): \texttt{../../artifacts/reports/sprint0p9\_AB\_runner\_report.md}.
+\item Blind Sprint: \texttt{../../artifacts/reports/blind\_sprint\_AB\_report\_v1.md}.
+\end{itemize}
+
+\section{Reproduction (analysis-only)}
+This evidence pack regenerates figures/tables from saved CSV outputs (it does \emph{not} rerun the Omega engine).
+\begin{verbatim}
+python -m venv .venv
+source .venv/bin/activate
+pip install -r scripts/evidence_v1/requirements.txt
+
+python scripts/evidence_v1/make_figures.py --outdir figures_repro
+python scripts/evidence_v1/make_tables.py  --outdir tables_repro
+\end{verbatim}
+
+\end{document}
+

@@ -1,0 +1,310 @@
+
+\section{Additional mathematical notes}
+\label{app:additional_notes}
+
+\subsection{On unique ergodicity of Kronecker rotations}
+
+For $\alpha$ satisfying \eqref{eq:rational_independence}, the translation $x\mapsto x+\alpha$ on $\TT^d$ is uniquely ergodic with respect to Haar measure. As a consequence, for continuous $f$, Birkhoff averages converge uniformly in the initial condition. In the main text we used the equivalent uniform distribution formulation because it interfaces directly with discrepancy bounds and Riemann integrable kernels.
+
+\subsection{On discrepancy estimates and Diophantine properties}
+
+The star discrepancy of the Kronecker sequence $\{x_0+t\alpha\}$ admits explicit bounds in terms of Diophantine approximation properties of $\alpha$; in $d=1$ these are controlled by continued fractions \cite{KuipersNiederreiter1974,IosifescuKraaikamp2002}. This paper does not require a specific bound, only that discrepancy provides an auditable sampling error term (Corollary~\ref{cor:sampling_error}). The selection principle (Section~\ref{sec:selection_principle}) uses these estimates as motivation.
+
+\subsection{A closed 1D rate bound for constant-type rotations (bounded partial quotients)}
+\label{app:1d_discrepancy_constant_type}
+
+For one-dimensional scans $x_t=x_0+t\alpha\pmod{1}$, finite-horizon stability can be made fully explicit under a standard Diophantine regularity condition.
+
+\begin{proposition}[Star discrepancy for bounded partial quotients]
+\label{prop:1d_discrepancy_log_over_n}
+Let $\alpha=[0;a_1,a_2,\dots]$ be irrational with bounded partial quotients $a_n\le A$. Then the star discrepancy of the Kronecker point set $P_N=\{\{x_0+t\alpha\}:0\le t\le N-1\}\subset[0,1)$ satisfies
+\begin{equation}
+\label{eq:1d_discrepancy_log_over_n}
+D_N^\ast(P_N) \le \frac{2A(3+\log_\varphi N)}{N},
+\end{equation}
+where $\varphi=(1+\sqrt{5})/2$.
+\end{proposition}
+
+\begin{proof}
+Let $q_n$ denote the continued-fraction convergent denominators of $\alpha$, and write the Ostrowski expansion $N=\sum_{j=0}^m b_j q_j$. For $u\in[0,1]$, set $f_u(x)=\ind_{[0,u)}(x)-u$, so that $\int_0^1 f_u=0$ and $\Var(f_u)\le 2$.
+
+By the Denjoy--Koksma inequality at convergent lengths \cite{Denjoy1932,Koksma1935,KatokHasselblatt1995}, each block sum over a length-$q_j$ orbit segment is bounded by $\Var(f_u)$ uniformly in the starting point. Applying an Ostrowski block decomposition and summing over the $b_j$ blocks yields
+\[
+\left|\sum_{t=0}^{N-1} f_u(x_0+t\alpha)\right|\le \Var(f_u)\sum_{j=0}^m b_j \le 2\sum_{j=0}^m b_j.
+\]
+Dividing by $N$ and taking the supremum over $u$ gives
+\[
+D_N^\ast(P_N)\le \frac{2}{N}\sum_{j=0}^m b_j.
+\]
+If $a_n\le A$, then Ostrowski digits satisfy $b_j\le a_{j+1}\le A$, hence $\sum_{j=0}^m b_j\le A(m+1)$.
+Moreover, $q_{n+1}=a_{n+1}q_n+q_{n-1}\ge q_n+q_{n-1}$ implies $q_n\ge F_n$ for Fibonacci numbers, and $F_n\ge \varphi^{n-2}$ for $n\ge 2$. Since $q_m\le N$, we obtain $\varphi^{m-2}\le N$, hence $m\le 2+\log_\varphi N$. Therefore $m+1\le 3+\log_\varphi N$ and
+\[
+D_N^\ast(P_N)\le \frac{2A(3+\log_\varphi N)}{N}.
+\]
+\end{proof}
+
+\begin{remark}
+For the golden branch $\alpha=\varphi^{-1}$ one has $A=1$, giving an explicit certified $O((\log N)/N)$ discrepancy bound. Combined with Proposition~\ref{prop:explicit_1d_variations}, this turns the $\log 2$ and $\pi$ scan realizations into fully quantified, parameter-free finite-$N$ bounds.
+\end{remark}
+
+\subsection{Hardy--Krause variation (definition)}
+\label{app:hk_variation_definition}
+
+The Koksma--Hlawka inequality (Theorem~\ref{thm:koksma_hlawka}) uses bounded variation in the sense of Hardy--Krause. We recall a standard definition (anchored at $1$) and a useful representation for smooth functions.
+
+\begin{definition}[Hardy--Krause variation anchored at $1$]
+\label{def:hk_variation}
+Let $f:[0,1]^d\to\RR$. For a nonempty subset $u\subset\{1,\dots,d\}$, write $x_u=(x_j)_{j\in u}$ and let $(x_u;1)$ denote the point in $[0,1]^d$ obtained by setting coordinates in $u$ to $x_u$ and all remaining coordinates to $1$.
+Define the Hardy--Krause variation anchored at $1$ by
+\begin{equation}
+\label{eq:hk_variation_def}
+\HKVar(f):=\sum_{\emptyset\neq u\subset\{1,\dots,d\}} V\!\left(f(\cdot;1);u\right),
+\end{equation}
+where $V(f(\cdot;1);u)$ is the Vitali variation of the function $x_u\mapsto f(x_u;1)$ on $[0,1]^{|u|}$.
+\end{definition}
+
+\begin{remark}[Smooth-case representation]
+\label{rem:hk_smooth_representation}
+If $f$ has continuous mixed partial derivatives of all orders up to $d$, then one has the standard representation
+\begin{equation}
+\label{eq:hk_smooth_rep}
+\HKVar(f)
+=
+\sum_{\emptyset\neq u\subset\{1,\dots,d\}}
+\int_{[0,1]^{|u|}}
+\left|
+\frac{\partial^{|u|}}{\prod_{j\in u}\partial x_j}
+f(x_u;1)
+\right|
+\dd x_u,
+\end{equation}
+see, e.g., \cite{Niederreiter1992,DickPillichshammer2010}.
+\end{remark}
+
+\subsection{Erd\H{o}s--Tur\'an--Koksma inequality and a Kronecker discrepancy bound}
+\label{app:etk_kronecker_bound}
+
+The following inequality bounds star discrepancy by exponential sums. It provides a closed quantitative bridge from the scan slope $\alpha$ to a finite-$N$ discrepancy certificate.
+
+\begin{theorem}[Erd\H{o}s--Tur\'an--Koksma inequality (star discrepancy)]
+\label{thm:etk}
+Let $P_N=\{x_0,\dots,x_{N-1}\}\subset[0,1)^d$ and let $H\ge 1$ be an integer. Define
+\[
+r(h):=\prod_{j=1}^d \max\{1,|h_j|\},\qquad h=(h_1,\dots,h_d)\in\ZZ^d.
+\]
+Then one may take $C_d=(3/2)^d$ such that
+\begin{equation}
+\label{eq:etk}
+D_N^\ast(P_N)
+\le
+C_d\left(
+\frac{1}{H}
+\;+\;
+\sum_{\substack{h\in\ZZ^d\\0<\|h\|_\infty\le H}}
+\frac{1}{r(h)}
+\left|
+\frac{1}{N}\sum_{t=0}^{N-1} e^{2\pi \iu \langle h,x_t\rangle}
+\right|
+\right).
+\end{equation}
+\end{theorem}
+
+\begin{definition}[ETK bracket term]
+\label{def:etk_bracket}
+For a point set $P_N=\{x_0,\dots,x_{N-1}\}\subset[0,1)^d$ and an integer $H\ge 1$, define
+\begin{equation}
+\label{eq:etk_bracket_def}
+B_{N,H}(P_N)
+:=
+\frac{1}{H}
+\;+\;
+\sum_{\substack{h\in\ZZ^d\\0<\|h\|_\infty\le H}}
+\frac{1}{r(h)}
+\left|
+\frac{1}{N}\sum_{t=0}^{N-1} e^{2\pi \iu \langle h,x_t\rangle}
+\right|.
+\end{equation}
+\end{definition}
+
+\begin{remark}
+With Definition~\ref{def:etk_bracket}, the inequality \eqref{eq:etk} can be written as
+\begin{equation}
+\label{eq:etk_compact}
+D_N^\ast(P_N)\le C_d\,B_{N,H}(P_N),
+\end{equation}
+with an explicit admissible choice $C_d=(3/2)^d$.
+\end{remark}
+
+\begin{remark}
+We use Theorem~\ref{thm:etk} as a standard tool; the explicit admissible choice $C_d=(3/2)^d$ (and closely related variants) is standard in the quasi-Monte Carlo literature, see, e.g., \cite[Ch.\ 2]{Niederreiter1992} or \cite[Ch.\ 3]{DickPillichshammer2010}.
+In Section~\ref{sec:experiments} we report the explicit bracket term in \eqref{eq:etk} (with a fixed truncation parameter $H$) and multiply it by this $C_d$ to obtain a fully numerical star-discrepancy certificate.
+\end{remark}
+
+\begin{lemma}[Geometric-series bound for Kronecker exponential sums]
+\label{lem:kronecker_exp_sum}
+Let $\theta\in\RR$ and define $\|\theta\|:=\min_{m\in\ZZ}|\theta-m|$ (distance to the nearest integer). Then for every $N\ge 1$,
+\begin{equation}
+\label{eq:exp_sum_bound}
+\left|\sum_{t=0}^{N-1} e^{2\pi \iu t\theta}\right|
+\le
+\min\left\{N,\frac{1}{2\|\theta\|}\right\}.
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+If $\theta\in\ZZ$, the left-hand side equals $N$. Otherwise,
+\[
+\sum_{t=0}^{N-1} e^{2\pi \iu t\theta}
+=\frac{1-e^{2\pi \iu N\theta}}{1-e^{2\pi \iu \theta}},
+\]
+so
+\[
+\left|\sum_{t=0}^{N-1} e^{2\pi \iu t\theta}\right|
+\le \frac{2}{|1-e^{2\pi \iu \theta}|}
+=\frac{1}{|\sin(\pi \theta)|}.
+\]
+Using $|\sin(\pi\theta)|\ge 2\|\theta\|$ yields \eqref{eq:exp_sum_bound}. The bound by $N$ is trivial.
+\end{proof}
+
+\begin{proposition}[Auditable discrepancy bound for Kronecker scans]
+\label{prop:kronecker_discrepancy_bound}
+Let $x_t=x_0+t\alpha\pmod{1}$ with $\alpha\in\RR^d$ and point set $P_N=\{x_0,\dots,x_{N-1}\}\subset[0,1)^d$. Then for every integer $H\ge 1$,
+\begin{equation}
+\label{eq:kronecker_discrepancy_bound}
+D_N^\ast(P_N)
+\le
+C_d\left(
+\frac{1}{H}
+\;+\;
+\sum_{\substack{h\in\ZZ^d\\0<\|h\|_\infty\le H}}
+\frac{1}{r(h)}
+\min\left\{1,\frac{1}{2N\|\langle h,\alpha\rangle\|}\right\}
+\right),
+\end{equation}
+with $C_d$ as in Theorem~\ref{thm:etk}.
+\end{proposition}
+
+\begin{proof}
+For $h\in\ZZ^d$,
+\[
+\sum_{t=0}^{N-1} e^{2\pi \iu \langle h,x_t\rangle}
+=
+e^{2\pi \iu \langle h,x_0\rangle}
+\sum_{t=0}^{N-1} e^{2\pi \iu t\langle h,\alpha\rangle},
+\]
+so the modulus is independent of $x_0$. Apply Theorem~\ref{thm:etk} and bound the exponential sum by Lemma~\ref{lem:kronecker_exp_sum}.
+\end{proof}
+
+\begin{definition}[Computable Kronecker bracket term]
+\label{def:kronecker_bracket}
+For $\alpha\in\RR^d$ and integers $N,H\ge 1$, define
+\begin{equation}
+\label{eq:kronecker_bracket_def}
+B_{N,H}(\alpha;N)
+:=
+\frac{1}{H}
+\;+\;
+\sum_{\substack{h\in\ZZ^d\\0<\|h\|_\infty\le H}}
+\frac{1}{r(h)}
+\min\left\{1,\frac{1}{2N\|\langle h,\alpha\rangle\|}\right\}.
+\end{equation}
+\end{definition}
+
+\begin{remark}[From ETK to an auditable Kronecker certificate]
+For a Kronecker orbit prefix $P_N=\{x_0+t\alpha\pmod{1}:0\le t\le N-1\}$, Definition~\ref{def:etk_bracket} and Lemma~\ref{lem:kronecker_exp_sum} imply
+\[
+B_{N,H}(P_N)\le B_{N,H}(\alpha;N),
+\]
+and hence
+\begin{equation}
+\label{eq:kronecker_certificate}
+D_N^\ast(P_N)\le C_d\,B_{N,H}(\alpha;N).
+\end{equation}
+In Section~\ref{sec:experiments} we report the computable quantity $B_{N,H}(\alpha;N)$ and choose $H$ from fixed candidate lists by minimizing it.
+\end{remark}
+
+\subsection{A Diophantine-rate corollary (explicit)}
+\label{app:diophantine_rate_corollary}
+
+The computable bracket term $B_{N,H}(\alpha;N)$ is designed for auditability and direct evaluation. In some regimes one may prefer a closed rate bound in terms of Diophantine approximation constants of $\alpha$. The following corollary is a standard consequence of Proposition~\ref{prop:kronecker_discrepancy_bound} together with a crude but explicit bound on the ETK weight sum.
+
+\begin{definition}[Diophantine condition (sup-norm form)]
+\label{def:diophantine_condition}
+We say that $\alpha\in\RR^d$ satisfies a Diophantine condition of type $(c,\tau)$ if there exist constants $c>0$ and $\tau\ge 0$ such that for all $0\neq h\in\ZZ^d$,
+\begin{equation}
+\label{eq:diophantine_condition}
+\|\langle h,\alpha\rangle\|\ge \frac{c}{\|h\|_\infty^\tau}.
+\end{equation}
+\end{definition}
+
+\begin{lemma}[A crude ETK weight-sum bound]
+\label{lem:etk_weight_sum_bound}
+For every integer $H\ge 1$,
+\begin{equation}
+\label{eq:etk_weight_sum_bound}
+\sum_{\substack{h\in\ZZ^d\\0<\|h\|_\infty\le H}}\frac{1}{r(h)}
+\le
+\left(1+2\sum_{k=1}^H\frac{1}{k}\right)^d-1
+\le
+\big(3+2\log H\big)^d-1.
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+Write the sum over $\|h\|_\infty\le H$ as a product of one-dimensional sums:
+\[
+\sum_{\substack{h\in\ZZ^d\\\|h\|_\infty\le H}}\frac{1}{r(h)}
+=\prod_{j=1}^d\left(\sum_{m=-H}^H\frac{1}{\max\{1,|m|\}}\right)
+=\left(1+2\sum_{k=1}^H\frac{1}{k}\right)^d.
+\]
+Removing the $h=0$ term yields the first inequality. For the second, use $\sum_{k=1}^H k^{-1}\le 1+\log H$ for $H\ge 1$.
+\end{proof}
+
+\begin{corollary}[Explicit discrepancy bound under a Diophantine condition]
+\label{cor:diophantine_discrepancy_bound}
+Assume $\alpha\in\RR^d$ satisfies the Diophantine condition \eqref{eq:diophantine_condition} of type $(c,\tau)$ with $\tau>0$. Let $P_N=\{x_0+t\alpha\pmod{1}:0\le t\le N-1\}$ and let $N\ge 1$.
+Then for every integer $H\ge 1$,
+\begin{equation}
+\label{eq:diophantine_discrepancy_bound}
+D_N^\ast(P_N)
+\le
+C_d\left(
+\frac{1}{H}
+\;+\;
+\frac{H^\tau}{2Nc}\,\big(3+2\log H\big)^d
+\right),
+\end{equation}
+with the same admissible constant $C_d=(3/2)^d$ as in Theorem~\ref{thm:etk}.
+In particular, with the explicit choice
+\begin{equation}
+\label{eq:diophantine_choice_H}
+H:=\left\lceil (2Nc)^{\frac{1}{\tau+1}}\right\rceil,
+\end{equation}
+one obtains the closed rate bound
+\begin{equation}
+\label{eq:diophantine_rate_bound}
+D_N^\ast(P_N)
+\le
+2C_d\,(2Nc)^{-\frac{1}{\tau+1}}\,\big(3+2\log H\big)^d.
+\end{equation}
+\end{corollary}
+
+\begin{proof}
+By Proposition~\ref{prop:kronecker_discrepancy_bound} and \eqref{eq:diophantine_condition},
+\[
+\min\left\{1,\frac{1}{2N\|\langle h,\alpha\rangle\|}\right\}
+\le
+\min\left\{1,\frac{\|h\|_\infty^\tau}{2Nc}\right\}
+\le
+\frac{H^\tau}{2Nc}
+\qquad (0<\|h\|_\infty\le H),
+\]
+which gives \eqref{eq:diophantine_discrepancy_bound} after applying Lemma~\ref{lem:etk_weight_sum_bound}.
+For \eqref{eq:diophantine_rate_bound}, the choice \eqref{eq:diophantine_choice_H} implies $H^{-1}\le (2Nc)^{-1/(\tau+1)}$ and $H^\tau/(2Nc)\le (2Nc)^{-1/(\tau+1)}$. Substitute these into \eqref{eq:diophantine_discrepancy_bound} and absorb constants.
+\end{proof}
+
+\begin{remark}
+Sharper bounds are available in the discrepancy literature by using refined Diophantine information and sharper ETK variants; see, e.g., \cite{KuipersNiederreiter1974,DrmotaTichy1997,Niederreiter1992,DickPillichshammer2010}. The purpose of Corollary~\ref{cor:diophantine_discrepancy_bound} is to provide a fully explicit closed certificate within the present audit style.
+\end{remark}
+
+

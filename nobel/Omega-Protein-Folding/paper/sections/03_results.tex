@@ -1,0 +1,163 @@
+\section{Results}
+
+\subsection{Impedance-guided wormhole selection yields target-dependent, auditable policies}
+
+We first tested whether macro-operator navigation can be made \textbf{self-adaptive} without model training, using an error-geometry impedance score Imp(p;D) to select wormhole candidates. On N=16 contact-map proxy tasks across several targets, the impedance-guided selector achieves competitive best Contact\_F1 while exhibiting target-dependent operator usage. In particular, the 2CI2 proxy concentrates selection on \textbf{Expander\_Hot} macro-patches, consistent with the interpretation that its residual is dominated by localized repair needs, whereas 1UBQ uses predominantly local moves and global expander patches.
+
+These behaviours are emitted directly in the audit digest (counts\_total / counts\_early / counts\_late), allowing mechanistic A/B tests on the operator policy itself.
+
+\begin{figure}[t]
+  \centering
+  \maybeincludegraphics[width=\linewidth]{assets/figures/fig2}
+  \caption{Impedance-guided selector: aggregated operator usage counts by target (N=16 proxy). 2CI2 shows strong preference for Expander\_Hot operators.}
+  \label{fig:2}
+\end{figure}
+
+\begin{table}[t]
+  \centering
+  \caption{Impedance-guided benchmarks (N=16 proxy): representative top-performing variants.}
+  \label{tab:1}
+  \maybeincludetable{assets/tables/table1.tex}
+\end{table}
+
+Across this proxy suite, the best mean Contact\_F1 reaches 0.962 on 2CI2\_16 and 5PTI\_16 (Imp-Adaptive-v2) and 0.916 on 1UBQ\_16 (Mix-Expander-Hot), while exhibiting different macro-operator usage patterns (Fig.~\ref{fig:2}; Table~\ref{tab:1}).
+
+\subsection{Low-resolution objectives induce a measurable hallucination gap}
+
+To expose a failure mode that is invisible to low-resolution objectives, we intentionally optimized Contact\_F1 alone on real proteins truncated to N=24 residues (1UBQ, 2CI2, 5PTI). Contact\_F1 acts as the optimized readout, whereas distogram RMSE and TM-score are treated as hidden audits. This creates a ‘hallucination gap’: configurations achieving high Contact\_F1 while remaining geometrically inconsistent under higher-resolution residuals. In this regime, purely navigation-driven search can converge to high-F1 states that are off-manifold when inspected by distogram RMSE or TM-score.
+
+\begin{figure}[t]
+  \centering
+  \maybeincludegraphics[width=\linewidth]{assets/figures/fig3}
+  \caption{Hallucination gap under Contact-only optimization (N=24). Points with high Contact\_F1 can exhibit low TM-score, motivating higher-resolution semantic and physical gates.}
+  \label{fig:3}
+\end{figure}
+
+\subsection{From hard phason rejection to projector-style repair}
+
+Early experiments showed that naive hard phason rejection can freeze search when (i) the 6D alphabet is too coarse to represent the target geometry, or (ii) the slice offset $w_0$ is misaligned, causing physically plausible states to be incorrectly labelled ‘non-crystalline’. To address this, we replaced the filter-style gate \texttt{if ph\_max>theta: reject()} with a projector-style operator \texttt{if ph\_max>theta: project\_to\_window()}.
+
+The projector performs a small inner-loop optimization of $w_0$ (a perpendicular-space translation) to reduce phason violation and accept the repaired candidate if it becomes feasible. This converts phason from a passive constraint into an active dynamical relaxation (a phason-flip analogue).
+
+\subsection{Projector repair enables feasible hard gates on a long-chain $\beta$-barrel (1EMA/GFP)}
+
+On the long-chain GFP target (1EMA, N=221), the projector substantially reduces phason ratio while maintaining or improving structural metrics, whereas filter-style hard rejection incurs a large reject count and can lower TM-score. These results support the interpretation that feasibility at tight gates is limited by alignment ($w_0$) and expressivity, not by the usefulness of phason as a geometric regularizer.
+
+\begin{figure}[t]
+  \centering
+  \maybeincludegraphics[width=\linewidth]{assets/figures/fig4}
+  \caption{Phason ratio vs TM-score for 1EMA (GFP) comparing baseline (no gate), filter-style hard reject, and projector repair. Projector reduces phason violations without freezing exploration.}
+  \label{fig:4}
+\end{figure}
+
+\begin{figure}[t]
+  \centering
+  \maybeincludegraphics[width=\linewidth]{assets/figures/fig5}
+  \caption{Example audit trace segment for 1EMA showing phason(t) under filter vs projector: projector performs $\Delta w_0$ repairs to re-enter the window.}
+  \label{fig:5}
+\end{figure}
+
+\subsection{A feasible-tight hard gate $\theta^\star$ makes projector repair necessary across folds}
+
+To test whether phason constraints are merely optional regularizers or enforceable dynamical conditions, we introduced $\theta^\star$ (theta\_star): a per-target feasible-tight threshold derived from a counterfactual feasibility floor. Operationally, $\theta^\star$ is set just above the smallest ph\_max achievable by projector repair, making it tight but satisfiable. In this regime, filter-style hard rejection fails to ever enter the window, while projector repair reaches feasibility and stays within the gate.
+
+\begin{table}[t]
+  \centering
+  \caption{$\theta^\star$ hard-gate feasibility: filter vs projector repair.}
+  \label{tab:2}
+  \maybeincludetable{assets/tables/table2.tex}
+\end{table}
+
+Concretely, under $\theta^\star$ the filter gate never reaches feasibility on either 1AKE or 1TIM (pass\_final=False), while the projector enters the window after \(\approx 70\) steps (t\_first\_pass 70.5–73.5) with a small number of repair events (phason\_relax\_n 7–12) (Table~\ref{tab:2}).
+
+\begin{figure}[t]
+  \centering
+  \maybeincludegraphics[width=\linewidth]{assets/figures/fig6}
+  \caption{1AKE ph\_max(t) under $\theta^\star$ with horizontal $\theta^\star$ line: filter fails to cross; projector enters window.}
+  \label{fig:6}
+\end{figure}
+
+\begin{figure}[t]
+  \centering
+  \maybeincludegraphics[width=\linewidth]{assets/figures/fig7}
+  \caption{1TIM ph\_max(t) under $\theta^\star$ with horizontal $\theta^\star$ line: filter fails; projector crosses and remains feasible.}
+  \label{fig:7}
+\end{figure}
+
+\subsection{A 6D alphabet hierarchy reveals a >0.9 TM-score ceiling (Triple232)}
+
+Hard geometric constraints alone cannot yield high structural accuracy if the discrete move set cannot represent the target. We therefore evaluated a hierarchy of 6D step alphabets—axis12 (±$e_i$), pair72 (±$e_i$±$e_j$) and triple232 (±$e_i$±$e_j$±$e_k$)—using an oracle direction codec that quantizes native C$\alpha$ bond directions. This isolates representational expressivity from global search.
+
+Triple232 raises the oracle TM-score ceiling to \textasciitilde{}0.94 for 1AKE and \textasciitilde{}0.92 for 2O5P tail250. For 1TIM, the full-length ceiling is \textasciitilde{}0.81, but local 100-residue windows exceed 0.92, suggesting that long-chain accuracy requires multi-scale composition rather than a single global slice.
+
+\begin{figure}[t]
+  \centering
+  \maybeincludegraphics[width=\linewidth]{assets/figures/fig8}
+  \caption{Oracle expressivity of axis12, pair72 and triple232 alphabets. Triple232 enables TM-score >0.9 on 1AKE and 2O5P tail250.}
+  \label{fig:8}
+\end{figure}
+
+\subsection{Sprint-to-0.9: hotspot Triple232 + piecewise projector reaches TM-score >0.9 on 1TIM and a membrane-protein segment}
+
+Finally, we combined the two key enablers—expressivity (Triple232) and dynamical feasibility ($\theta^\star$ + projector repair)—into a targeted A/B runner.
+
+Configuration A (Baseline) uses pair72 directions with a single global projector under $\theta^\star$. Configuration B (Challenger) uses hotspot-only Triple232 re-encoding (to avoid unnecessary branching) together with a piecewise projector that allows $w_0$ to drift across segments, reducing long-range accumulation of phason strain.
+
+This Sprint-to-0.9 runner is an \emph{oracle-guided compilation} stress test: the ``wish'' is perfect (native alignment supplies hotspot locations), and the goal is to verify that the operator stack (patch + projector) can \emph{realize} a 0.9+ TM-score endpoint when representational and feasibility bottlenecks are addressed (see \texttt{artifacts/reports/sprint0p9\_AB\_runner\_report.md}).
+
+On 1TIM (N=247) and 2O5P tail250 (N=250), the Challenger reaches TM-score >0.9 while maintaining $\theta^\star$ feasibility, and also maintains a hydrophobic-belt packing signal on the membrane segment (Fig.~\ref{fig:12}).
+
+\begin{table}[t]
+  \centering
+  \caption{Sprint-to-0.9 A/B outcomes (baseline vs challenger).}
+  \label{tab:3}
+  \maybeincludetable{assets/tables/table3.tex}
+\end{table}
+
+In particular, on 1TIM the baseline stalls at TM=0.676, whereas the Challenger reaches TM=0.928--0.940 across three seeds (mean 0.936). On 2O5P tail250, the baseline achieves TM=0.703, whereas the Challenger reaches TM=0.917--0.923 (mean 0.921) across three seeds (Table~\ref{tab:3}).
+
+\begin{figure}[t]
+  \centering
+  \maybeincludegraphics[width=\linewidth]{assets/figures/fig9}
+  \caption{TM-score distributions for Sprint-to-0.9 A/B on 1TIM and 2O5P tail250.}
+  \label{fig:9}
+\end{figure}
+
+\begin{figure}[t]
+  \centering
+  \maybeincludegraphics[width=\linewidth]{assets/figures/fig10}
+  \caption{Phason–TM scatter with $\theta^\star$ horizontal lines. Challenger points remain below $\theta^\star$ while improving TM-score.}
+  \label{fig:10}
+\end{figure}
+
+\begin{figure}[t]
+  \centering
+  \maybeincludegraphics[width=\linewidth]{assets/figures/fig11}
+  \caption{1TIM phason-strain along the chain. Piecewise projector suppresses long-range accumulation relative to a global slice.}
+  \label{fig:11}
+\end{figure}
+
+\begin{figure}[t]
+  \centering
+  \maybeincludegraphics[width=\linewidth]{assets/figures/fig12}
+  \caption{2O5P tail250 hydrophobic belt pattern for native vs A/B reconstructions.}
+  \label{fig:12}
+\end{figure}
+
+\subsection{Blind Sprint: removing oracle TM-score and native membrane labels}
+
+To test whether Omega retains an advantage without directly optimizing oracle TM-score and native-derived membrane annotations, we ran a Blind Sprint protocol that removes these oracle terms from the acceptance objective and replaces them with proxy guides (semantic residuals such as distogram RMSE and a sequence-only hydropathy belt prior; see \texttt{artifacts/reports/blind\_sprint\_AB\_report\_v1.md}).
+
+\begin{table}[t]
+  \centering
+  \caption{Blind Sprint A/B summary (evaluation TM-score reported; not used for acceptance).}
+  \label{tab:4}
+  \maybeincludetable{assets/tables/table4.tex}
+\end{table}
+
+\begin{figure}[t]
+  \centering
+  \maybeincludegraphics[width=0.9\linewidth]{../figures/blind_sprint_tmscore_distribution}
+  \caption{Blind Sprint TM-score distribution (evaluation-only). Challenger (B) shifts the TM-score distribution upwards on \texttt{1TIM} and \texttt{2O5P} tail250.}
+  \label{fig:13}
+\end{figure}

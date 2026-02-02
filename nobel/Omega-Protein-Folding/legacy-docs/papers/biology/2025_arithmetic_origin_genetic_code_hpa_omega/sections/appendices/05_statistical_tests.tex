@@ -1,0 +1,225 @@
+\section{Statistical test protocols for sequence-level predictions}
+\label{app:stat_tests}
+
+This appendix specifies quantitative test statistics corresponding to the sequence-level predictions in Section~\ref{sec:sequence_spectra}.
+The purpose is to separate \emph{arithmetic facts} (which are deterministic once $\mu^\ast$ is fixed) from \emph{empirical hypotheses} about genomes and translation context (which require data).
+
+\subsection{Notation}
+Fix a DNA or RNA dataset and a reading frame. For each codon position $i$ with codon $c_i$, define
+\[
+Z(i)=V_{\mu^\ast}(c_i)\in\{0,\dots,20\},\qquad
+U(i)=\Delta_{\mu^\ast}(c_i)\in\{0,21,34,55\}.
+\]
+Throughout this appendix we fix $\mu^\ast$ and abbreviate
+\[
+V(c):=V_{\mu^\ast}(c),\qquad \Delta(c):=\Delta_{\mu^\ast}(c),\qquad w(c):=w_{\mu^\ast}(c).
+\]
+Let $\mathcal{I}_{\mathrm{stop},s}$ denote the set of indices $i$ where the stop codon equals $s\in\{\mathrm{UAA,UAG,UGA}\}$, and similarly $\mathcal{I}_{\mathrm{start}}$ for $\mathrm{AUG}$.
+
+\subsection{Stop-context uplift windows}
+\label{app:stop_context_windows}
+
+Fix an integer window radius $k\ge 1$.
+Define the \emph{before} and \emph{after} window means for a stop codon class $s$ by:
+\[
+\overline{U}_{\mathrm{before}}(s;k)
+:=
+\frac{1}{|\mathcal{I}_{\mathrm{stop},s}|}
+\sum_{i\in\mathcal{I}_{\mathrm{stop},s}}
+\left(
+\frac{1}{k}\sum_{j=1}^{k} U(i-j)
+\right),
+\]
+\[
+\overline{U}_{\mathrm{after}}(s;k)
+:=
+\frac{1}{|\mathcal{I}_{\mathrm{stop},s}|}
+\sum_{i\in\mathcal{I}_{\mathrm{stop},s}}
+\left(
+\frac{1}{k}\sum_{j=1}^{k} U(i+j)
+\right),
+\]
+excluding positions that fall outside a segment boundary (e.g.\ ORF boundary).
+
+\paragraph{Test.}
+To compare stop classes $s_1$ and $s_2$, test the null hypothesis
+\[
+H_0:\ \overline{U}_{\mathrm{before}}(s_1;k)=\overline{U}_{\mathrm{before}}(s_2;k)
+\quad\text{and}\quad
+\overline{U}_{\mathrm{after}}(s_1;k)=\overline{U}_{\mathrm{after}}(s_2;k),
+\]
+using either:
+\begin{itemize}
+\item a permutation test over the pooled stop occurrences (recommended when distributional assumptions are unclear), or
+\item a two-sample test on per-stop window means (Welch $t$-test or Mann--Whitney).
+\end{itemize}
+
+The CLI in Appendix~\ref{app:reproducibility} outputs these window summaries as JSONL via \path{--summary-out} and \path{--stop-window}.
+
+\subsection{Start-context uplift windows}
+\label{app:start_context_windows}
+
+Fix an integer window radius $k\ge 1$.
+Let $\mathcal{I}_{\mathrm{start}}$ denote the set of start-codon indices (typically $\mathrm{AUG}$) in the selected ORFs.
+Define:
+\[
+\overline{U}_{\mathrm{before}}(\mathrm{start};k)
+:=
+\frac{1}{|\mathcal{I}_{\mathrm{start}}|}
+\sum_{i\in\mathcal{I}_{\mathrm{start}}}
+\left(
+\frac{1}{k}\sum_{j=1}^{k} U(i-j)
+\right),
+\]
+\[
+\overline{U}_{\mathrm{after}}(\mathrm{start};k)
+:=
+\frac{1}{|\mathcal{I}_{\mathrm{start}}|}
+\sum_{i\in\mathcal{I}_{\mathrm{start}}}
+\left(
+\frac{1}{k}\sum_{j=1}^{k} U(i+j)
+\right),
+\]
+excluding start sites where the required in-frame codons are not available.
+In best-ORF analyses, the after-window is restricted to codons inside the ORF (excluding the terminal stop), while the before-window uses the upstream in-frame codons available in the record (e.g.\ 5' UTR if present).
+
+\paragraph{Test.}
+The primary use is a corpus-level characterization and a cross-corpus comparison:
+compare $\overline{U}_{\mathrm{before}}(\mathrm{start};k)$ and $\overline{U}_{\mathrm{after}}(\mathrm{start};k)$ across datasets, domains, and translation tables.
+
+\subsection{Composition-matched controls for uplift windows}
+\label{app:composition_controls}
+
+Stop-context and recoding-context statistics can be confounded by base-composition biases (GC, dinucleotide usage) that are independent of folding.
+To separate uplift effects from nucleotide composition, we define composition features on the same frame-aligned windows used for $U(i)$ statistics.
+
+\paragraph{Window sequences and composition features.}
+For each evaluated control event at codon position $i$ (e.g.\ a terminal stop, or a recoding site), define the length-$3k$ DNA strings
+$S_{\mathrm{before}}(i;k)$ and $S_{\mathrm{after}}(i;k)$ as the concatenation of the $k$ in-frame codons immediately before/after the event, in reading order.
+From each window string $S$ define:
+\begin{itemize}
+\item GC fraction $g(S)$ over $\{A,C,G,T\}$;
+\item the $16$-dimensional dinucleotide frequency vector $d(S)$ (overlapping dinucleotides);
+\item optional low-dimensional dinucleotide summaries such as the CpG or TA dinucleotide rate $x(S)$.
+\end{itemize}
+
+\paragraph{NN matching (GC + dinucleotide).}
+To compare two event classes $A$ and $B$ (e.g.\ terminal $\mathrm{UAA}$ vs.\ terminal $\mathrm{UGA}$), for each event $i\in A$ we select a matched event
+$j\in B$ among candidates satisfying $|g(S_i)-g(S_j)|\le \epsilon$ (with a small schedule of $\epsilon$ values), choosing the candidate minimizing the $\ell_1$ distance
+$\|d(S_i)-d(S_j)\|_1$.
+We then analyze the paired differences of the window means (before/after separately) using a paired test on the difference distribution and a sign-flip permutation test as a robustness check.
+
+\paragraph{Stratified binning (GC $\times$ dinucleotide summary).}
+Alternatively, define bins over GC and a dinucleotide summary (e.g.\ GC$\times$CpG or GC$\times$TA).
+Within each bin, compute event-class means and variances of the window means.
+Aggregate class differences across bins by an inverse-variance weighted meta-analysis (normal approximation), and optionally validate by within-bin permutation of labels.
+
+\subsection{Boundary enrichment tests}
+\label{app:boundary_enrichment}
+
+Define the boundary indicator
+\[
+B(i):=\mathbf{1}\{w(c_i)\in X_6^{\mathrm{bdry}}\}.
+\]
+Given a subset of codon positions $\mathcal{J}$ (e.g.\ annotated catalytic residues, conserved sites, or motif neighborhoods), define the empirical boundary rate
+\[
+\widehat{p}_B(\mathcal{J}) := \frac{1}{|\mathcal{J}|}\sum_{i\in\mathcal{J}} B(i).
+\]
+
+\paragraph{Test.}
+Compare $\widehat{p}_B(\mathcal{J})$ to a background rate $\widehat{p}_B(\mathcal{J}_0)$ using:
+\begin{itemize}
+\item a binomial test with background $\widehat{p}_B(\mathcal{J}_0)$, or
+\item a hypergeometric test when $\mathcal{J}$ is sampled without replacement from a fixed finite pool.
+\end{itemize}
+
+\subsection{Codon-usage bias vs.\ folding spectra}
+\label{app:codon_usage_bias}
+
+Let $f(c)$ be the empirical frequency of codon $c$ in a dataset (optionally restricted to coding regions).
+Define summary usage statistics such as:
+\[
+\overline{Z}:=\sum_{c} f(c)\,V(c),
+\qquad
+\overline{U}:=\sum_{c} f(c)\,\Delta(c).
+\]
+or conditional means within amino-acid synonym classes.
+
+\paragraph{Test.}
+To test whether codon usage is biased toward certain folding levels, compare observed $(\overline{Z},\overline{U})$ to a null model that preserves amino-acid composition (shuffle codons within each amino-acid family) and compute an empirical $p$-value by Monte Carlo permutation.
+
+\subsection{Effect sizes, confidence intervals, and multiple testing}
+\label{app:effect_sizes}
+
+For two samples of window statistics $\{X_i\}_{i=1}^{n_1}$ and $\{Y_j\}_{j=1}^{n_2}$ (e.g.\ stop-context means), define:
+\[
+\Delta\mu := \overline{X}-\overline{Y}.
+\]
+We report:
+\begin{itemize}
+\item a normal-approximation confidence interval for $\Delta\mu$,
+\[
+\Delta\mu \pm z_{1-\alpha/2}\sqrt{\frac{s_X^2}{n_1}+\frac{s_Y^2}{n_2}},
+\]
+where $s_X^2$ and $s_Y^2$ are sample variances and $z_{1-\alpha/2}$ is the standard normal quantile;
+\item standardized effect sizes such as Cohen's $d$ (pooled standard deviation) and Hedges' $g$ (small-sample correction).
+\end{itemize}
+
+When multiple related hypotheses are tested (e.g.\ across multiple $k$ and multiple stop-pair comparisons), we also report Benjamini--Hochberg FDR-adjusted $q$-values \cite{BenjaminiHochberg1995}.
+
+\subsection{Multi-\texorpdfstring{$k$}{k} sensitivity}
+\label{app:multi_k_sensitivity}
+
+Many sequence-context statistics depend on a window radius $k$.
+To avoid over-interpreting a single choice, we evaluate key comparisons across a set $k\in\{k_1,\dots,k_m\}$ and report trends (and where applicable, per-$k$ test outcomes).
+
+\subsection{Stop-context response curve fitting}
+\label{app:stop_context_fit}
+
+Beyond multi-$k$ sensitivity tables, it is sometimes useful to summarize how a stop-context statistic approaches a large-window regime.
+Define the \emph{net stop-context uplift contrast} for stop codon class $s$ as
+\[
+D(s;k):=\overline{U}_{\mathrm{after}}(s;k)-\overline{U}_{\mathrm{before}}(s;k).
+\]
+As a compact descriptive fit, we model $D(s;k)$ by a saturating exponential in $k$:
+\[
+D(s;k)=D_{\infty}(s)-A(s)\,\exp\!\left(-\frac{k}{\kappa(s)}\right),
+\qquad D_{\infty}(s)\in\RR,\ A(s)\in\RR,\ \kappa(s)>0.
+\]
+Given a finite set of window radii $\{k_1,\dots,k_m\}$, parameters are estimated by least squares (minimizing the sum of squared residuals over $j=1,\dots,m$).
+We report $(D_{\infty},\kappa)$ and a goodness-of-fit measure ($R^2$) as an interpretable summary; this fit is not used as a premise in any identification result.
+
+\subsection{Recoding-site terminal-stop bias}
+\label{app:recoding_stop_bias}
+
+Given a set of CDS sequences containing recoding sites (deduplicated by CDS), let $n_1$ be the number of CDS and let $x_1$ be the number terminating with the boundary-aligned stop codon $\mathrm{UAA}$.
+For a baseline corpus (e.g.\ a reference transcriptome), let $(x_2,n_2)$ be the corresponding counts.
+We report the observed rates $\widehat{p}_1=x_1/n_1$ and $\widehat{p}_2=x_2/n_2$ and use a two-proportion normal approximation to test $H_0:\widehat{p}_1=\widehat{p}_2$:
+\[
+z=\frac{\widehat{p}_1-\widehat{p}_2}{\sqrt{\widehat{p}(1-\widehat{p})(1/n_1+1/n_2)}},
+\qquad
+\widehat{p}=\frac{x_1+x_2}{n_1+n_2}.
+\]
+
+\subsection{Nonstandard-code sequence-level tests}
+\label{app:nonstandard_sequence_tests_protocols}
+
+Fix a translation table (NCBI \texttt{gc.prt}) with a stop set $\mathcal{S}_{\mathrm{stop}}$ and a start set $\mathcal{S}_{\mathrm{start}}$.
+
+\paragraph{Start boundary-hit enrichment.}
+For each CDS/transcript $r$, let $c_r^{\mathrm{start}}$ be the annotated start codon (first in-frame codon of the sequence), and let $\mathcal{C}_r$ be the internal in-frame coding codons excluding the terminal stop.
+Define the within-sequence background probability
+\[
+p_r := \frac{1}{|\mathcal{C}_r|}\sum_{c\in\mathcal{C}_r}\mathbf{1}\{w(c)\in X_6^{\mathrm{bdry}}\}.
+\]
+Across records, the null distribution of the number of boundary-hit starts can be approximated by a Poisson--binomial normal approximation with mean $\sum_r p_r$ and variance $\sum_r p_r(1-p_r)$.
+
+\paragraph{Terminal-stop boundary preference.}
+Let $c_r^{\mathrm{stop}}$ be the terminal stop codon of record $r$.
+Define the boundary-hit probability under a uniform choice over the table's stop set
+\[
+p_0 := \frac{|\{s\in\mathcal{S}_{\mathrm{stop}}:\ w(s)\in X_6^{\mathrm{bdry}}\}|}{|\mathcal{S}_{\mathrm{stop}}|}.
+\]
+We compare the observed boundary-hit count at termination to the binomial null with success probability $p_0$ (reported via a normal approximation at large $n$).
+
+

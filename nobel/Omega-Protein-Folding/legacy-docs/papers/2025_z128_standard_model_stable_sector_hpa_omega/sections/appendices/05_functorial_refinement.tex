@@ -1,0 +1,246 @@
+\section{Functorial refinement under window uplift}
+\label{app:functorial_refinement}
+
+This appendix records a minimal, auditable notion of functorial refinement of the field-level labeling map under window uplift $m\mapsto m'$.
+\paragraph{Audit note (tables as deterministic checks).}
+All tabulated refinement multiplicities and refinement-index catalogs below are theorem-level consequences of the prefix-projection definition together with Zeckendorf admissibility.
+Scripts referenced in captions reproduce these deterministic counts and write \LaTeX{} fragments; they do not introduce additional free choices beyond the stated definitions.
+
+\paragraph{Interface note (refinement and effective shares).}
+\InterfaceTag The refinement maps in this appendix are deterministic and theorem-level: they describe how higher-resolution stable sectors $X_m$ project onto the $m=6$ anchor types by prefix truncation.
+When one forms probabilistic or weighted readouts across a refined sector (effective fractions, averages, variance-like summaries), an additional readout kernel choice $K$ is required to specify how stable types are weighted (Appendix~\ref{app:kernel_family_cap_closure}).
+Given a distribution $\mu_m$ on $X_m$ induced by a declared kernel, the induced weights on the base sector are the pushforward
+\[
+(\pi_{m\to 6})_\#\mu_m(u):=\sum_{w\in X_m:\ \pi_{m\to 6}(w)=u}\mu_m(w),
+\]
+which is the formal meaning of ``effective shares'' on the $18\oplus 3$ anchor split under refinement.
+
+\subsection{Prefix projection and a functorial lift}
+
+For $m\ge 6$, define the truncation (prefix) projection
+\[
+\pi_{m\to 6}:X_m\to X_6,\qquad
+\pi_{m\to 6}(w_1\cdots w_m):=w_1\cdots w_6.
+\]
+
+\begin{lemma}[Well-definedness and surjectivity of $\pi_{m\to 6}$]\label{lem:pi_m6_surj}
+For every $m\ge 6$, the map $\pi_{m\to 6}$ is well-defined and surjective.
+\end{lemma}
+\begin{proof}
+If $w\in X_m$ has no adjacent ones, then any prefix has no adjacent ones, hence $\pi_{m\to 6}(w)\in X_6$ and the map is well-defined.
+For surjectivity, given any $u\in X_6$, the word $u0\cdots 0\in X_m$ (padding with $m-6$ zeros) satisfies $\pi_{m\to 6}(u0\cdots 0)=u$.
+\end{proof}
+
+Given the closed labeling map $\mathcal{L}_{\mathrm{SM}}:X_6\to \mathcal{F}_{\mathrm{SM}}\sqcup\mathcal{G}_{\mathrm{SM}}$ (Section~\ref{sec:sm_labeling_closure}),
+we define its functorial lift to window length $m$ by composition:
+\[
+\mathcal{L}_m:=\mathcal{L}_{\mathrm{SM}}\circ \pi_{m\to 6}:X_m\to \mathcal{F}_{\mathrm{SM}}\sqcup\mathcal{G}_{\mathrm{SM}}.
+\]
+This definition makes the refinement under successive truncations explicit:
+for $m\ge k\ge 6$, one has $\pi_{m\to 6}=\pi_{k\to 6}\circ \pi_{m\to k}$, hence $\mathcal{L}_m=\mathcal{L}_k\circ \pi_{m\to k}$.
+
+\subsection{Deterministic refinement multiplicities}
+
+Although $\mathcal{L}_m$ uses only the first six digits to assign an SM label, each base type in $X_6$ admits multiple higher-window extensions in $X_m$.
+This yields a computable refinement multiplicity per base label.
+
+\begin{proposition}[Extension counts depend only on the last bit]\label{prop:prefix_extension_count}
+Fix $m\ge 6$ and $u=u_1\cdots u_6\in X_6$.
+Let
+\[
+\mathrm{Ext}_m(u):=\{w\in X_m:\ \pi_{m\to 6}(w)=u\}.
+\]
+Then $|\mathrm{Ext}_m(u)|$ depends only on $u_6$:
+\[
+|\mathrm{Ext}_m(u)|=
+\begin{cases}
+F_{m-4}, & u_6=0,\\
+F_{m-5}, & u_6=1,
+\end{cases}
+\]
+where $(F_k)$ are Fibonacci numbers with $F_1=F_2=1$.
+\end{proposition}
+\begin{proof}
+Let $L:=m-6$ be the extension length.
+If $u_6=1$, the next bit must be $0$, and the remaining $L-1$ bits form an admissible word in $X_{L-1}$, so $|\mathrm{Ext}_m(u)|=|X_{L-1}|=F_{(L-1)+2}=F_{m-5}$ by Lemma~\ref{lem:xm_fib}.
+If $u_6=0$, there is no forced initial $0$ and the $L$ extension bits form an admissible word in $X_L$, so $|\mathrm{Ext}_m(u)|=|X_L|=F_{L+2}=F_{m-4}$.
+\end{proof}
+
+\begin{remark}[Matrix viewpoint via the golden-mean transition graph]\label{rem:extension_counts_matrix_view}
+\MathTag Let
+\[
+A=\begin{pmatrix}1&1\\ 1&0\end{pmatrix}
+\]
+be the golden-mean transition matrix (Lemma~\ref{lem:golden_zeta_matrix}).
+Let $\mathbf{1}=(1,1)^{\mathsf{T}}$ and let $e_0=(1,0)^{\mathsf{T}}$, $e_1=(0,1)^{\mathsf{T}}$.
+Writing $L=m-6$ for the extension length, one has
+\[
+|\mathrm{Ext}_m(u)|=e_{u_6}^{\mathsf{T}}\,A^{L}\,\mathbf{1}.
+\]
+Equivalently, lift multiplicities are row-sums of powers of the same $2\times2$ matrix that controls the $\pi$/$\e$-channel periodic-point and zeta data (Section~\ref{subsec:e_channel}).
+\end{remark}
+
+\begin{table}[H]
+\centering
+\small
+\setlength{\tabcolsep}{6pt}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{llrrrrrr}
+\toprule
+base type $u\in X_6$ & label $\mathcal{L}_{\mathrm{SM}}(u)$ & $u_6$ & $|\mathrm{Ext}_8(u)|$ & $|\mathrm{Ext}_{10}(u)|$ & $|\mathrm{Ext}_{12}(u)|$ & $|\mathrm{Ext}_{14}(u)|$ & $|\mathrm{Ext}_{16}(u)|$ \\
+\midrule
+\input{sections/generated/label_lift_rows.tex}%
+\end{tabular}
+\caption{Functorial refinement multiplicities under the prefix lift $\mathcal{L}_m=\mathcal{L}_{\mathrm{SM}}\circ\pi_{m\to 6}$. Proposition~\ref{prop:prefix_extension_count} predicts that each base type has $2$ or $3$ lifts at $m=8$, $5$ or $8$ lifts at $m=10$, $13$ or $21$ lifts at $m=12$, $34$ or $55$ lifts at $m=14$, and $89$ or $144$ lifts at $m=16$, depending only on the last bit $u_6$. Rows are generated by \texttt{scripts/exp\_labeling\_lift\_consistency.py}.}
+\label{tab:label_lift_counts}
+\end{table}
+
+\subsection{A trace recurrence (Lucas-type) and a Hecke-like comparison}
+\label{subsec:trace_recurrence_hecke_comparison}
+
+\begin{lemma}[Trace recurrence for $2\times 2$ matrices]\label{lem:trace_recurrence_2x2}
+\MathTag Let $M\in M_2(\CC)$ and set $t_n:=\mathrm{tr}(M^n)$ for $n\ge 0$ (with $M^0=I$).
+Then $t_0=2$, $t_1=\mathrm{tr}(M)$, and for all $n\ge 1$ one has the second-order recurrence
+\[
+t_{n+1}=\mathrm{tr}(M)\,t_n-\det(M)\,t_{n-1}.
+\]
+\end{lemma}
+\begin{proof}
+The Cayley--Hamilton identity for $2\times 2$ matrices is
+\[
+M^2-(\mathrm{tr}M)\,M+(\det M)\,I=0.
+\]
+Multiplying by $M^{n-1}$ gives $M^{n+1}=(\mathrm{tr}M)M^n-(\det M)M^{n-1}$ for $n\ge 1$.
+Taking traces yields the stated recurrence.
+\end{proof}
+
+\begin{corollary}[Lucas recurrence for the golden-mean matrix]\label{cor:lucas_trace_golden_matrix}
+\MathTag For $A=\bigl(\begin{smallmatrix}1&1\\1&0\end{smallmatrix}\bigr)$ one has $\mathrm{tr}(A)=1$ and $\det(A)=-1$, hence
+\[
+\mathrm{tr}(A^{n+1})=\mathrm{tr}(A^n)+\mathrm{tr}(A^{n-1})\qquad(n\ge 1),
+\]
+with $\mathrm{tr}(A^0)=2$ and $\mathrm{tr}(A^1)=1$.
+Therefore $\mathrm{tr}(A^n)=L_n$ (Lucas numbers), consistent with the $\pi$-channel periodic-point counts (Lemma~\ref{lem:cyc_periodic_points}).
+\end{corollary}
+
+\begin{remark}[Hecke prime-power recurrence as a structural analogue]\label{rem:hecke_prime_power_structural_analogue}
+\AuditTag The Hecke prime-power relation
+\[
+T_{p^{r+1}} = T_p T_{p^r} - p^{k-1} T_{p^{r-1}}
+\]
+(Equation~\eqref{eq:hecke_prime_power_z128}) has the same second-order skeleton as Lemma~\ref{lem:trace_recurrence_2x2}.
+This paper uses the resemblance only as a \emph{structural template}: a small set of generators together with a rigid recurrence propagates constraints across scales.
+No identification between Hecke operators and the protocol lift matrices is asserted.
+\end{remark}
+
+\AuditTag For a self-contained operator-algebra viewpoint that packages the refinement multiplicities into an explicit commuting semigroup $(T_L)_{L\ge 0}$ with a prime-power (Cayley--Hamilton) recurrence, see Appendix~\ref{app:protocol_hecke_operators}.
+
+\subsection{A canonical suffix index for lift refinement}
+\label{subsec:lift_suffix_index}
+
+The lift multiplicities in Table~\ref{tab:label_lift_counts} depend only on the adjacency constraint between the prefix last bit $u_6$ and the first extension bit.
+To obtain a concrete refinement of the coarse lift $\mathcal{L}_m$ (beyond counting multiplicities), it is useful to attach a deterministic index to each lift in $\mathrm{Ext}_m(u)$.
+
+\begin{definition}[Free suffix index]\label{def:free_suffix_index}
+Fix $m\ge 6$ and a base type $u\in X_6$.
+Write any lift $w\in \mathrm{Ext}_m(u)$ as $w=u\,s$, where $s$ is the length-$(m-6)$ suffix.
+If $u_6=0$, define the free suffix to be $t:=s$.
+If $u_6=1$, admissibility forces $s$ to begin with $0$, and we define the free suffix to be $t:=s_2\cdots s_{m-6}$ (drop the forced leading $0$).
+Define the free suffix index
+\[
+\rho(w):=V_Z(t),
+\]
+where $V_Z$ is the Zeckendorf/Fibonacci value computed from the binary word $t$ using the standard Fibonacci weights (starting at $F_2=1$).
+\end{definition}
+
+At fixed $(m,u_6)$, the possible free suffixes form an admissible set and the index $\rho$ enumerates them deterministically.
+Table~\ref{tab:label_lift_suffix_catalog} records the explicit suffix catalog for the balanced-coupling uplifts $m=8$ and $m=10$.
+
+\begin{table}[H]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{6pt}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{rrllrr}
+\toprule
+$m$ & $u_6$ & full suffix $s$ & free suffix $t$ & $\rho$ & last bit $s_{m-6}$ \\
+\midrule
+\input{sections/generated/label_lift_suffix_catalog_rows.tex}%
+\end{tabular}
+\caption{Canonical suffix catalog for the free suffix index $\rho$ in Definition~\ref{def:free_suffix_index} at $m\in\{8,10\}$. Rows are generated by \texttt{scripts/exp\_labeling\_lift\_refinement\_indices.py}.}
+\label{tab:label_lift_suffix_catalog}
+\end{table}
+
+\subsection{Boundary subsets under the \texorpdfstring{$\pi$}{pi}-channel wrap-around defect}
+\label{subsec:lift_boundary_subsets}
+
+The $\pi$-channel boundary predicate on $X_m$ is $w_1=w_m=1$.
+Since $w_1=u_1$ is fixed by the base type, the boundary subset within $\mathrm{Ext}_m(u)$ is determined by whether the last suffix bit equals $1$.
+Table~\ref{tab:label_lift_boundary_rho} records the boundary-lift subsets in the $\rho$ index language for $m=8$ and $m=10$.
+
+\begin{table}[H]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{6pt}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{llrrll}
+\toprule
+base type $u$ & label $\mathcal{L}_{\mathrm{SM}}(u)$ & $u_1$ & $u_6$ & boundary $\rho$ at $m=8$ & boundary $\rho$ at $m=10$ \\
+\midrule
+\input{sections/generated/label_lift_boundary_rho_rows.tex}%
+\end{tabular}
+\caption{Boundary-lift subsets expressed in the free suffix index $\rho$ (Definition~\ref{def:free_suffix_index}) under the $\pi$-channel wrap-around defect predicate $w_1=w_m=1$. Rows are generated by \texttt{scripts/exp\_labeling\_lift\_refinement\_indices.py}.}
+\label{tab:label_lift_boundary_rho}
+\end{table}
+
+\subsection{Audit: contiguity and Fibonacci boundary blocks}
+\label{subsec:lift_refinement_audit}
+
+For completeness, Table~\ref{tab:label_lift_refinement_audit} records a compact audit of the free suffix index.
+The audit is performed at $m\in\{8,10,12,14,16\}$.
+The index enumerates the admissible free suffixes contiguously and the ``ends in $1$'' subset occupies the top Fibonacci block of indices.
+
+\begin{table}[H]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{6pt}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{rrrrlll}
+\toprule
+$m$ & $u_6$ & free length $\ell$ & $|\Theta|$ & $\rho$ range & boundary $\rho$ block & status \\
+\midrule
+\input{sections/generated/audit_label_lift_refinement_rows.tex}%
+\end{tabular}
+\caption{Audit checks for the free suffix index $\rho$ (Definition~\ref{def:free_suffix_index}) at $m\in\{8,10,12,14,16\}$ and both cases $u_6\in\{0,1\}$. Rows are generated by \texttt{scripts/exp\_audit\_label\_lift\_refinement.py}.}
+\label{tab:label_lift_refinement_audit}
+\end{table}
+
+\subsection{High-\texorpdfstring{$m$}{m} invariants inside lift fibers}
+\label{subsec:lift_highm_invariants}
+
+Beyond the purely combinatorial lift multiplicities and the suffix index $\rho$, the window length $m$ provides additional intrinsic invariants on $X_m$.
+As a minimal refinement diagnostic, Table~\ref{tab:label_lift_highm_invariants} summarizes two such invariants inside each prefix fiber $\mathrm{Ext}_m(u)$:
+(i) the Fold$_m$ degeneracy $g_m(w)=|\mathrm{Fold}_m^{-1}(w)|$ over $N\in\{0,\dots,2^m-1\}$, and
+(ii) the $\pi$-channel cyclic/boundary split on $X_m$.
+
+\begin{center}
+\scriptsize
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.15}
+\begin{longtable}{rllrrrrrrr}
+\caption{Intrinsic invariant summaries inside lift fibers at $m\in\{8,10,12,14,16\}$. The $g$ histogram reports the Fold$_m$ degeneracy counts within $\mathrm{Ext}_m(u)$, while the $V_m$ range reports the minimum and maximum Zeckendorf values among the lifts. Rows are generated by \texttt{scripts/exp\_labeling\_lift\_highm\_invariants.py}.}
+\label{tab:label_lift_highm_invariants}\\
+\toprule
+$m$ & base type $u$ & label & $|\mathrm{Ext}_m(u)|$ & cyc & bdry & $g_{\min}$ & $g_{\max}$ & $g$ histogram & $V_m$ range \\
+\midrule
+\endfirsthead
+\toprule
+$m$ & base type $u$ & label & $|\mathrm{Ext}_m(u)|$ & cyc & bdry & $g_{\min}$ & $g_{\max}$ & $g$ histogram & $V_m$ range \\
+\midrule
+\endhead
+\input{sections/generated/label_lift_highm_invariants_rows.tex}%
+\end{longtable}
+\end{center}
+
+
+
