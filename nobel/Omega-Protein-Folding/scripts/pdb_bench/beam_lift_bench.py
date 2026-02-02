@@ -32,10 +32,12 @@ import pandas as pd
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str((Path(__file__).resolve().parents[1] / "auric").resolve()))
 
 from bench_utils import (  # noqa: E402
     PHI,
     alphabet_steps,
+    cliffs_delta_one_vs_many,
     contact_density,
     ensure_dir,
     icosa_B,
@@ -47,6 +49,16 @@ from bench_utils import (  # noqa: E402
     tm_score,
 )
 
+try:
+    from fold_m import fold_sliding_windows_bits  # type: ignore
+    from metrics import metrics_for_stream  # type: ignore
+    from readout import rho_A_from_yperp, rho_B_from_npath  # type: ignore
+except Exception:  # pragma: no cover
+    fold_sliding_windows_bits = None  # type: ignore
+    metrics_for_stream = None  # type: ignore
+    rho_A_from_yperp = None  # type: ignore
+    rho_B_from_npath = None  # type: ignore
+
 
 def beam_lift(
     coords_native: np.ndarray,
@@ -57,9 +69,9 @@ def beam_lift(
     w_perp: float = 0.01,
     piecewise_seg_len: int = 0,
     phi: float = PHI,
-) -> Tuple[np.ndarray, np.ndarray, float, float, float]:
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, float, float, float]:
     """
-    Return (coords_pred, n_path, tm, ph_rms, ph_max).
+    Return (coords_pred, n_path, y_perp, tm, ph_rms, ph_max).
     """
     N = coords_native.shape[0]
     d = coords_native[1:] - coords_native[:-1]  # (N-1,3)
@@ -159,7 +171,7 @@ def beam_lift(
         # Report piecewise metrics (override) to match "piecewise slice" intent.
         ph_rms, ph_max = ph_rms_pw, ph_max_pw
     tm = tm_score(coords_pred, coords_native)
-    return coords_pred, n_path, tm, ph_rms, ph_max
+    return coords_pred, n_path, y_perp, tm, ph_rms, ph_max
 
 
 def main() -> None:
@@ -176,6 +188,9 @@ def main() -> None:
     ap.add_argument("--min-len", type=int, default=60)
     ap.add_argument("--max-len", type=int, default=350)
     ap.add_argument("--max-proteins", type=int, default=0, help="0 means no limit.")
+    ap.add_argument("--auric", action="store_true", help="If set, compute auric Fold_m certificate metrics.")
+    ap.add_argument("--auric-m", default="6,8,10,12", help="Comma list of m values for Fold_m (e.g. 6,8,10,12).")
+    ap.add_argument("--auric-readouts", default="all", choices=["A", "B", "all"], help="Which ρ readouts to use.")
     args = ap.parse_args()
 
     root = Path(__file__).resolve().parents[2]
@@ -192,7 +207,15 @@ def main() -> None:
     ids = [x.strip().upper() for x in ids_path.read_text(encoding="utf-8").splitlines() if x.strip()]
 
     rows: List[Dict[str, object]] = []
+    auric_rows: List[Dict[str, object]] = []
     rng_global = np.random.default_rng(args.seed)
+    auric_ms: List[int] = []
+    if args.auric:
+        if fold_sliding_windows_bits is None or metrics_for_stream is None or rho_A_from_yperp is None or rho_B_from_npath is None:
+            raise RuntimeError("Auric is enabled but auric modules failed to import (scripts/auric/*).")
+        auric_ms = [int(x.strip()) for x in str(args.auric_m).split(",") if x.strip()]
+        if not auric_ms:
+            raise ValueError("--auric-m must contain at least one integer m value")
 
     t0 = time.perf_counter()
     used = 0
@@ -218,7 +241,7 @@ def main() -> None:
         rng = np.random.default_rng(seed_i)
 
         t1 = time.perf_counter()
-        _, _, tm, ph_rms, ph_max = beam_lift(
+        _, n_path, y_perp, tm, ph_rms, ph_max = beam_lift(
             coords,
             alphabet=args.alphabet,
             beam_width=args.beam_width,
@@ -230,9 +253,10 @@ def main() -> None:
 
         # Random controls (mean over reps)
         ph_rms_rand = []
+        auric_ent_random: Dict[Tuple[str, int], List[float]] = {}
         for r in range(args.random_reps):
             coords_r = random_chain_from_lengths(rng, bond_lengths)
-            _, _, _, pr, _ = beam_lift(
+            _, npr, ypr, _, pr, _ = beam_lift(
                 coords_r,
                 alphabet=args.alphabet,
                 beam_width=args.beam_width,
@@ -241,6 +265,18 @@ def main() -> None:
                 piecewise_seg_len=args.piecewise_seg_len,
             )
             ph_rms_rand.append(pr)
+            if args.auric:
+                bits_A = rho_A_from_yperp(ypr)
+                bits_B = rho_B_from_npath(npr)
+                for m in auric_ms:
+                    if args.auric_readouts in {"A", "all"}:
+                        folded = fold_sliding_windows_bits(bits_A, m=m)
+                        met = metrics_for_stream(bits_A, folded)
+                        auric_ent_random.setdefault(("A", m), []).append(float(met["type_entropy"]))
+                    if args.auric_readouts in {"B", "all"}:
+                        folded = fold_sliding_windows_bits(bits_B, m=m)
+                        met = metrics_for_stream(bits_B, folded)
+                        auric_ent_random.setdefault(("B", m), []).append(float(met["type_entropy"]))
 
         rg = radius_of_gyration(coords)
         cd = contact_density(coords, cutoff=8.0, min_sep=3)
@@ -263,11 +299,67 @@ def main() -> None:
                 "runtime_s_real": dt_real,
             }
         )
+
+        if args.auric:
+            bits_A_real = rho_A_from_yperp(y_perp)
+            bits_B_real = rho_B_from_npath(n_path)
+            for m in auric_ms:
+                if args.auric_readouts in {"A", "all"}:
+                    folded = fold_sliding_windows_bits(bits_A_real, m=m)
+                    met = metrics_for_stream(bits_A_real, folded)
+                    ent_rand = np.asarray(auric_ent_random.get(("A", m), []), dtype=np.float64)
+                    auric_rows.append(
+                        {
+                            "pdb_id": pdb_id,
+                            "chain": chain_id,
+                            "N": N,
+                            "alphabet": args.alphabet,
+                            "readout": "A",
+                            "m": m,
+                            "tm_beam": tm,
+                            "ph_rms_real": ph_rms,
+                            "ph_max_real": ph_max,
+                            "type_entropy_real": float(met["type_entropy"]),
+                            "type_entropy_random_mean": float(np.mean(ent_rand)) if len(ent_rand) else float("nan"),
+                            "delta_type_entropy_real_vs_random": cliffs_delta_one_vs_many(float(met["type_entropy"]), ent_rand) if len(ent_rand) else float("nan"),
+                            "type_support_real": float(met["type_support"]),
+                            "run1_mean_real": float(met["run1_mean"]),
+                            "run1_max_real": float(met["run1_max"]),
+                            "smb_rate_hat_real": float(met["smb_rate_hat"]),
+                        }
+                    )
+                if args.auric_readouts in {"B", "all"}:
+                    folded = fold_sliding_windows_bits(bits_B_real, m=m)
+                    met = metrics_for_stream(bits_B_real, folded)
+                    ent_rand = np.asarray(auric_ent_random.get(("B", m), []), dtype=np.float64)
+                    auric_rows.append(
+                        {
+                            "pdb_id": pdb_id,
+                            "chain": chain_id,
+                            "N": N,
+                            "alphabet": args.alphabet,
+                            "readout": "B",
+                            "m": m,
+                            "tm_beam": tm,
+                            "ph_rms_real": ph_rms,
+                            "ph_max_real": ph_max,
+                            "type_entropy_real": float(met["type_entropy"]),
+                            "type_entropy_random_mean": float(np.mean(ent_rand)) if len(ent_rand) else float("nan"),
+                            "delta_type_entropy_real_vs_random": cliffs_delta_one_vs_many(float(met["type_entropy"]), ent_rand) if len(ent_rand) else float("nan"),
+                            "type_support_real": float(met["type_support"]),
+                            "run1_mean_real": float(met["run1_mean"]),
+                            "run1_max_real": float(met["run1_max"]),
+                            "smb_rate_hat_real": float(met["smb_rate_hat"]),
+                        }
+                    )
         used += 1
 
     df = pd.DataFrame(rows)
     out_csv = out_dir / f"beam_lift_bench_summary_{args.tag}.csv"
     df.to_csv(out_csv, index=False)
+    auric_out_csv = out_dir / f"beam_lift_auric_summary_{args.tag}.csv"
+    if args.auric:
+        pd.DataFrame(auric_rows).to_csv(auric_out_csv, index=False)
 
     ids_rel = str(ids_path.relative_to(root)).replace("\\", "/")
     out_rel = str(out_csv.relative_to(root)).replace("\\", "/")
@@ -291,6 +383,7 @@ def main() -> None:
         "",
         "## Outputs",
         f"- CSV: `{out_rel}`",
+        f"- Auric CSV: `{str(auric_out_csv.relative_to(root)).replace('\\\\', '/')}`" if args.auric else "",
         "",
         "## Quick stats (median)",
         f"- tm_beam: {df['tm_beam'].median():.3f}",
@@ -302,6 +395,8 @@ def main() -> None:
 
     dt = time.perf_counter() - t0
     print(f"Wrote: {out_csv}")
+    if args.auric:
+        print(f"Wrote: {auric_out_csv}")
     print(f"Wrote: {report_path}")
     print(f"Runtime: {dt:.1f}s")
 

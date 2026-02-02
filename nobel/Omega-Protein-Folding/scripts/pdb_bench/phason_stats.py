@@ -32,6 +32,7 @@ import sys
 
 # Allow running as a script without installing a package.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str((Path(__file__).resolve().parents[1] / "auric").resolve()))
 
 from bench_utils import (  # noqa: E402
     PHI,
@@ -51,6 +52,17 @@ from bench_utils import (  # noqa: E402
 )
 
 from controls import PseudoMoltenParams, generate_pseudo_molten_globule  # noqa: E402
+
+try:
+    # Optional auric integration (kept lightweight and script-friendly).
+    from fold_m import fold_sliding_windows_bits  # type: ignore
+    from metrics import metrics_for_stream  # type: ignore
+    from readout import rho_A_from_yperp, rho_B_from_npath  # type: ignore
+except Exception:  # pragma: no cover
+    fold_sliding_windows_bits = None  # type: ignore
+    metrics_for_stream = None  # type: ignore
+    rho_A_from_yperp = None  # type: ignore
+    rho_B_from_npath = None  # type: ignore
 
 
 def bootstrap_ci_mean(xs: np.ndarray, rng: np.random.Generator, iters: int = 2000, alpha: float = 0.05) -> Tuple[float, float]:
@@ -86,6 +98,9 @@ def main() -> None:
     ap.add_argument("--pmg-min-dist", type=float, default=3.5)
     ap.add_argument("--pmg-conf-k", type=float, default=1.0)
     ap.add_argument("--max-proteins", type=int, default=0, help="0 means no limit.")
+    ap.add_argument("--auric", action="store_true", help="If set, compute auric Fold_m certificate metrics.")
+    ap.add_argument("--auric-m", default="6,8,10,12", help="Comma list of m values for Fold_m (e.g. 6,8,10,12).")
+    ap.add_argument("--auric-readouts", default="all", choices=["A", "B", "all"], help="Which ρ readouts to use.")
     args = ap.parse_args()
 
     root = Path(__file__).resolve().parents[2]
@@ -106,9 +121,22 @@ def main() -> None:
 
     samples_rows: List[Dict[str, object]] = []
     summary_rows: List[Dict[str, object]] = []
+    auric_samples_rows: List[Dict[str, object]] = []
+    auric_summary_rows: List[Dict[str, object]] = []
 
     t0 = time.perf_counter()
     used = 0
+
+    auric_ms: List[int] = []
+    if args.auric:
+        if fold_sliding_windows_bits is None or metrics_for_stream is None or rho_A_from_yperp is None or rho_B_from_npath is None:
+            raise RuntimeError("Auric is enabled but auric modules failed to import (scripts/auric/*).")
+        auric_ms = [int(x.strip()) for x in str(args.auric_m).split(",") if x.strip()]
+        if not auric_ms:
+            raise ValueError("--auric-m must contain at least one integer m value")
+        for m in auric_ms:
+            if m <= 0 or m > 24:
+                raise ValueError(f"Unsupported m={m}. Suggested range is 1..24 for runtime/memory safety.")
 
     for pdb_id in ids:
         if args.max_proteins and used >= args.max_proteins:
@@ -172,11 +200,20 @@ def main() -> None:
                 }
             )
 
+            # Auric (real)
+            if args.auric:
+                bits_A_real = rho_A_from_yperp(y_perp)
+                bits_B_real = rho_B_from_npath(n_path)
+
             # Random controls
             ph_rms_rand = []
             ph_max_rand = []
             ph_rms_rand_pw = []
             ph_rms_rand_lin = []
+            # Auric controls (store entropy streams for effect sizes)
+            auric_ent_random: Dict[Tuple[str, int], List[float]] = {}
+            auric_ent_pert: Dict[Tuple[str, int], List[float]] = {}
+
             for r in range(args.random_reps):
                 if args.random_model == "pseudo_molten":
                     pmg = PseudoMoltenParams(
@@ -187,7 +224,7 @@ def main() -> None:
                     coords_r = generate_pseudo_molten_globule(rng, bond_lengths, target_rg=rg, params=pmg)
                 else:
                     coords_r = random_chain_from_lengths(rng, bond_lengths)
-                _, _, ypr, pr, pm = oracle_direction_reconstruct(coords_r, alphabet=alpha_name, phi=PHI)
+                _, npr, ypr, pr, pm = oracle_direction_reconstruct(coords_r, alphabet=alpha_name, phi=PHI)
                 if args.piecewise_seg_len and args.piecewise_seg_len > 0:
                     pr_pw, pm_pw = phason_stats_piecewise(ypr, segment_len=int(args.piecewise_seg_len))
                 else:
@@ -227,6 +264,49 @@ def main() -> None:
                     }
                 )
 
+                if args.auric:
+                    bits_A = rho_A_from_yperp(ypr)
+                    bits_B = rho_B_from_npath(npr)
+                    for m in auric_ms:
+                        if args.auric_readouts in {"A", "all"}:
+                            folded = fold_sliding_windows_bits(bits_A, m=m)
+                            met = metrics_for_stream(bits_A, folded)
+                            auric_samples_rows.append(
+                                {
+                                    "pdb_id": pdb_id,
+                                    "chain": chain_id,
+                                    "N": N,
+                                    "alphabet": alpha_name,
+                                    "group": "random",
+                                    "rep": r,
+                                    "readout": "A",
+                                    "m": m,
+                                    "bits_len": int(bits_A.shape[0]),
+                                    "types_len": int(folded.shape[0]),
+                                    **met,
+                                }
+                            )
+                            auric_ent_random.setdefault(("A", m), []).append(float(met["type_entropy"]))
+                        if args.auric_readouts in {"B", "all"}:
+                            folded = fold_sliding_windows_bits(bits_B, m=m)
+                            met = metrics_for_stream(bits_B, folded)
+                            auric_samples_rows.append(
+                                {
+                                    "pdb_id": pdb_id,
+                                    "chain": chain_id,
+                                    "N": N,
+                                    "alphabet": alpha_name,
+                                    "group": "random",
+                                    "rep": r,
+                                    "readout": "B",
+                                    "m": m,
+                                    "bits_len": int(bits_B.shape[0]),
+                                    "types_len": int(folded.shape[0]),
+                                    **met,
+                                }
+                            )
+                            auric_ent_random.setdefault(("B", m), []).append(float(met["type_entropy"]))
+
             # Perturbed native controls
             ph_rms_pert = []
             ph_max_pert = []
@@ -234,7 +314,7 @@ def main() -> None:
             ph_rms_pert_lin = []
             for r in range(args.perturb_reps):
                 coords_p = perturb_chain_directions(rng, coords, noise=args.perturb_noise)
-                _, _, ypp, pr, pm = oracle_direction_reconstruct(coords_p, alphabet=alpha_name, phi=PHI)
+                _, npp, ypp, pr, pm = oracle_direction_reconstruct(coords_p, alphabet=alpha_name, phi=PHI)
                 if args.piecewise_seg_len and args.piecewise_seg_len > 0:
                     pr_pw, pm_pw = phason_stats_piecewise(ypp, segment_len=int(args.piecewise_seg_len))
                 else:
@@ -273,6 +353,49 @@ def main() -> None:
                         "contact_density": contact_density(coords_p, cutoff=8.0, min_sep=3),
                     }
                 )
+
+                if args.auric:
+                    bits_A = rho_A_from_yperp(ypp)
+                    bits_B = rho_B_from_npath(npp)
+                    for m in auric_ms:
+                        if args.auric_readouts in {"A", "all"}:
+                            folded = fold_sliding_windows_bits(bits_A, m=m)
+                            met = metrics_for_stream(bits_A, folded)
+                            auric_samples_rows.append(
+                                {
+                                    "pdb_id": pdb_id,
+                                    "chain": chain_id,
+                                    "N": N,
+                                    "alphabet": alpha_name,
+                                    "group": "perturbed",
+                                    "rep": r,
+                                    "readout": "A",
+                                    "m": m,
+                                    "bits_len": int(bits_A.shape[0]),
+                                    "types_len": int(folded.shape[0]),
+                                    **met,
+                                }
+                            )
+                            auric_ent_pert.setdefault(("A", m), []).append(float(met["type_entropy"]))
+                        if args.auric_readouts in {"B", "all"}:
+                            folded = fold_sliding_windows_bits(bits_B, m=m)
+                            met = metrics_for_stream(bits_B, folded)
+                            auric_samples_rows.append(
+                                {
+                                    "pdb_id": pdb_id,
+                                    "chain": chain_id,
+                                    "N": N,
+                                    "alphabet": alpha_name,
+                                    "group": "perturbed",
+                                    "rep": r,
+                                    "readout": "B",
+                                    "m": m,
+                                    "bits_len": int(bits_B.shape[0]),
+                                    "types_len": int(folded.shape[0]),
+                                    **met,
+                                }
+                            )
+                            auric_ent_pert.setdefault(("B", m), []).append(float(met["type_entropy"]))
 
             ph_rms_rand = np.asarray(ph_rms_rand, dtype=np.float64)
             ph_rms_pert = np.asarray(ph_rms_pert, dtype=np.float64)
@@ -314,6 +437,88 @@ def main() -> None:
                 }
             )
 
+            # Auric summary (real vs controls) in long-form rows
+            if args.auric:
+                for m in auric_ms:
+                    if args.auric_readouts in {"A", "all"}:
+                        folded = fold_sliding_windows_bits(bits_A_real, m=m)
+                        met_real = metrics_for_stream(bits_A_real, folded)
+                        ent_rand = np.asarray(auric_ent_random.get(("A", m), []), dtype=np.float64)
+                        ent_pert = np.asarray(auric_ent_pert.get(("A", m), []), dtype=np.float64)
+                        auric_summary_rows.append(
+                            {
+                                "pdb_id": pdb_id,
+                                "chain": chain_id,
+                                "N": N,
+                                "alphabet": alpha_name,
+                                "readout": "A",
+                                "m": m,
+                                "type_entropy_real": float(met_real["type_entropy"]),
+                                "type_entropy_random_mean": float(np.mean(ent_rand)) if len(ent_rand) else float("nan"),
+                                "type_entropy_pert_mean": float(np.mean(ent_pert)) if len(ent_pert) else float("nan"),
+                                "delta_type_entropy_real_vs_random": cliffs_delta_one_vs_many(float(met_real["type_entropy"]), ent_rand) if len(ent_rand) else float("nan"),
+                                "delta_type_entropy_real_vs_perturbed": cliffs_delta_one_vs_many(float(met_real["type_entropy"]), ent_pert) if len(ent_pert) else float("nan"),
+                                "type_support_real": float(met_real["type_support"]),
+                                "run1_mean_real": float(met_real["run1_mean"]),
+                                "run1_max_real": float(met_real["run1_max"]),
+                                "smb_rate_hat_real": float(met_real["smb_rate_hat"]),
+                            }
+                        )
+                        auric_samples_rows.append(
+                            {
+                                "pdb_id": pdb_id,
+                                "chain": chain_id,
+                                "N": N,
+                                "alphabet": alpha_name,
+                                "group": "real",
+                                "rep": 0,
+                                "readout": "A",
+                                "m": m,
+                                "bits_len": int(bits_A_real.shape[0]),
+                                "types_len": int(folded.shape[0]),
+                                **met_real,
+                            }
+                        )
+                    if args.auric_readouts in {"B", "all"}:
+                        folded = fold_sliding_windows_bits(bits_B_real, m=m)
+                        met_real = metrics_for_stream(bits_B_real, folded)
+                        ent_rand = np.asarray(auric_ent_random.get(("B", m), []), dtype=np.float64)
+                        ent_pert = np.asarray(auric_ent_pert.get(("B", m), []), dtype=np.float64)
+                        auric_summary_rows.append(
+                            {
+                                "pdb_id": pdb_id,
+                                "chain": chain_id,
+                                "N": N,
+                                "alphabet": alpha_name,
+                                "readout": "B",
+                                "m": m,
+                                "type_entropy_real": float(met_real["type_entropy"]),
+                                "type_entropy_random_mean": float(np.mean(ent_rand)) if len(ent_rand) else float("nan"),
+                                "type_entropy_pert_mean": float(np.mean(ent_pert)) if len(ent_pert) else float("nan"),
+                                "delta_type_entropy_real_vs_random": cliffs_delta_one_vs_many(float(met_real["type_entropy"]), ent_rand) if len(ent_rand) else float("nan"),
+                                "delta_type_entropy_real_vs_perturbed": cliffs_delta_one_vs_many(float(met_real["type_entropy"]), ent_pert) if len(ent_pert) else float("nan"),
+                                "type_support_real": float(met_real["type_support"]),
+                                "run1_mean_real": float(met_real["run1_mean"]),
+                                "run1_max_real": float(met_real["run1_max"]),
+                                "smb_rate_hat_real": float(met_real["smb_rate_hat"]),
+                            }
+                        )
+                        auric_samples_rows.append(
+                            {
+                                "pdb_id": pdb_id,
+                                "chain": chain_id,
+                                "N": N,
+                                "alphabet": alpha_name,
+                                "group": "real",
+                                "rep": 0,
+                                "readout": "B",
+                                "m": m,
+                                "bits_len": int(bits_B_real.shape[0]),
+                                "types_len": int(folded.shape[0]),
+                                **met_real,
+                            }
+                        )
+
         used += 1
 
     samples_df = pd.DataFrame(samples_rows)
@@ -323,6 +528,14 @@ def main() -> None:
     summary_csv = out_dir / f"phason_stats_summary_{args.tag}.csv"
     samples_df.to_csv(samples_csv, index=False)
     summary_df.to_csv(summary_csv, index=False)
+
+    if args.auric:
+        auric_samples_df = pd.DataFrame(auric_samples_rows)
+        auric_summary_df = pd.DataFrame(auric_summary_rows)
+        auric_samples_csv = out_dir / f"auric_stats_samples_{args.tag}.csv"
+        auric_summary_csv = out_dir / f"auric_stats_summary_{args.tag}.csv"
+        auric_samples_df.to_csv(auric_samples_csv, index=False)
+        auric_summary_df.to_csv(auric_summary_csv, index=False)
 
     # Dataset-level report
     report_path = rep_dir / f"pdb_phason_stats_{args.tag}.md"
@@ -386,9 +599,54 @@ def main() -> None:
     lines += ["", f"Runtime: {dt:.1f}s", ""]
     report_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
+    if args.auric:
+        auric_report_path = rep_dir / f"pdb_auric_stats_{args.tag}.md"
+        auric_samples_rel = str((out_dir / f"auric_stats_samples_{args.tag}.csv").relative_to(root)).replace("\\", "/")
+        auric_summary_rel = str((out_dir / f"auric_stats_summary_{args.tag}.csv").relative_to(root)).replace("\\", "/")
+        lines2 = [
+            "# PDB auric Fold_m certificate metrics (large-scale)",
+            "",
+            "Auric protocol: ρ(t) → sliding windows → Fold_m → type stream metrics.",
+            "",
+            "## Dataset",
+            f"- IDs: `{ids_rel}`",
+            f"- Used chains: {used}",
+            f"- Length filter: N in [{args.min_len},{args.max_len}]",
+            f"- Alphabets: {', '.join(alphabets)}",
+            f"- m list: {', '.join(str(m) for m in auric_ms)}",
+            f"- readouts: {args.auric_readouts}",
+            f"- Random reps per protein: {args.random_reps}",
+            f"- Perturbed reps per protein: {args.perturb_reps} (noise={args.perturb_noise})",
+            "",
+            "## Outputs",
+            f"- Samples CSV: `{auric_samples_rel}`",
+            f"- Summary CSV: `{auric_summary_rel}`",
+            "",
+            "## Quick stats (median type_entropy_real; mean delta across proteins)",
+        ]
+        if len(auric_summary_df):
+            for alpha_name in alphabets:
+                suba = auric_summary_df[auric_summary_df["alphabet"] == alpha_name]
+                for ro in (["A", "B"] if args.auric_readouts == "all" else [args.auric_readouts]):
+                    subr = suba[suba["readout"] == ro]
+                    for m in auric_ms:
+                        subm = subr[subr["m"] == m]
+                        if len(subm) == 0:
+                            continue
+                        med = float(np.nanmedian(subm["type_entropy_real"].to_numpy(dtype=np.float64)))
+                        d_r = float(np.nanmean(subm["delta_type_entropy_real_vs_random"].to_numpy(dtype=np.float64)))
+                        d_p = float(np.nanmean(subm["delta_type_entropy_real_vs_perturbed"].to_numpy(dtype=np.float64)))
+                        lines2.append(f"- {alpha_name} ρ{ro} m={m}: median(H_type_real)={med:.3f}, mean δ(real,random)={d_r:.3f}, mean δ(real,pert)={d_p:.3f}")
+        lines2.append("")
+        auric_report_path.write_text("\n".join(lines2), encoding="utf-8")
+
     print(f"Wrote: {samples_csv}")
     print(f"Wrote: {summary_csv}")
     print(f"Wrote: {report_path}")
+    if args.auric:
+        print(f"Wrote: {auric_samples_csv}")  # type: ignore[name-defined]
+        print(f"Wrote: {auric_summary_csv}")  # type: ignore[name-defined]
+        print(f"Wrote: {auric_report_path}")  # type: ignore[name-defined]
 
 
 if __name__ == "__main__":
