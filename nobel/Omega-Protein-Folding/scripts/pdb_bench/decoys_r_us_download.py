@@ -134,6 +134,11 @@ def main() -> None:
     else:
         extract_root = cache_root
 
+    # Many decoy sets unpack under dd/<setname>/...; normalize to the set root if present.
+    set_root = extract_root / str(args.name)
+    if set_root.is_dir():
+        extract_root = set_root
+
     # Manifest (lightweight, committed)
     run_dir = root / "docs" / "runs" / str(args.run_name)
     ensure_dir(run_dir)
