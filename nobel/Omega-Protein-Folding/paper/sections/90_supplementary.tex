@@ -114,6 +114,36 @@ Below we provide an inventory mapping each experiment family to its primary arti
   \item Script: \texttt{scripts/pdb\_bench/toy\_decoy\_smoke.py}
 \end{itemize}
 
+\subsection*{QUARK vs I-TASSER homology-ablation benchmark (external baseline)}
+\begin{itemize}
+  \item Run directory (inputs + job tracking + summary CSV template): \texttt{docs/runs/quark\_itasser\_homology\_ablation/}
+  \item FASTA inputs: \texttt{docs/runs/quark\_itasser\_homology\_ablation/targets\_6.fasta}
+  \item Job tracker: \texttt{docs/runs/quark\_itasser\_homology\_ablation/targets.md}
+  \item Server summary CSV (filled after downloads): \texttt{docs/runs/quark\_itasser\_homology\_ablation/server\_summaries.csv}
+  \item TM-align record: \texttt{docs/runs/quark\_itasser\_homology\_ablation/tmalign\_summary.csv}
+  \item Scripts: \texttt{scripts/benchmarks/extract\_fasta\_from\_pdb\_cache.py}, \texttt{scripts/benchmarks/parse\_quark\_itasser\_results.py}, \texttt{scripts/benchmarks/record\_tmalign\_results.py}
+\end{itemize}
+
+\begin{table}[t]
+  \centering
+  \caption{Template/fragment dependence and cross-method topology agreement for QUARK vs I-TASSER with strict homology exclusions. TM-scores are computed by TM-align/US-align on model1 (unless stated). ``A vs B'' within-method TM indicates sensitivity to homology exclusion; ``QUARK-A vs I-TASSER-A'' indicates cross-method agreement. Final values are recorded in \texttt{docs/runs/quark\_itasser\_homology\_ablation/tmalign\_summary.csv}.}
+  \label{tab:quark_itasser_homology_ablation}
+  \scriptsize
+  \setlength{\tabcolsep}{4pt}
+  \begin{tabular}{lllll}
+    \toprule
+    Target ID & QUARK-A vs QUARK-B (TM) & I-TASSER-A vs I-TASSER-B (TM) & QUARK-A vs I-TASSER-A (TM) & Notes \\
+    \midrule
+    1R69 & -- & -- & -- &  \\
+    2CRO & -- & -- & -- &  \\
+    4PTI & -- & -- & -- &  \\
+    1CTF & -- & -- & -- &  \\
+    1DTK & -- & -- & -- &  \\
+    1SHF-A & -- & -- & -- &  \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
 \subsection*{Blind sprint + Auric prototypes (small N)}
 \begin{itemize}
   \item Run directory: \texttt{docs/runs/blind\_sprint\_auric\_small/}
