@@ -45,6 +45,14 @@ and plot it as a trajectory panel.
 - AlphaFold DB pLDDT: `debugger_afdb_P06454.png`
 - Omega audit debugger: `debugger_omega_1CRN.png`
 
+## Quick numeric sanity table (for reviewer-facing robustness)
+
+- Table: `case_table.csv`
+
+This table pins down the two AFDB examples and the Omega example with a few
+protocol-fixed numbers (pLDDT stats where available, plus the same lift-derived
+phason proxies and an Auric \(H(\mathrm{type})\) scalar from \(\rho_A\)).
+
 ## Paper asset
 
 - Composite figure: `paper/assets/figures/fig_af_vs_omega.png`
