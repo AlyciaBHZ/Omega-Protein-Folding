@@ -9,7 +9,7 @@ Omega demonstrates a practical path from ‘folding as optimization’ to ‘fol
   \textbf{(A) Process:} AlphaFold DB provides a static structure estimate and a per-residue confidence profile (pLDDT), while Omega exposes an explicit, replayable optimization trajectory with logged objective terms and certificate proxies.
   \textbf{(B) Geometry:} a ``shadow projection'' of the perpendicular-space trace ($y_\perp$ PCA) highlights a qualitative difference between an AFDB low-confidence intrinsically disordered example (UniProt P06454) and an Omega reconstruction example (1CRN) under the same 6D lifting/quantization protocol.
   \textbf{(C) Audit/debugger:} AlphaFold exposes confidence as an output-side annotation, whereas Omega exposes an internal audit signal (phason proxy and certificate checkpoints) that supports targeted interventions and operator-level A/B tests.
-  All run artifacts used to build this figure are provided under \texttt{docs/runs/af\_vs\_omega/}.}
+  All run artifacts used to build this figure are provided under \texttt{docs/runs/af\_vs\_omega/}. As a robustness check against ``hand-picked IDP'' criticism, we also include a second AFDB example with mixed-confidence regions (UniProt P04637; p53) in the same run folder.}
   \label{fig:af_vs_omega_transparency}
 \end{figure}
 

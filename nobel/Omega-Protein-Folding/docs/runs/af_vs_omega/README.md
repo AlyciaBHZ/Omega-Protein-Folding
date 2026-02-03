@@ -20,6 +20,7 @@ We download an AlphaFold DB model PDB for a UniProt accession, then extract
 
 - `P37840`: `afdb_P37840_summary.md`
 - `P62328`: `afdb_P62328_summary.md`
+- `P04637` (p53; mixed confidence): `afdb_P04637_summary.md`, `debugger_afdb_P04637.png`, `shadow_afdb_P04637.png`
 
 ## Omega example (white-box baseline)
 
