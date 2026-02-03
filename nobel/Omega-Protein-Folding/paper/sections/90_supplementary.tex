@@ -114,6 +114,21 @@ Below we provide an inventory mapping each experiment family to its primary arti
   \item Script: \texttt{scripts/pdb\_bench/toy\_decoy\_smoke.py}
 \end{itemize}
 
+\subsection*{Physical consistency audit (CA-level physics audit layer)}
+\begin{itemize}
+  \item Run directory (CSV + README): \texttt{docs/runs/physics\_audit/}
+  \item CSV (4state\_reduced full audit): \texttt{docs/runs/physics\_audit/physics\_vs\_auric\_4state\_full.csv}
+  \item Scripts: \texttt{scripts/audit/physics\_metrics.py}, \texttt{scripts/audit/audit\_physics\_vs\_auric\_manifest.py}, \texttt{scripts/audit/make\_physics\_audit\_figure.py}
+  \item Paper figure asset: \texttt{paper/assets/figures/figS\_physics\_vs\_auric.png}
+\end{itemize}
+
+\begin{figure}[t]
+  \centering
+  \maybeincludegraphics[width=\linewidth]{assets/figures/figS_physics_vs_auric}
+  \caption{\textbf{Orthogonality of geometric and physical signals (post-hoc; CA-level).} We compare the Auric geometry certificate ($\\rho_A$ type entropy at $m=8$; x-axis) against a normalized physics score derived from two C$\\alpha$ proxies (y-axis): clashes/$N$ + 1000$\\times$bond-length MSE. On the hard-negative decoy benchmark \texttt{4state\_reduced}, these signals are weakly correlated (Pearson $r\\approx 0$), yielding a dual-filter interpretation: many decoys satisfy local physical constraints while violating global geometric manifold constraints (high Auric entropy), while a smaller subset exhibits the converse.}
+  \label{fig:physics_audit}
+\end{figure}
+
 \subsection*{QUARK vs I-TASSER homology-ablation benchmark (external baseline)}
 \begin{itemize}
   \item Run directory (inputs + job tracking + summary CSV template): \texttt{docs/runs/quark\_itasser\_homology\_ablation/}
