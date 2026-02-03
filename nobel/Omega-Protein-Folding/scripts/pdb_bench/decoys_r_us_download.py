@@ -56,6 +56,13 @@ def _guess_pairs(extract_root: Path) -> List[Tuple[str, Path, Path]]:
         for p in native_dir.glob("*.pdb"):
             native_map[p.stem.lower()] = p
 
+    # Alternative common layout (e.g. LMDS):
+    #   <target>/<target>.pdb is native
+    #   <target>/t*.pdb are decoys
+    def _native_in_target_dir(target_dir: Path) -> Path | None:
+        cand = target_dir / f"{target_dir.name}.pdb"
+        return cand if cand.is_file() else None
+
     for target_dir in sorted([d for d in extract_root.iterdir() if d.is_dir()]):
         if target_dir.name.lower() in {"doc"}:
             continue
@@ -66,6 +73,8 @@ def _guess_pairs(extract_root: Path) -> List[Tuple[str, Path, Path]]:
         native = None
         if native_map:
             native = native_map.get(target_dir.name.lower())
+        if native is None:
+            native = _native_in_target_dir(target_dir)
         if native is None:
             # Fallback heuristic: if a folder contains one pdb with 'native' in name, treat it as native
             natives = [p for p in pdbs if "native" in p.name.lower()]
@@ -152,22 +161,32 @@ def main() -> None:
         extract_root = cache_root
 
     # Many decoy sets unpack under dd/(multiple|single|loop)/<setname>/...; normalize.
+    # Important: some archives already unpack into a folder named "dd", so we must avoid
+    # constructing paths like dd/dd/multiple/<set>.
     name = str(args.name)
-    candidates = [
-        extract_root / "dd" / "multiple" / name,
-        extract_root / "dd" / "single" / name,
-        extract_root / "dd" / "loop" / name,
-        extract_root / "dd" / name,
-        extract_root / name,
-        extract_root / "dd" / "multiple",
-        extract_root / "dd" / "single",
-        extract_root / "dd" / "loop",
-        extract_root / "dd",
-    ]
-    for c in candidates:
-        if c.is_dir():
-            extract_root = c
+    bases = [extract_root]
+    if (extract_root / "dd").is_dir():
+        bases.append(extract_root / "dd")
+
+    normalized = None
+    for base in bases:
+        candidates = [
+            base / "multiple" / name,
+            base / "single" / name,
+            base / "loop" / name,
+            base / name,
+            base / "multiple",
+            base / "single",
+            base / "loop",
+        ]
+        for c in candidates:
+            if c.is_dir():
+                normalized = c
+                break
+        if normalized is not None:
             break
+    if normalized is not None:
+        extract_root = normalized
 
     # Manifest (lightweight, committed)
     run_dir = root / "docs" / "runs" / str(args.run_name)
