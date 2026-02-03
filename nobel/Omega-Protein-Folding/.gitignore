@@ -46,6 +46,10 @@ figures/
 !paper/assets/figures/
 !paper/assets/figures/**
 
+# Allow committable run figures for reviewer-facing benchmarks.
+!docs/runs/quark_itasser_homology_ablation/figures/
+!docs/runs/quark_itasser_homology_ablation/figures/**
+
 # --- legacy-docs: source-only policy (exclude data/binaries) ---
 legacy-docs/**/data/
 legacy-docs/**/dist/
