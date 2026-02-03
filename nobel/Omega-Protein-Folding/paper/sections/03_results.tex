@@ -74,6 +74,26 @@ As an additional low-cost sanity check that does not modify search, we computed 
 \end{itemize}
 These prototypes are not yet the full Omega operator stack, and the distogram MDS variant uses native distance information that would not be available in a truly blind setting. Nevertheless, they establish feasibility that Auric-style certificates can steer search toward higher-quality structures when combined with informative distance priors.
 
+\paragraph{Blind Sprint ablation: $\rho_B$ rescues hard cases, $\rho_A$ can be risky.}
+To turn Blind Sprint from a demonstration into a quantitative experiment, we ran an ablation suite on the 7 classic \texttt{4state\_reduced} short targets (N<100) with 5 random seeds each. We compare a baseline contact-driven beam search against three certificate variants: $\rho_A$ only (geometry), $\rho_B$ only (logic/dynamics; velocity readout), and $\rho_A+\rho_B$ (Fig.~\ref{fig:blind_sprint_ablation}).
+
+\textbf{Auric certificates rescue search failure cases.}
+The baseline policy achieves a high best-of-seeds success rate (6/7 targets with TM$>$0.6) but fails on \texttt{1SN3} (best TM=0.31). Enabling the logic/dynamics certificate $\rho_B$ increases robustness to 7/7 (TM$>$0.6 on all targets), boosting \texttt{1SN3} to best TM=0.84. This shows that $\rho_B$ can act as an actionable feasibility signal during blind search rather than a post-hoc diagnostic.
+
+\textbf{Orthogonality and protocol sensitivity of $\rho_A$ vs $\rho_B$.}
+On \texttt{3ICB} we observe a sharp divergence: while $\rho_B$ maintains or improves performance (best TM$\approx$0.79), $\rho_A$ alone can guide search into a failure basin (best TM$\approx$0.22), consistent with an over-constrained geometric manifold early in the search. Together, these ablations support our recommended protocol: use $\rho_B$ for search guidance (high acceptance rate) and reserve $\rho_A$ for geometric auditing and decoy discrimination, where it is strongest.
+
+\begin{figure}[t]
+  \centering
+  \maybeincludegraphics[width=\linewidth]{assets/figures/fig4_search_ablation}
+  \caption{\textbf{Search Ablation (Blind Sprint on 4state targets, 5 seeds each).}
+  \textbf{(A)} Best-of-seeds TM-score per target for baseline (grey), $\rho_A$ (blue), $\rho_B$-vel (orange), and $\rho_A+\rho_B$ (green). \texttt{1SN3} is rescued by $\rho_B$ (``Rescue''), while \texttt{3ICB} reveals a ``Geometric Trap'' where $\rho_A$ alone fails.
+  \textbf{(B)} Success rate (fraction of targets with best-of-seeds TM$>$0.6): baseline 6/7 vs $\rho_B$-vel 7/7.
+  \textbf{(C)} TM ECDF over all seeds from the same suite, showing a distributional shift with certificate terms.
+  }
+  \label{fig:blind_sprint_ablation}
+\end{figure}
+
 \begin{table}[t]
   \centering
   \caption{Auric full1k hybrid protocol (triple232; $m=8$): effect sizes vs strong nulls. Cliff's $\delta<0$ indicates the real chain is more ordered (lower metric) than the null. Percentiles are native percentiles among shuffle replicates. Full per-$m$ tables and plots are provided in \texttt{docs/runs/full1k\_hybrid\_auric/}.}
