@@ -61,6 +61,9 @@ While separation is strong for most targets, specific targets such as \texttt{1C
 
 Full decoy reports and per-target histograms are provided in \texttt{docs/runs/decoys\_4state\_auric/} and \texttt{docs/runs/decoys\_lmds\_auric/}.
 
+\paragraph{External server baseline with strict homology exclusions.}
+To complement certificate-based controls with an interpretable cross-method agreement check, we prepared a small benchmark comparing QUARK and I-TASSER on the same six short targets used above, and added within-method ablations that exclude close homologous fragments/templates. This provides an external sanity check on whether the predicted global topology is robust to homology leakage and whether two independent pipelines converge to a similar fold class (TM-score $\ge 0.5$ indicates shared topology). Inputs, job tracking, and the TM-align summary template are provided in \texttt{docs/runs/quark\_itasser\_homology\_ablation/}; per-target outcomes will be summarized in Supplementary Table~\ref{tab:quark_itasser_homology_ablation}.
+
 \textbf{Blind-sprint feasibility.} Finally, we tested whether Auric can be used as an \emph{active scoring signal} (not just a post-hoc discriminator). On short targets (N<100), we ran blind-sprint prototypes that do not use oracle direction guidance and treat TM-score as evaluation-only, optimizing native-derived contact/distogram objectives augmented by Auric penalties. We report two variants:
 \begin{itemize}[nosep,leftmargin=*]
   \item \emph{Contact beam-search + Auric}: On 1CRN (N=46), a contact-only beam-search with Auric scoring reaches TM$\approx$0.74 (see \texttt{docs/runs/blind\_sprint\_auric\_small/blind\_sprint\_auric\_small\_1CRN.md}).
