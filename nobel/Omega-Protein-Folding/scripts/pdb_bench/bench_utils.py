@@ -387,3 +387,55 @@ def contact_density(coords: np.ndarray, *, cutoff: float = 8.0, min_sep: int = 3
         cnt += int(np.sum(ds2 <= c2))
     return float(cnt) / float(N)
 
+
+def geometry_qc_ca_trace(
+    coords: np.ndarray,
+    *,
+    bond_nominal: float = 3.8,
+    bond_tol: float = 0.5,
+    ca_ca_max_fail: float = 10.0,
+    outlier_frac_fail: float = 0.20,
+) -> dict:
+    """
+    Lightweight CA-trace geometry QC.
+
+    This is deliberately independent of phason proxies: chain breaks / missing residues
+    can slip through phason-based checks but are obvious in CA-CA bond-length anomalies.
+
+    Returns a dict with:
+      - ca_ca_median, ca_ca_max, ca_ca_outlier_frac
+      - failed_geometry (bool)
+    """
+    x = np.asarray(coords, dtype=np.float64)
+    if x.ndim != 2 or x.shape[1] != 3 or x.shape[0] < 2:
+        return {
+            "ca_ca_median": float("nan"),
+            "ca_ca_max": float("nan"),
+            "ca_ca_outlier_frac": float("nan"),
+            "failed_geometry": True,
+        }
+
+    d = x[1:] - x[:-1]
+    L = np.linalg.norm(d, axis=1)
+    L = L[np.isfinite(L)]
+    if L.size == 0:
+        return {
+            "ca_ca_median": float("nan"),
+            "ca_ca_max": float("nan"),
+            "ca_ca_outlier_frac": float("nan"),
+            "failed_geometry": True,
+        }
+
+    ca_ca_median = float(np.median(L))
+    ca_ca_max = float(np.max(L))
+    outlier = np.abs(L - float(bond_nominal)) > float(bond_tol)
+    ca_ca_outlier_frac = float(np.mean(outlier))
+
+    failed = (ca_ca_max > float(ca_ca_max_fail)) or (ca_ca_outlier_frac > float(outlier_frac_fail))
+    return {
+        "ca_ca_median": ca_ca_median,
+        "ca_ca_max": ca_ca_max,
+        "ca_ca_outlier_frac": ca_ca_outlier_frac,
+        "failed_geometry": bool(failed),
+    }
+

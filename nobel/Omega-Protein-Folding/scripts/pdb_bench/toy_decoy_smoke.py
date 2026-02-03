@@ -1,0 +1,178 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+"""
+Toy end-to-end smoke test for the Auric decoy benchmark.
+
+This generates a tiny synthetic native/decoy dataset (as CA-only PDBs),
+writes a manifest, runs scripts/pdb_bench/auric_decoy_bench.py, and leaves
+small, committable artifacts under:
+
+  docs/runs/toy_decoy_auric_smoke/
+"""
+
+import csv
+import subprocess
+import sys
+from pathlib import Path
+from typing import List, Tuple
+
+import numpy as np
+
+
+def ensure_dir(p: Path) -> None:
+    p.mkdir(parents=True, exist_ok=True)
+
+
+def write_ca_only_pdb(coords: np.ndarray, out_pdb: Path, *, chain_id: str = "A") -> None:
+    x = np.asarray(coords, dtype=np.float64)
+    lines: List[str] = []
+    for i, (xx, yy, zz) in enumerate(x, start=1):
+        # Minimal PDB, CA only.
+        lines.append(
+            f"ATOM  {i:5d}  CA  ALA {chain_id}{i:4d}    "
+            f"{xx:8.3f}{yy:8.3f}{zz:8.3f}"
+            f"{1.00:6.2f}{0.00:6.2f}           C"
+        )
+    lines.append("END")
+    out_pdb.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def helix_chain(N: int, *, bond: float = 3.8) -> np.ndarray:
+    """
+    Deterministic smooth chain that passes CA-CA QC.
+    """
+    N = int(N)
+    if N < 2:
+        return np.zeros((max(1, N), 3), dtype=np.float64)
+
+    # Start with a gentle helix; then rescale to target median bond length.
+    i = np.arange(N, dtype=np.float64)
+    r = 4.0
+    theta = i * 0.55
+    z = i * 1.5
+    x = np.stack([r * np.cos(theta), r * np.sin(theta), z], axis=1)
+
+    d = x[1:] - x[:-1]
+    L = np.linalg.norm(d, axis=1)
+    med = float(np.median(L)) if L.size else 1.0
+    scale = float(bond) / max(1e-12, med)
+    return x * scale
+
+
+def decoy_from_native(rng: np.random.Generator, native: np.ndarray, *, mode: str) -> np.ndarray:
+    x = np.asarray(native, dtype=np.float64)
+    d = x[1:] - x[:-1]
+    L = np.linalg.norm(d, axis=1)
+    dirs = d / np.clip(L[:, None], 1e-12, None)
+
+    if mode == "shuffle":
+        perm = rng.permutation(dirs.shape[0])
+        dirs2 = dirs[perm]
+    elif mode == "noisy":
+        dirs2 = dirs + rng.normal(scale=0.35, size=dirs.shape)
+        dirs2 = dirs2 / np.clip(np.linalg.norm(dirs2, axis=1)[:, None], 1e-12, None)
+    elif mode == "blockshuffle4":
+        k = 4
+        blocks = [dirs[i : i + k] for i in range(0, dirs.shape[0], k)]
+        perm = rng.permutation(len(blocks))
+        dirs2 = np.concatenate([blocks[j] for j in perm], axis=0)
+    else:
+        raise ValueError(f"Unknown decoy mode: {mode}")
+
+    d2 = dirs2 * L[:, None]
+    out = np.zeros_like(x)
+    for t in range(d2.shape[0]):
+        out[t + 1] = out[t] + d2[t]
+    return out
+
+
+def main() -> None:
+    root = Path(__file__).resolve().parents[2]
+    run_dir = root / "docs" / "runs" / "toy_decoy_auric_smoke"
+    pdb_dir = run_dir / "pdbs"
+    ensure_dir(pdb_dir)
+
+    rng = np.random.default_rng(0)
+    target_id = "TOY1"
+    N = 72
+    native = helix_chain(N, bond=3.8)
+
+    native_pdb = pdb_dir / f"native_{target_id}.pdb"
+    write_ca_only_pdb(native, native_pdb)
+
+    decoys: List[Tuple[str, Path]] = []
+    modes = ["shuffle", "noisy", "blockshuffle4"]
+    for k in range(9):
+        mode = modes[k % len(modes)]
+        coords = decoy_from_native(rng, native, mode=mode)
+        outp = pdb_dir / f"decoy_{target_id}_{mode}_{k:02d}.pdb"
+        write_ca_only_pdb(coords, outp)
+        decoys.append((mode, outp))
+
+    manifest = run_dir / "decoy_manifest.csv"
+    with manifest.open("w", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=["dataset", "target_id", "native_path", "decoy_path"])
+        w.writeheader()
+        for mode, dp in decoys:
+            w.writerow(
+                {
+                    "dataset": "toy",
+                    "target_id": target_id,
+                    "native_path": native_pdb.relative_to(root).as_posix(),
+                    "decoy_path": dp.relative_to(root).as_posix(),
+                }
+            )
+
+    # Run the decoy bench end-to-end (produces report + plots under the same run folder).
+    cmd = [
+        sys.executable,
+        str((root / "scripts" / "pdb_bench" / "auric_decoy_bench.py").resolve()),
+        "--manifest",
+        manifest.relative_to(root).as_posix(),
+        "--run-name",
+        "toy_decoy_auric_smoke",
+        "--tag",
+        "toy_v1",
+        "--alphabet",
+        "triple232",
+        "--m",
+        "6,8",
+        "--min-len",
+        "40",
+        "--max-len",
+        "200",
+        "--axis-mode",
+        "best_native_axis",
+    ]
+    print("[run]", " ".join(cmd), flush=True)
+    subprocess.run(cmd, cwd=str(root), check=True)
+
+    # Tiny README to explain provenance.
+    readme = run_dir / "README.md"
+    readme.write_text(
+        "\n".join(
+            [
+                "# Toy Auric decoy smoke run",
+                "",
+                "This folder is generated by `scripts/pdb_bench/toy_decoy_smoke.py`.",
+                "",
+                "- `pdbs/`: synthetic CA-only PDBs (one native + a handful of decoys)",
+                "- `decoy_manifest.csv`: manifest for the decoy benchmark",
+                "- `decoy_auric_report_toy_v1.md`: benchmark report",
+                "- `plots/`: small per-target histograms",
+                "",
+                "Purpose: ensure the decoy pipeline runs end-to-end and produces committable artifacts.",
+                "",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    print(f"[ok] wrote run folder: {run_dir}", flush=True)
+
+
+if __name__ == "__main__":
+    main()
+
