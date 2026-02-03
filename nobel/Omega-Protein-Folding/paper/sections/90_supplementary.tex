@@ -76,6 +76,38 @@ Below we provide an inventory mapping each experiment family to its primary arti
   \item Strict axis ablation (no decoy leakage): \texttt{scripts/pdb\_bench/auric\_decoy\_bench.py --axis-mode best\_native\_axis}
 \end{itemize}
 
+\subsection*{Decoy replay robustness table (Shared-PCA vs Best-Native-Axis)}
+\begin{table}[t]
+  \centering
+  \caption{Hard-negative decoy replay summary for $\rho_A$ at $m=8$ using $H(\mathrm{type})$. ``Native Rank'' is the native percentile among decoys (lower is more ordered / more native-like). Cliff's $\delta$ is computed for Shared-PCA only (native vs decoys).}
+  \label{tab:decoy_replay_axis_ablation}
+  \scriptsize
+  \setlength{\tabcolsep}{4pt}
+  \begin{tabular}{lllll}
+    \toprule
+    Target ID & Decoy set & Native Rank (Shared-PCA) & Native Rank (Best-Native) & Cliff's $\delta$ (Shared-PCA) \\
+    \midrule
+    1CTF & 4state\_reduced & 54.3\% & 36.5\% & +0.084 \\
+    1R69 & 4state\_reduced & 3.0\% & 3.0\% & -0.970 \\
+    1SN3 & 4state\_reduced & 28.5\% & 28.5\% & -0.432 \\
+    2CRO & 4state\_reduced & 1.6\% & 1.6\% & -0.984 \\
+    3ICB & 4state\_reduced & 17.0\% & 17.0\% & -0.661 \\
+    4PTI & 4state\_reduced & 15.9\% & 3.2\% & -0.688 \\
+    4RXN & 4state\_reduced & 17.1\% & 17.1\% & -0.663 \\
+    \midrule
+    1CTF & LMDS & 55.6\% & 38.5\% & +0.111 \\
+    1DTK & LMDS & 5.1\% & 5.1\% & -0.917 \\
+    1FC2 & LMDS & 4.2\% & 4.2\% & -0.916 \\
+    1IGD & LMDS & 25.0\% & 25.0\% & -0.503 \\
+    1SHF-A & LMDS & 28.9\% & 23.6\% & -0.422 \\
+    2CRO & LMDS & 1.8\% & 1.8\% & -0.982 \\
+    2OVO & LMDS & 5.5\% & 0.9\% & -0.899 \\
+    4PTI & LMDS & 15.7\% & 3.8\% & -0.698 \\
+    UNK & LMDS & 14.4\% & 14.4\% & -0.711 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
 \subsection*{Toy decoy smoke (pipeline sanity check)}
 \begin{itemize}
   \item Run directory: \texttt{docs/runs/toy\_decoy\_auric\_smoke/}
