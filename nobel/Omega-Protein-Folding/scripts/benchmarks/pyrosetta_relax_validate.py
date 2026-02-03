@@ -379,6 +379,7 @@ def main() -> None:
                 "best_pdb_path",
                 "notes",
             ],
+            lineterminator="\n",
         )
         w.writeheader()
         for r in out_rows:
