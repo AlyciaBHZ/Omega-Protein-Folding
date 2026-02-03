@@ -126,16 +126,26 @@ def auric_penalty_from_streams(
     y_perp: np.ndarray,
     n_path: np.ndarray,
     *,
+    Bperp: np.ndarray,
     uvec: np.ndarray,
     m: int,
     wA: float,
     wB: float,
+    rhoB_mode: str = "parity",
+    rhoB_threshold: str = "median",
 ) -> float:
     """
     Smaller is better. Return weighted penalty.
     """
     bits_A = rho_A_from_yperp(y_perp, u=tuple(uvec.tolist()), u_mode="fixed", threshold="median")
-    bits_B = rho_B_from_npath(n_path)
+    bits_B = rho_B_from_npath(
+        n_path,
+        mode=str(rhoB_mode),
+        Bperp=Bperp,
+        u=tuple(uvec.tolist()),
+        u_mode="fixed",
+        threshold=str(rhoB_threshold),
+    )
 
     folded_A = fold_sliding_windows_bits(bits_A, m=m)
     met_A = metrics_for_stream(bits_A, folded_A)
@@ -212,6 +222,8 @@ def run_one(
     w_rmse: float,
     wA: float,
     wB: float,
+    auric_rhoB_mode: str = "parity",
+    auric_rhoB_threshold: str = "median",
     audit_out: Path | None = None,
 ) -> Tuple[State, dict]:
     rng = np.random.default_rng(int(seed))
@@ -284,7 +296,17 @@ def run_one(
 
                 aur_pen = st.auric_penalty
                 if int(auric_every) > 0 and t >= int(auric_m) and (t % int(auric_every) == 0):
-                    aur_pen = auric_penalty_from_streams(y_new, n_new, uvec=uvec, m=int(auric_m), wA=float(wA), wB=float(wB))
+                    aur_pen = auric_penalty_from_streams(
+                        y_new,
+                        n_new,
+                        Bperp=Bperp,
+                        uvec=uvec,
+                        m=int(auric_m),
+                        wA=float(wA),
+                        wB=float(wB),
+                        rhoB_mode=str(auric_rhoB_mode),
+                        rhoB_threshold=str(auric_rhoB_threshold),
+                    )
 
                 cand_states.append(
                     State(
@@ -390,10 +412,29 @@ def main() -> None:
     ap.add_argument("--min-sep", type=int, default=3)
     ap.add_argument("--auric-m", type=int, default=8)
     ap.add_argument("--auric-every", type=int, default=10)
+    ap.add_argument("--auric-rhoB-mode", default="parity", choices=["parity", "vel"], help="rhoB readout mode.")
+    ap.add_argument(
+        "--auric-rhoB-threshold",
+        default="median",
+        choices=["median", "zero"],
+        help="Threshold for rhoB binarization (used for vel mode).",
+    )
     ap.add_argument("--w-contact", type=float, default=1.0)
     ap.add_argument("--w-rmse", type=float, default=1.0, help="Distogram RMSE weight (penalty).")
     ap.add_argument("--wA", type=float, default=0.2, help="Auric A weight (type_entropy penalty).")
     ap.add_argument("--wB", type=float, default=0.2, help="Auric B weight (smb_rate_hat penalty).")
+    ap.add_argument(
+        "--run-dir",
+        default="",
+        help="Optional directory for markdown reports (absolute or relative to repo root).",
+    )
+    ap.add_argument(
+        "--out-csv",
+        default="",
+        help="Optional explicit output CSV path (absolute or relative to repo root).",
+    )
+    ap.add_argument("--no-report", action="store_true", help="Do not write the markdown report.")
+    ap.add_argument("--quiet", action="store_true", help="Suppress console prints.")
     ap.add_argument(
         "--audit-out",
         default="",
@@ -422,6 +463,10 @@ def main() -> None:
     out_dir = root / "data" / "processed" / "blind_sprint"
     ensure_dir(out_dir)
     run_dir = root / "docs" / "runs" / "blind_sprint_auric_small"
+    if str(args.run_dir).strip():
+        run_dir = Path(str(args.run_dir))
+        if not run_dir.is_absolute():
+            run_dir = (root / run_dir).resolve()
     ensure_dir(run_dir)
 
     rows = []
@@ -446,6 +491,8 @@ def main() -> None:
             w_rmse=float(args.w_rmse),
             wA=float(args.wA),
             wB=float(args.wB),
+            auric_rhoB_mode=str(args.auric_rhoB_mode),
+            auric_rhoB_threshold=str(args.auric_rhoB_threshold),
             audit_out=audit_out,
         )
         if str(args.pred_pdb_out).strip() and len(seeds) == 1:
@@ -466,46 +513,56 @@ def main() -> None:
             out_pdb.write_text("\n".join(lines) + "\n", encoding="utf-8")
         meta.update({"pdb_id": str(args.pdb_id).upper(), "chain": str(chain_id), "N": int(coords_native.shape[0])})
         rows.append(meta)
-        print(
-            f"{args.pdb_id}:{chain_id} seed={s} TM={meta['tm']:.3f} F1={meta['contact_f1']:.3f} "
-            f"RMSE={meta['dist_rmse']:.3f} auric_pen={meta['auric_penalty']:.3f}",
-            flush=True,
-        )
+        if not bool(args.quiet):
+            print(
+                f"{args.pdb_id}:{chain_id} seed={s} TM={meta['tm']:.3f} F1={meta['contact_f1']:.3f} "
+                f"RMSE={meta['dist_rmse']:.3f} auric_pen={meta['auric_penalty']:.3f}",
+                flush=True,
+            )
 
     df = pd.DataFrame(rows)
     out_csv = out_dir / f"blind_sprint_auric_runs_{args.tag}_{str(args.pdb_id).upper()}.csv"
+    if str(args.out_csv).strip():
+        out_csv = Path(str(args.out_csv))
+        if not out_csv.is_absolute():
+            out_csv = (root / out_csv).resolve()
+        ensure_dir(out_csv.parent)
     df.to_csv(out_csv, index=False)
 
     dt = time.perf_counter() - t0
-    report = run_dir / f"{args.tag}_{str(args.pdb_id).upper()}.md"
-    csv_rel = out_csv.relative_to(root).as_posix()
-    report.write_text(
-        "\n".join(
-            [
-                f"# Blind Sprint + Auric (target={str(args.pdb_id).upper()}:{chain_id})",
-                "",
-                f"- N: {int(coords_native.shape[0])}",
-                f"- codec: `{args.codec}`",
-                f"- beam: {int(args.beam)}",
-                f"- K per state: {int(args.K)}",
-                f"- contact cutoff: {float(args.cutoff)} Å (min_sep={int(args.min_sep)})",
-                f"- auric_m: {int(args.auric_m)} (every {int(args.auric_every)} steps)",
-                f"- weights: w_contact={float(args.w_contact)}, wA={float(args.wA)}, wB={float(args.wB)}",
-                "",
-                f"- CSV (gitignored): `{csv_rel}`",
-                f"- Runtime: {dt:.1f}s",
-                "",
-                "## Results",
-                "",
-                df_to_markdown_table(df.sort_values("tm", ascending=False)),
-                "",
-            ]
+    if not bool(args.no_report):
+        report = run_dir / f"{args.tag}_{str(args.pdb_id).upper()}.md"
+        csv_rel = out_csv.relative_to(root).as_posix()
+        report.write_text(
+            "\n".join(
+                [
+                    f"# Blind Sprint + Auric (target={str(args.pdb_id).upper()}:{chain_id})",
+                    "",
+                    f"- N: {int(coords_native.shape[0])}",
+                    f"- codec: `{args.codec}`",
+                    f"- beam: {int(args.beam)}",
+                    f"- K per state: {int(args.K)}",
+                    f"- contact cutoff: {float(args.cutoff)} Å (min_sep={int(args.min_sep)})",
+                    f"- auric_m: {int(args.auric_m)} (every {int(args.auric_every)} steps)",
+                    f"- auric_rhoB_mode: `{args.auric_rhoB_mode}` (threshold={args.auric_rhoB_threshold})",
+                    f"- weights: w_contact={float(args.w_contact)}, wA={float(args.wA)}, wB={float(args.wB)}",
+                    "",
+                    f"- CSV (gitignored): `{csv_rel}`",
+                    f"- Runtime: {dt:.1f}s",
+                    "",
+                    "## Results",
+                    "",
+                    df_to_markdown_table(df.sort_values("tm", ascending=False)),
+                    "",
+                ]
+            )
+            + "\n",
+            encoding="utf-8",
         )
-        + "\n",
-        encoding="utf-8",
-    )
-    print(f"Wrote: {out_csv}")
-    print(f"Wrote: {report}")
+        if not bool(args.quiet):
+            print(f"Wrote: {report}")
+    if not bool(args.quiet):
+        print(f"Wrote: {out_csv}")
 
 
 if __name__ == "__main__":
