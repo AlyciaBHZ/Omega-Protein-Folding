@@ -177,7 +177,6 @@ def relax_pose_replicates(
     # init once per process (no-op if already)
     pyrosetta.init("-mute all")
 
-    from pyrosetta.rosetta.core.import_pose import pose_from_sequence  # type: ignore
     from pyrosetta.rosetta.core.scoring import get_score_function  # type: ignore
     from pyrosetta.rosetta.protocols.relax import FastRelax  # type: ignore
     from pyrosetta.rosetta.core.scoring import ScoreType  # type: ignore
@@ -187,9 +186,17 @@ def relax_pose_replicates(
     scorefxn = get_score_function()
     scorefxn.set_weight(ScoreType.coordinate_constraint, float(coord_weight))
 
-    # base pose
-    pose0 = pyrosetta.Pose()
-    pose_from_sequence(pose0, str(seq), "fa_standard", True)
+    # base pose (PyRosetta API differs across releases; prefer the top-level helper)
+    try:
+        pose0 = pyrosetta.pose_from_sequence(str(seq), "fa_standard", auto_termini=True)
+    except Exception:
+        pose0 = pyrosetta.Pose()
+        try:
+            from pyrosetta.rosetta.core.pose import make_pose_from_sequence  # type: ignore
+
+            make_pose_from_sequence(pose0, str(seq), "fa_standard", True)
+        except Exception as e:
+            raise RuntimeError("Failed to construct a pose from sequence (PyRosetta API mismatch).") from e
     _add_ca_coord_constraints(pose0, np.asarray(ca_target, dtype=np.float64), sd=float(coord_sd))
 
     scores: List[float] = []
@@ -243,6 +250,11 @@ def main() -> None:
         default="data/raw/rosetta_cache/quark_itasser_homology_ablation",
         help="Untracked heavy output cache directory.",
     )
+    ap.add_argument(
+        "--targets",
+        default="",
+        help="Comma-separated target_ids to run (case-insensitive). If empty, run all in the manifest.",
+    )
     ap.add_argument("--nstruct", type=int, default=20)
     ap.add_argument("--coord-sd", type=float, default=1.0)
     ap.add_argument("--coord-weight", type=float, default=1.0)
@@ -269,6 +281,7 @@ def main() -> None:
 
     seqs = read_fasta(fasta_path)
     rows = read_csv_rows(man_path)
+    wanted = {t.strip().lower() for t in str(args.targets).split(",") if t.strip()}
 
     # CA coords loader
     import sys
@@ -279,6 +292,8 @@ def main() -> None:
     out_rows: List[Dict[str, object]] = []
     for row in rows:
         tid = str(row["target_id"]).strip()
+        if wanted and tid.lower() not in wanted:
+            continue
         omega_pdb = Path(str(row["omega_model_path"]).strip())
         if not omega_pdb.is_absolute():
             omega_pdb = (root / omega_pdb).resolve()
