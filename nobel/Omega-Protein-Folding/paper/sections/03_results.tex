@@ -2,7 +2,7 @@
 
 \subsection{Impedance-guided wormhole selection yields target-dependent, auditable policies}
 
-We first tested whether macro-operator navigation can be made \textbf{self-adaptive} without model training, using an error-geometry impedance score Imp(p;D) to select wormhole candidates. On N=16 contact-map proxy tasks across several targets, the impedance-guided selector achieves competitive best Contact\_F1 while exhibiting target-dependent operator usage. In particular, the 2CI2 proxy concentrates selection on \textbf{Expander\_Hot} macro-patches, consistent with the interpretation that its residual is dominated by localized repair needs, whereas 1UBQ uses predominantly local moves and global expander patches.
+We first tested whether macro-operator navigation can be made \textbf{self-adaptive} without model training, using an error-geometry impedance score $\mathrm{Imp}(p;D)$ to select wormhole candidates. In biophysical terms, $\mathrm{Imp}$ plays the role of a landscape \emph{roughness/frustration} proxy derived from residual geometry: it is not a physical energy, but a protocol-fixed scalar field that shapes exploration. On N=16 contact-map proxy tasks across several targets, the impedance-guided selector achieves competitive best Contact\_F1 while exhibiting target-dependent operator usage. In particular, the 2CI2 proxy concentrates selection on \textbf{Expander\_Hot} macro-patches, consistent with the interpretation that its residual is dominated by localized repair needs, whereas 1UBQ uses predominantly local moves and global expander patches.
 
 These behaviours are emitted directly in the audit digest (counts\_total / counts\_early / counts\_late), allowing mechanistic A/B tests on the operator policy itself.
 
@@ -20,7 +20,7 @@ These behaviours are emitted directly in the audit digest (counts\_total / count
   \maybeincludetable{assets/tables/table1.tex}
 \end{table}
 
-Across this proxy suite, the best mean Contact\_F1 reaches 0.962 on 2CI2\_16 and 5PTI\_16 (Imp-Adaptive-v2) and 0.916 on 1UBQ\_16 (Mix-Expander-Hot), while exhibiting different macro-operator usage patterns (Fig.~\ref{fig:2}; Table~\ref{tab:1}).
+Across this proxy suite, the best mean Contact\_F1 reaches 0.962 on 2CI2\_16 and 5PTI\_16 (Imp-Adaptive-v2) and 0.916 on 1UBQ\_16 (Mix-Expander-Hot), while exhibiting different macro-operator usage patterns (Fig.~\ref{fig:2}; Table~\ref{tab:1}). Operationally, wormholes act like \emph{basin-hopping} moves: structured, auditable nonlocal rewrites that help traverse barriers induced by low-resolution objectives.
 
 \subsection{Low-resolution objectives induce a measurable hallucination gap}
 

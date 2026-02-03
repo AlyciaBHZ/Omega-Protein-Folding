@@ -17,7 +17,7 @@ To contextualize this claim against widely used deep predictors, we include a qu
 
 First, low-resolution objectives are sufficient to drive search to apparently high-quality solutions, but they can also hide off-manifold failures. This motivates a principled separation between optimized readouts and audit-only residuals, and it provides a natural testbed for mechanistic gates.
 
-Second, phason is most useful when treated as a dynamical variable rather than a static filter. Feasible-tight regimes ($\theta^\star$) show that projector-style repair is necessary: without repair, hard constraints can become mathematically infeasible under a given alphabet and slice. With repair, the gate becomes an actionable dynamical force.
+Second, phason is most useful when treated as a dynamical feasibility variable rather than a static filter. In biophysical terms, tight perpendicular-space gates act like \emph{hard constraints} that can become effectively unsatisfiable under limited representational expressivity (alphabet coarseness) or a misaligned slice offset. Feasible-tight regimes ($\theta^\star$) therefore highlight the role of projector-style repair: without repair, hard rejection can freeze exploration; with repair (small $\Delta w_0$ updates), the constraint becomes an actionable relaxation mechanism that maintains sampling while enforcing manifold adherence.
 
 Third, representational expressivity is a hard ceiling. The Triple232 alphabet reveals that TM-score >0.9 is attainable within the 6D framework, and the Sprint-to-0.9 results show that combining hotspot expressivity with piecewise phason repair can cross that threshold on long-chain and membrane-protein targets.
 
