@@ -1,0 +1,7 @@
+method,target_id,input_model,nstruct,coord_sd,coord_weight,best_total_score,median_total_score,best_rmsd_ca,best_pdb_path,notes
+omega,1r69,docs/runs/quark_itasser_homology_ablation/omega_models/omega_pred_1r69_seed0.pdb,20,1.0,1.0,,,,,dry_run
+omega,2cro,docs/runs/quark_itasser_homology_ablation/omega_models/omega_pred_2cro_seed0.pdb,20,1.0,1.0,,,,,dry_run
+omega,4pti,docs/runs/quark_itasser_homology_ablation/omega_models/omega_pred_4pti_seed0.pdb,20,1.0,1.0,,,,,dry_run
+omega,1ctf,docs/runs/quark_itasser_homology_ablation/omega_models/omega_pred_1ctf_seed0.pdb,20,1.0,1.0,,,,,dry_run
+omega,1dtk,docs/runs/quark_itasser_homology_ablation/omega_models/omega_pred_1dtk_seed0.pdb,20,1.0,1.0,,,,,dry_run
+omega,1shf-A,docs/runs/quark_itasser_homology_ablation/omega_models/omega_pred_1shf-A_seed0.pdb,20,1.0,1.0,,,,,dry_run
