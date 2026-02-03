@@ -74,6 +74,69 @@ def main() -> None:
     if len(df) == 0:
         raise ValueError(f"Empty CSV: {in_csv}")
 
+    # Orthogonal-defense view (real decoy audit): x=auric entropy, y=physics_score + boxplot panel.
+    if "physics_score" in df.columns and "auric_type_entropy_rhoA" in df.columns:
+        df["auric_type_entropy_rhoA"] = pd.to_numeric(df["auric_type_entropy_rhoA"], errors="coerce")
+        df["physics_score"] = pd.to_numeric(df["physics_score"], errors="coerce")
+
+        native = df[df["label"] == "native"]
+        decoy = df[df["label"] != "native"]
+
+        fig, axes = plt.subplots(1, 2, figsize=(11.4, 4.2), constrained_layout=True)
+
+        ax = axes[0]
+        ax.scatter(
+            decoy["auric_type_entropy_rhoA"],
+            decoy["physics_score"],
+            s=16,
+            alpha=0.35,
+            c="#7f7f7f",
+            edgecolors="none",
+            label="decoys",
+        )
+        ax.scatter(
+            native["auric_type_entropy_rhoA"],
+            native["physics_score"],
+            s=180,
+            marker="*",
+            c="#d62728",
+            edgecolors="k",
+            linewidths=0.6,
+            label="native",
+            zorder=5,
+        )
+        ax.set_title("(S5A) Dual-filter funnel (orthogonal signals)", fontsize=10)
+        ax.set_xlabel("Geometric certificate: $H(\\mathrm{type})$ (rhoA, m=8)")
+        ax.set_ylabel("Physics score: clashes/N + 1000×bond MSE")
+        ax.grid(True, alpha=0.25)
+
+        x = df["auric_type_entropy_rhoA"].to_numpy(dtype=np.float64)
+        y = df["physics_score"].to_numpy(dtype=np.float64)
+        mask = np.isfinite(x) & np.isfinite(y)
+        r = float(np.corrcoef(x[mask], y[mask])[0, 1]) if int(np.sum(mask)) >= 3 else float("nan")
+        ax.text(0.02, 0.98, f"Pearson r={r:.2f}", transform=ax.transAxes, ha="left", va="top", fontsize=9)
+        ax.legend(loc="best", frameon=False, fontsize=9)
+
+        bx = axes[1]
+        bx.set_title("(S5B) Native vs decoy distributions", fontsize=10)
+        bx.grid(True, axis="y", alpha=0.25)
+        bx.boxplot(
+            [
+                native["auric_type_entropy_rhoA"].to_numpy(dtype=np.float64),
+                decoy["auric_type_entropy_rhoA"].to_numpy(dtype=np.float64),
+                native["physics_score"].to_numpy(dtype=np.float64),
+                decoy["physics_score"].to_numpy(dtype=np.float64),
+            ],
+            labels=["Auric (N)", "Auric (D)", "Phys (N)", "Phys (D)"],
+            showfliers=False,
+        )
+        bx.set_ylabel("Value (boxplot; fliers hidden)")
+
+        fig.suptitle("Orthogonality of geometric and physical signals (4state_reduced)", fontsize=12)
+        fig.savefig(out_png, dpi=240)
+        print(f"[ok] wrote: {out_png}")
+        return
+
     df["bond_mse_1e6"] = df["bond_mse"].astype(float) * 1e6
 
     fig, axes = plt.subplots(1, 2, figsize=(10.8, 4.2), constrained_layout=True)

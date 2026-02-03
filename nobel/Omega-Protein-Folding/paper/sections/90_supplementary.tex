@@ -117,15 +117,15 @@ Below we provide an inventory mapping each experiment family to its primary arti
 \subsection*{Physical consistency audit (CA-level physics audit layer)}
 \begin{itemize}
   \item Run directory (CSV + README): \texttt{docs/runs/physics\_audit/}
-  \item CSV: \texttt{docs/runs/physics\_audit/physics\_vs\_auric\_toy\_decoy.csv}
-  \item Scripts: \texttt{scripts/audit/physics\_metrics.py}, \texttt{scripts/audit/audit\_physics\_vs\_auric.py}, \texttt{scripts/audit/make\_physics\_audit\_figure.py}
+  \item CSV (4state\_reduced full audit): \texttt{docs/runs/physics\_audit/physics\_vs\_auric\_4state\_full.csv}
+  \item Scripts: \texttt{scripts/audit/physics\_metrics.py}, \texttt{scripts/audit/audit\_physics\_vs\_auric\_manifest.py}, \texttt{scripts/audit/make\_physics\_audit\_figure.py}
   \item Paper figure asset: \texttt{paper/assets/figures/figS\_physics\_vs\_auric.png}
 \end{itemize}
 
 \begin{figure}[t]
   \centering
   \maybeincludegraphics[width=\linewidth]{assets/figures/figS_physics_vs_auric}
-  \caption{\textbf{Physical consistency audit (post-hoc; CA-level).} Scatter plots correlate the Auric geometry certificate ($\\rho_A$ type entropy at $m=8$) with two fast physical proxies computed from C$\\alpha$ traces: (A) bond-length MSE relative to 3.8~\\AA{} and (B) a non-neighbour steric clash proxy (C$\\alpha$ pairs closer than 3.5~\\AA{}, normalized per residue). This audit layer is intended to flag grossly non-physical geometry without changing the search objective; it is not a replacement for full-atom energy evaluation.}
+  \caption{\textbf{Orthogonality of geometric and physical signals (post-hoc; CA-level).} We compare the Auric geometry certificate ($\\rho_A$ type entropy at $m=8$; x-axis) against a normalized physics score derived from two C$\\alpha$ proxies (y-axis): clashes/$N$ + 1000$\\times$bond-length MSE. On the hard-negative decoy benchmark \texttt{4state\_reduced}, these signals are weakly correlated (Pearson $r\\approx 0$), yielding a dual-filter interpretation: many decoys satisfy local physical constraints while violating global geometric manifold constraints (high Auric entropy), while a smaller subset exhibits the converse.}
   \label{fig:physics_audit}
 \end{figure}
 
