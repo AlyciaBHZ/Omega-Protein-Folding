@@ -81,6 +81,18 @@ def parse_itasser_text_blob(txt: str) -> ItasserSummary:
         v = float(mm.group(2))
         c_scores[i] = v
 
+    # I-TASSER common table line:
+    #   Model1:   0.57     0.79+-0.09   2.0+-1.6
+    if not c_scores:
+        for mm in re.finditer(
+            r"Model\s*(\d+)\s*:\s*([\-0-9.]+)\s+([0-9.]+)\s*\+\-\s*([0-9.]+)\s+([0-9.]+)\s*\+\-\s*([0-9.]+)",
+            txt,
+            flags=re.I,
+        ):
+            i = int(mm.group(1))
+            c = float(mm.group(2))
+            c_scores[i] = c
+
     # Some pages list "C-score ="
     if not c_scores:
         for mm in re.finditer(r"\bC[\-\s]*score\s*[:=]\s*([\-0-9.]+)", txt, flags=re.I):
@@ -98,6 +110,20 @@ def parse_itasser_text_blob(txt: str) -> ItasserSummary:
     mm = re.search(r"Estimated\s*RMSD\s*[:=]\s*([0-9.]+)", txt, flags=re.I)
     if mm:
         est_rmsd = float(mm.group(1))
+
+    # Prefer explicit Exp.TM-Score / Exp.RMSD from the Model1 table row (most reliable)
+    mm = re.search(
+        r"Model\s*1\s*:\s*([\-0-9.]+)\s+([0-9.]+)\s*\+\-\s*([0-9.]+)\s+([0-9.]+)\s*\+\-\s*([0-9.]+)",
+        txt,
+        flags=re.I,
+    )
+    if mm:
+        # mm.group(1) is C-score; TM is group(2), RMSD is group(4)
+        try:
+            est_tm = float(mm.group(2))
+            est_rmsd = float(mm.group(4))
+        except Exception:
+            pass
 
     # templates: capture a small block following "Top templates" or "threading templates"
     top_templates: List[str] = []
@@ -125,7 +151,7 @@ def parse_quark_text_blob(txt: str) -> QuarkSummary:
     QUARK pages commonly expose lines labeled:
     - Predicted Secondary Structure
     - Predicted Solvent Accessibility
-    For HTML pages, extract the actual prediction strings.
+    We store the first occurrence of each.
     """
     job = ""
     m = re.search(r"\b(QA\d{4,})\b", txt)
@@ -135,52 +161,58 @@ def parse_quark_text_blob(txt: str) -> QuarkSummary:
     def _strip_tags(s: str) -> str:
         s = re.sub(r"<[^>]+>", "", s)
         s = s.replace("&nbsp;", " ")
-        return re.sub(r"\s+", "", s).strip()
-
-    # HTML-first extraction: get the prediction cell inside each section.
-    ss_pred = ""
-    sa_pred = ""
-    sec_block = re.search(r"Predicted\s+Secondary\s+Structure.*?</table>", txt, flags=re.I | re.S)
-    if sec_block:
-        mm = re.search(r"<b>Prediction</b>.*?</td><td>(.*?)</td>", sec_block.group(0), flags=re.I | re.S)
-        if mm:
-            ss_pred = _strip_tags(mm.group(1))
-    sa_block = re.search(r"Predicted\s+Solvent\s+Accessibility.*?</table>", txt, flags=re.I | re.S)
-    if sa_block:
-        mm = re.search(r"<b>Prediction</b>.*?</td><td>(.*?)</td>", sa_block.group(0), flags=re.I | re.S)
-        if mm:
-            sa_pred = _strip_tags(mm.group(1))
+        return s
 
     ss_line = ""
     sa_line = ""
-    if ss_pred:
-        ss_line = ss_pred
-    if sa_pred:
-        sa_line = sa_pred
 
-    # Fallback: store the first occurrence line.
-    for ln in txt.splitlines():
-        if (not ss_line) and re.search(r"Predicted\s+Secondary\s+Structure", ln, flags=re.I):
-            ss_line = ln.strip()
-            continue
-        if (not sa_line) and re.search(r"Predicted\s+Solvent\s+Accessibility", ln, flags=re.I):
-            sa_line = ln.strip()
-            continue
+    # HTML: Secondary structure prediction cell
+    mm = re.search(
+        r"Predicted\s+Secondary\s+Structure.*?<b>\s*Prediction\s*</b>.*?<td>(.*?)</td>",
+        txt,
+        flags=re.I | re.S,
+    )
+    if mm:
+        raw = _strip_tags(mm.group(1))
+        ss = "".join(re.findall(r"[HSC]", raw.upper()))
+        ss_line = ss
+
+    # HTML: Solvent accessibility prediction cell (digits 0-9)
+    mm = re.search(
+        r"Predicted\s+Solvent\s+Accessibility.*?<b>\s*Prediction\s*</b>.*?<td>(.*?)</td>",
+        txt,
+        flags=re.I | re.S,
+    )
+    if mm:
+        raw = _strip_tags(mm.group(1))
+        sa = "".join(re.findall(r"[0-9]", raw))
+        sa_line = sa
+
+    # Fallback: plain text pages
+    if not ss_line or not sa_line:
+        for ln in txt.splitlines():
+            if (not ss_line) and re.search(r"^\s*(?:Prediction|Pred)\s*[:=]\s*([HSC]+)\s*$", ln, flags=re.I):
+                m2 = re.search(r"([HSC]+)", ln.upper())
+                if m2:
+                    ss_line = m2.group(1)
+            if (not sa_line) and re.search(r"^\s*(?:Prediction|Pred)\s*[:=]\s*([0-9]{10,})\s*$", ln, flags=re.I):
+                m2 = re.search(r"([0-9]{10,})", ln)
+                if m2:
+                    sa_line = m2.group(1)
     return QuarkSummary(job_id=job, ss_line=ss_line, sa_line=sa_line)
 
 
 def find_itasser_text_files(job_dir: Path) -> List[Path]:
     # Typical names seen in I-TASSER bundles
-    pats = [
-        "*report*.txt",
-        "*summary*.txt",
-        "*README*",
-        "*.html",
-        "*.txt",
-    ]
+    # Note: many bundles place `cscore.txt` under a nested `<job>_results/` folder.
+    # Use rglob for robustness.
+    preferred_names = ["cscore.txt", "index.html", "lscore.txt", "lscore.html"]
     out: List[Path] = []
+    for nm in preferred_names:
+        out.extend(sorted(job_dir.rglob(nm)))
+    pats = ["*report*.txt", "*summary*.txt", "*README*", "*.html", "*.txt"]
     for pat in pats:
-        out.extend(sorted(job_dir.glob(pat)))
+        out.extend(sorted(job_dir.rglob(pat)))
     # de-dup preserving order
     seen = set()
     out2 = []
@@ -243,7 +275,22 @@ def main() -> None:
                 if t:
                     blob = t
                     break
-            it = parse_itasser_text_blob(blob) if blob else ItasserSummary(job_id=job_dir.name, c_scores={}, est_tm=float("nan"), est_rmsd=float("nan"), top_templates=[])
+            it = (
+                parse_itasser_text_blob(blob)
+                if blob
+                else ItasserSummary(job_id=job_dir.name, c_scores={}, est_tm=float("nan"), est_rmsd=float("nan"), top_templates=[])
+            )
+            # Fallback: infer templates from bundled template PDB filenames
+            if not it.top_templates:
+                tm_files = sorted(job_dir.rglob("CH_TM_*.pdb"))
+                if tm_files:
+                    it = ItasserSummary(
+                        job_id=it.job_id,
+                        c_scores=it.c_scores,
+                        est_tm=it.est_tm,
+                        est_rmsd=it.est_rmsd,
+                        top_templates=[p.name for p in tm_files[:10]],
+                    )
             rows.append(
                 {
                     "method": "ITASSER",

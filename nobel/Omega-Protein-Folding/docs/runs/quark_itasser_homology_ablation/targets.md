@@ -7,7 +7,7 @@ and each with a homology/fragment exclusion ablation to assess template dependen
 
 | target_id | dataset | chain | length | native_pdb | QUARK_A | QUARK_B | ITASSER_A | ITASSER_B | notes |
 | --- | --- | --- | ---: | --- | --- | --- | --- | --- | --- |
-| 1r69 | 4state_reduced | A | 63 | `data/raw/decoy_cache/decoys_r_us/4state_reduced/dd/multiple/4state_reduced/doc/pdb_orig/1r69.pdb` | QA16125 |  |  |  | QUARK-A (standard) |
+| 1r69 | 4state_reduced | A | 63 | `data/raw/decoy_cache/decoys_r_us/4state_reduced/dd/multiple/4state_reduced/doc/pdb_orig/1r69.pdb` | QA16125 |  | S820065 |  | QUARK-A + I-TASSER-A results ingested |
 | 2cro | 4state_reduced | A | 65 | `data/raw/decoy_cache/decoys_r_us/4state_reduced/dd/multiple/4state_reduced/doc/pdb_orig/2cro.pdb` |  |  |  |  |  |
 | 4pti | 4state_reduced | A | 58 | `data/raw/decoy_cache/decoys_r_us/4state_reduced/dd/multiple/4state_reduced/doc/pdb_orig/4pti.pdb` |  |  |  |  |  |
 | 1ctf | 4state_reduced | A | 68 | `data/raw/decoy_cache/decoys_r_us/4state_reduced/dd/multiple/4state_reduced/doc/pdb_orig/1ctf.pdb` |  |  |  |  |  |
