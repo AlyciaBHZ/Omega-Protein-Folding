@@ -36,6 +36,9 @@ artifacts/
 data/raw/pdb_cache/
 data/raw/decoy_cache/
 data/raw/afdb_cache/
+data/raw/rosetta_cache/
+data/raw/quark_cache/
+data/raw/itasser_cache/
 data/processed/
 figures/
 

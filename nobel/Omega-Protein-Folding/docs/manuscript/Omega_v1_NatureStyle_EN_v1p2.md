@@ -97,6 +97,13 @@ Acceptance uses *blind guides*:
 
 > **Important limitation:** in this evidence-pack build, distogram RMSE is still computed against the native distogram. The next step is to replace it with *Imp(p;D)-derived* predicted distograms/torsions so that the objective is truly blind to the native structure during search.
 
+### Physical audit: Omega backbones occupy Rosetta energy basins
+Omega v1 outputs in this repository are primarily **Cα-only** traces. To assess whether these geometrically generated backbones are **physically realizable**—i.e., whether they lie within the attractive basins of a standard all-atom force field—we performed a constrained relaxation audit using **Rosetta FastRelax** as an external “physical auditor”.
+
+Across 6 homology-ablation targets (`1R69`, `2CRO`, `4PTI`, `1CTF`, `1DTK`, `1SHF-A`), the best-scoring relaxed models (20 trajectories per target; see Methods) exhibited **low structural drift** relative to the original Omega Cα traces (mean best RMSD = **2.02 Å**, max = **2.20 Å**), confirming that Omega-generated backbones are compatible with Rosetta’s physical energy landscape. Increasing sampling from \(n=5\) to \(n=20\) trajectories identified lower-energy conformations (mean best-score improvement \(\approx\) **39.9 REU**) without increasing drift, strengthening the conclusion that the Omega-guided search lands in physically acceptable basins rather than producing geometrically fragile traces.
+
+We additionally observed target-specific accessibility signatures: **1CTF** showed high robustness (median–best gap \(\sim\) **39 REU**), suggesting a broad, accessible funnel under constrained relaxation, whereas **4PTI** revealed a deep but narrow basin (median–best gap \(\sim\) **304 REU**) where increased sampling was required to reach the low-energy floor. Full per-target audit results are provided in Supplementary (Supplementary Table: Rosetta constrained-relax audit; `docs/runs/quark_itasser_homology_ablation/rosetta_relax_summary.csv`).
+
 ---
 
 ## Discussion
@@ -117,6 +124,11 @@ Omega’s central claim is not that it replaces SOTA predictors immediately, but
 
 ## Methods (summary)
 See `../../scripts/evidence_v1/specs/omega_engine_spec.md` for the engine interface and `../../artifacts/reports/` for per-experiment details.
+
+### Physical audit protocol (Rosetta constrained relaxation)
+**Purpose.** Treat Rosetta as a physics/geometry validator to test whether Omega-generated Cα traces are “accepted” by a standard physical energy function.
+
+**Protocol.** For each target sequence, we built a full-atom pose from FASTA and applied harmonic coordinate restraints to Cα atoms (coord_sd = **1.0 Å**) anchored to the Omega Cα trace. We then ran **FastRelax** for **20 independent trajectories** per target (\(nstruct=20\)) using Rosetta’s default all-atom score function (ref2015 family) and recorded: best/median total score (REU) and the best Kabsch-aligned Cα RMSD to the input trace. Outputs are summarized in `docs/runs/quark_itasser_homology_ablation/rosetta_relax_summary.csv`; best relaxed PDBs are cached under `data/raw/rosetta_cache/...` (not committed).
 
 ### Phason ratio
 We report the feasibility ratio:

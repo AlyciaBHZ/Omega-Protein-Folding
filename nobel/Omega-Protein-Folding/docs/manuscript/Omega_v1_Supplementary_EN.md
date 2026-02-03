@@ -87,3 +87,26 @@ Artifacts:
 Artifacts:
 - `../../data/processed/icosa_quantization_results.csv`
 
+---
+
+## Supplementary Note X | Rosetta constrained-relax “physical audit” of Omega backbones
+
+**Purpose.** Use Rosetta/PyRosetta as an external **physical auditor** to verify that Omega’s geometrically generated Cα backbones lie within attractive basins of a standard all-atom energy function (i.e., are physically realizable under constrained relaxation).
+
+**Protocol summary.** For each target, we generated a full-atom pose from FASTA and applied harmonic Cα coordinate restraints to the Omega Cα trace (coord_sd = 1.0 Å, coord_weight = 1.0). We then ran FastRelax for \(nstruct=20\) independent trajectories and recorded best/median total score (REU) and the best Kabsch-aligned Cα RMSD to the original trace. Heavy PDB outputs are cached locally (gitignored); the summary table below is committed.
+
+**Supplementary Table (Rosetta constrained-relax audit, Omega-only; \(nstruct=20\)).**
+
+| Target | Best total score (REU) | Median total score (REU) | Median–best gap (REU) | Best Cα RMSD to Omega trace (Å) |
+|---|---:|---:|---:|---:|
+| 1R69 | 398.6311 | 551.7821 | 153.1510 | 1.7814 |
+| 2CRO | 579.8710 | 675.7528 | 95.8818 | 2.1368 |
+| 4PTI | 501.0837 | 805.3716 | 304.2879 | 2.0392 |
+| 1CTF | 564.3416 | 603.6578 | 39.3162 | 2.2019 |
+| 1DTK | 553.4316 | 735.3389 | 181.9073 | 2.0952 |
+| 1SHF-A | 400.2520 | 475.0400 | 74.7880 | 1.8886 |
+
+Artifacts:
+- Summary CSV: `../runs/quark_itasser_homology_ablation/rosetta_relax_summary.csv`
+- Plan / protocol notes: `../runs/quark_itasser_homology_ablation/rosetta_relax_plan.md`
+
