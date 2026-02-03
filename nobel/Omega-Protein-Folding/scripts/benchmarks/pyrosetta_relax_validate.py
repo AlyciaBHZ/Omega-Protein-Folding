@@ -161,6 +161,7 @@ class RelaxResult:
     median_score: float
     best_rmsd_ca: float
     best_pdb_path: Path
+    per_struct_csv: Path | None = None
 
 
 def relax_pose_replicates(
@@ -172,6 +173,7 @@ def relax_pose_replicates(
     coord_weight: float,
     out_dir: Path,
     tag: str,
+    per_struct_out: bool = False,
 ) -> RelaxResult:
     pyrosetta = _import_pyrosetta()
     # init once per process (no-op if already)
@@ -200,6 +202,7 @@ def relax_pose_replicates(
     _add_ca_coord_constraints(pose0, np.asarray(ca_target, dtype=np.float64), sd=float(coord_sd))
 
     scores: List[float] = []
+    rmsds: List[float] = []
     best_score = float("inf")
     best_pose = None
     best_rmsd = float("inf")
@@ -214,6 +217,7 @@ def relax_pose_replicates(
         scores.append(s)
         ca = _pose_ca_coords(pose)
         rmsd = ca_rmsd_kabsch(ca, ca_target)
+        rmsds.append(float(rmsd) if math.isfinite(rmsd) else float("nan"))
         if s < best_score - 1e-8:
             best_score = s
             best_pose = pose
@@ -225,7 +229,26 @@ def relax_pose_replicates(
 
     out_pdb = out_dir / f"{tag}_best.pdb"
     best_pose.dump_pdb(str(out_pdb))
-    return RelaxResult(best_score=best_score, median_score=med, best_rmsd_ca=best_rmsd, best_pdb_path=out_pdb)
+    per_struct_csv = None
+    if per_struct_out:
+        per_struct_csv = out_dir / f"{tag}_per_struct.csv"
+        with per_struct_csv.open("w", encoding="utf-8", newline="") as f:
+            w = csv.DictWriter(
+                f,
+                fieldnames=["replicate", "total_score", "rmsd_ca_to_input_trace"],
+                lineterminator="\n",
+            )
+            w.writeheader()
+            for i, (s, r) in enumerate(zip(scores, rmsds), start=1):
+                w.writerow({"replicate": i, "total_score": f"{s:.6f}", "rmsd_ca_to_input_trace": f"{r:.6f}"})
+
+    return RelaxResult(
+        best_score=best_score,
+        median_score=med,
+        best_rmsd_ca=best_rmsd,
+        best_pdb_path=out_pdb,
+        per_struct_csv=per_struct_csv,
+    )
 
 
 def main() -> None:
@@ -239,6 +262,16 @@ def main() -> None:
         "--omega-manifest",
         default="docs/runs/quark_itasser_homology_ablation/omega_models_manifest.csv",
         help="Manifest mapping target_id to Omega CA-only model paths.",
+    )
+    ap.add_argument(
+        "--models",
+        action="append",
+        default=[],
+        help=(
+            "Optional override to run non-Omega models directly. "
+            "Repeatable; format: method=/path/to/model.pdb . "
+            "When provided, --targets must specify exactly one target_id."
+        ),
     )
     ap.add_argument(
         "--out-csv",
@@ -258,6 +291,11 @@ def main() -> None:
     ap.add_argument("--nstruct", type=int, default=20)
     ap.add_argument("--coord-sd", type=float, default=1.0)
     ap.add_argument("--coord-weight", type=float, default=1.0)
+    ap.add_argument(
+        "--per-struct-out",
+        action="store_true",
+        help="Write per-replicate score/RMSD CSVs under the cache dir.",
+    )
     ap.add_argument("--dry-run", action="store_true", help="Validate inputs and write headers only; no PyRosetta run.")
     args = ap.parse_args()
 
@@ -290,32 +328,132 @@ def main() -> None:
     from coords_io import load_ca_coords  # type: ignore  # noqa: E402
 
     out_rows: List[Dict[str, object]] = []
-    for row in rows:
-        tid = str(row["target_id"]).strip()
-        if wanted and tid.lower() not in wanted:
-            continue
-        omega_pdb = Path(str(row["omega_model_path"]).strip())
-        if not omega_pdb.is_absolute():
-            omega_pdb = (root / omega_pdb).resolve()
-        if tid not in seqs:
-            # try case-insensitive match
-            match = None
-            for k in seqs.keys():
-                if k.lower() == tid.lower():
-                    match = k
-                    break
-            if match is None:
-                raise RuntimeError(f"Missing FASTA entry for target_id={tid}")
-            seq = seqs[match]
-        else:
-            seq = seqs[tid]
+    def _resolve_seq(tid: str) -> str:
+        if tid in seqs:
+            return seqs[tid]
+        for k in seqs.keys():
+            if k.lower() == tid.lower():
+                return seqs[k]
+        raise RuntimeError(f"Missing FASTA entry for target_id={tid}")
 
-        _, ca = load_ca_coords(omega_pdb)
-        ca = np.asarray(ca, dtype=np.float64)
-        if len(seq) != int(ca.shape[0]):
-            raise RuntimeError(f"Length mismatch target={tid}: fasta={len(seq)} ca_trace={ca.shape[0]} path={omega_pdb}")
+    # Mode 1: direct model list (e.g., QUARK / I-TASSER)
+    if list(args.models):
+        if not wanted or len(wanted) != 1:
+            raise RuntimeError("--models requires --targets to specify exactly one target_id")
+        tid = sorted(wanted)[0]
+        seq = _resolve_seq(tid)
 
-        if bool(args.dry_run):
+        for spec in list(args.models):
+            if "=" not in spec:
+                raise RuntimeError(f"Bad --models entry (expected method=path): {spec}")
+            method, path_s = spec.split("=", 1)
+            method = method.strip()
+            model_pdb = Path(path_s.strip())
+            if not model_pdb.is_absolute():
+                model_pdb = (root / model_pdb).resolve()
+
+            _, ca = load_ca_coords(model_pdb)
+            ca = np.asarray(ca, dtype=np.float64)
+            if len(seq) != int(ca.shape[0]):
+                raise RuntimeError(
+                    f"Length mismatch target={tid}: fasta={len(seq)} ca_trace={ca.shape[0]} path={model_pdb}"
+                )
+
+            if bool(args.dry_run):
+                out_rows.append(
+                    {
+                        "method": method,
+                        "target_id": tid,
+                        "input_model": model_pdb.relative_to(root).as_posix(),
+                        "nstruct": int(args.nstruct),
+                        "coord_sd": float(args.coord_sd),
+                        "coord_weight": float(args.coord_weight),
+                        "best_total_score": "",
+                        "median_total_score": "",
+                        "best_rmsd_ca": "",
+                        "best_pdb_path": "",
+                        "notes": "dry_run",
+                    }
+                )
+                continue
+
+            out_dir = cache_dir / method / tid
+            res = relax_pose_replicates(
+                seq=seq,
+                ca_target=ca,
+                nstruct=int(args.nstruct),
+                coord_sd=float(args.coord_sd),
+                coord_weight=float(args.coord_weight),
+                out_dir=out_dir,
+                tag=f"relax_{method}_{tid}",
+                per_struct_out=bool(args.per_struct_out),
+            )
+            out_rows.append(
+                {
+                    "method": method,
+                    "target_id": tid,
+                    "input_model": model_pdb.relative_to(root).as_posix(),
+                    "nstruct": int(args.nstruct),
+                    "coord_sd": float(args.coord_sd),
+                    "coord_weight": float(args.coord_weight),
+                    "best_total_score": f"{res.best_score:.4f}" if math.isfinite(res.best_score) else "",
+                    "median_total_score": f"{res.median_score:.4f}" if math.isfinite(res.median_score) else "",
+                    "best_rmsd_ca": f"{res.best_rmsd_ca:.4f}" if math.isfinite(res.best_rmsd_ca) else "",
+                    "best_pdb_path": res.best_pdb_path.relative_to(root).as_posix(),
+                    "notes": "",
+                }
+            )
+            print(f"[ok] {method} {tid}: best={res.best_score:.3f} rmsd_ca={res.best_rmsd_ca:.3f}", flush=True)
+
+    # Mode 2: Omega manifest (default)
+    else:
+        for row in rows:
+            tid = str(row["target_id"]).strip()
+            if wanted and tid.lower() not in wanted:
+                continue
+            omega_pdb = Path(str(row["omega_model_path"]).strip())
+            if not omega_pdb.is_absolute():
+                omega_pdb = (root / omega_pdb).resolve()
+
+            seq = _resolve_seq(tid)
+
+            _, ca = load_ca_coords(omega_pdb)
+            ca = np.asarray(ca, dtype=np.float64)
+            if len(seq) != int(ca.shape[0]):
+                raise RuntimeError(
+                    f"Length mismatch target={tid}: fasta={len(seq)} ca_trace={ca.shape[0]} path={omega_pdb}"
+                )
+
+            if bool(args.dry_run):
+                out_rows.append(
+                    {
+                        "method": "omega",
+                        "target_id": tid,
+                        "input_model": omega_pdb.relative_to(root).as_posix(),
+                        "nstruct": int(args.nstruct),
+                        "coord_sd": float(args.coord_sd),
+                        "coord_weight": float(args.coord_weight),
+                        "best_total_score": "",
+                        "median_total_score": "",
+                        "best_rmsd_ca": "",
+                        "best_pdb_path": "",
+                        "notes": "dry_run",
+                    }
+                )
+                continue
+
+            out_dir = cache_dir / "omega" / tid
+            res = relax_pose_replicates(
+                seq=seq,
+                ca_target=ca,
+                nstruct=int(args.nstruct),
+                coord_sd=float(args.coord_sd),
+                coord_weight=float(args.coord_weight),
+                out_dir=out_dir,
+                tag=f"relax_{tid}",
+                per_struct_out=bool(args.per_struct_out),
+            )
+
             out_rows.append(
                 {
                     "method": "omega",
@@ -324,43 +462,15 @@ def main() -> None:
                     "nstruct": int(args.nstruct),
                     "coord_sd": float(args.coord_sd),
                     "coord_weight": float(args.coord_weight),
-                    "best_total_score": "",
-                    "median_total_score": "",
-                    "best_rmsd_ca": "",
-                    "best_pdb_path": "",
-                    "notes": "dry_run",
+                    "best_total_score": f"{res.best_score:.4f}" if math.isfinite(res.best_score) else "",
+                    "median_total_score": f"{res.median_score:.4f}" if math.isfinite(res.median_score) else "",
+                    "best_rmsd_ca": f"{res.best_rmsd_ca:.4f}" if math.isfinite(res.best_rmsd_ca) else "",
+                    "best_pdb_path": res.best_pdb_path.relative_to(root).as_posix(),
+                    "notes": "",
                 }
             )
-            continue
 
-        out_dir = cache_dir / "omega" / tid
-        res = relax_pose_replicates(
-            seq=seq,
-            ca_target=ca,
-            nstruct=int(args.nstruct),
-            coord_sd=float(args.coord_sd),
-            coord_weight=float(args.coord_weight),
-            out_dir=out_dir,
-            tag=f"relax_{tid}",
-        )
-
-        out_rows.append(
-            {
-                "method": "omega",
-                "target_id": tid,
-                "input_model": omega_pdb.relative_to(root).as_posix(),
-                "nstruct": int(args.nstruct),
-                "coord_sd": float(args.coord_sd),
-                "coord_weight": float(args.coord_weight),
-                "best_total_score": f"{res.best_score:.4f}" if math.isfinite(res.best_score) else "",
-                "median_total_score": f"{res.median_score:.4f}" if math.isfinite(res.median_score) else "",
-                "best_rmsd_ca": f"{res.best_rmsd_ca:.4f}" if math.isfinite(res.best_rmsd_ca) else "",
-                "best_pdb_path": res.best_pdb_path.relative_to(root).as_posix(),
-                "notes": "",
-            }
-        )
-
-        print(f"[ok] omega {tid}: best={res.best_score:.3f} rmsd_ca={res.best_rmsd_ca:.3f}", flush=True)
+            print(f"[ok] omega {tid}: best={res.best_score:.3f} rmsd_ca={res.best_rmsd_ca:.3f}", flush=True)
 
     # Write summary CSV
     with out_csv.open("w", encoding="utf-8", newline="") as f:

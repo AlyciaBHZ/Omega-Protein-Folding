@@ -110,3 +110,26 @@ Artifacts:
 - Summary CSV: `../runs/quark_itasser_homology_ablation/rosetta_relax_summary.csv`
 - Plan / protocol notes: `../runs/quark_itasser_homology_ablation/rosetta_relax_plan.md`
 
+---
+
+## Supplementary Note Y | Three-way physical audit on 1R69 (Omega vs QUARK vs I‑TASSER)
+
+**Purpose.** Provide a reviewer-facing, target-level comparison showing that Omega’s geometric solver can yield backbones that are not only topologically plausible but also exhibit strong **compatibility with atomic relaxation**.
+
+**Models.** We used committable copies of external server models (model1):
+- QUARK job `QA16125`: `../runs/quark_itasser_homology_ablation/server_models/1r69/quark_QA16125_model1.pdb`
+- I‑TASSER job `S820065`: `../runs/quark_itasser_homology_ablation/server_models/1r69/itasser_S820065_model1.pdb`
+- Omega Cα trace: `../runs/quark_itasser_homology_ablation/omega_models/omega_pred_1r69_seed0.pdb`
+
+**Topological accuracy (TM-score to native).** TM-scores for 1R69 are recorded in `../runs/quark_itasser_homology_ablation/server_summaries.csv` (currently server/user reported; can be replaced by a committed TM-align run later).
+
+**Physical stability under constrained FastRelax (nstruct=20).** Figure 5B summarizes the drift distribution (Cα RMSD to each method’s input trace) across 20 independent relaxation trajectories. Omega shows a lower drift distribution and a shorter tail than QUARK/I‑TASSER under the same restraint strength (coord_sd=1.0 Å, coord_weight=1.0).
+
+Artifacts:
+- Figure 5 panels: `../runs/quark_itasser_homology_ablation/figures/fig5_panelAB_1r69.png`, `../runs/quark_itasser_homology_ablation/figures/fig5_panelC_overlay_1r69.png`
+- nstruct summaries: `../runs/quark_itasser_homology_ablation/rosetta_relax_server_models_1r69_n5.csv`, `../runs/quark_itasser_homology_ablation/rosetta_relax_server_models_1r69_n20.csv`
+- per-trajectory drift/energy (committable):  
+  `../runs/quark_itasser_homology_ablation/rosetta_relax_omega_1r69_n20_per_struct.csv`,  
+  `../runs/quark_itasser_homology_ablation/rosetta_relax_quark_1r69_n20_per_struct.csv`,  
+  `../runs/quark_itasser_homology_ablation/rosetta_relax_itasser_1r69_n20_per_struct.csv`
+
