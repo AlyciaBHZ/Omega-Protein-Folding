@@ -35,57 +35,31 @@ matplotlib.use("Agg")  # Force non-interactive backend (avoid GUI stalls on Wind
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from Bio.PDB.PDBParser import PDBParser
 
 # Allow running as a script without installing a package.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(0, str((Path(__file__).resolve().parents[1] / "auric").resolve()))
 
 from bench_utils import PHI, cliffs_delta_one_vs_many, ensure_dir, oracle_direction_reconstruct
+from bench_utils import geometry_qc_ca_trace, icosa_B
+from coords_io import load_ca_coords
 
+from axis import best_native_axis, shared_pca_axis
 from fold_m import fold_sliding_windows_bits
 from metrics import metrics_for_stream
 from readout import rho_A_from_yperp, rho_B_from_npath
 
 
-def _pca_uvec(Y: np.ndarray) -> np.ndarray:
-    Y = np.asarray(Y, dtype=np.float64)
-    Yc = Y - Y.mean(axis=0, keepdims=True)
-    if np.allclose(Yc, 0.0):
-        return np.array([1.0, 0.0, 0.0], dtype=np.float64)
-    _, _, Vt = np.linalg.svd(Yc, full_matrices=False)
-    u = np.asarray(Vt[0], dtype=np.float64)
-    nu = float(np.linalg.norm(u))
-    u = (u / nu) if nu != 0.0 else np.array([1.0, 0.0, 0.0], dtype=np.float64)
-    # deterministic sign
-    for k in range(3):
-        if abs(u[k]) > 1e-12:
-            if u[k] < 0:
-                u = -u
-            break
-    return u
+def _resolve_under_root(root: Path, p: str | Path) -> Path:
+    pp = Path(str(p))
+    return pp if pp.is_absolute() else (root / pp).resolve()
 
 
-def load_ca_coords_longest_chain_pdb(pdb_path: Path) -> Tuple[str, np.ndarray]:
-    parser = PDBParser(QUIET=True)
-    s = parser.get_structure(pdb_path.stem, str(pdb_path))
-    model = next(iter(s.get_models()))
-
-    best_chain = None
-    best_coords = None
-    for chain in model:
-        coords = []
-        for res in chain:
-            if "CA" in res:
-                coords.append(res["CA"].get_coord())
-        if len(coords) >= 2:
-            arr = np.asarray(coords, dtype=np.float64)
-            if best_coords is None or len(arr) > len(best_coords):
-                best_coords = arr
-                best_chain = chain.id
-    if best_chain is None or best_coords is None:
-        raise ValueError("No CA trace found")
-    return str(best_chain), best_coords
+def _relpath_posix(p: Path, root: Path) -> str:
+    try:
+        return p.relative_to(root).as_posix()
+    except Exception:
+        return str(p)
 
 
 @dataclass(frozen=True)
@@ -95,13 +69,46 @@ class AuricCfg:
     rhoA_threshold: str = "median"
 
 
-def compute_auric_from_coords(coords: np.ndarray, *, cfg: AuricCfg, uvec: np.ndarray) -> Dict[Tuple[str, int, str], float]:
+def _lift_from_coords(
+    coords: np.ndarray,
+    *,
+    alphabet: str,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, float, float]:
+    """
+    Lift a CA trace to (n_path, y_perp), plus Bperp (for rhoB=vel) and phason proxies.
+    Returns: (n_path, y_perp, Bperp, ph_rms, ph_max)
+    """
+    coords = np.asarray(coords, dtype=np.float64)
+    _, n_path, y_perp, ph_rms, ph_max = oracle_direction_reconstruct(coords, alphabet=str(alphabet), phi=PHI)
+
+    d = coords[1:] - coords[:-1]
+    bond_lengths = np.linalg.norm(d, axis=1)
+    median_len = float(np.median(bond_lengths)) if bond_lengths.size else 1.0
+    Bperp = icosa_B(-1.0 / PHI) * median_len  # (3,6)
+    return n_path, y_perp, Bperp, float(ph_rms), float(ph_max)
+
+
+def compute_auric_from_lift(
+    n_path: np.ndarray,
+    y_perp: np.ndarray,
+    Bperp: np.ndarray,
+    *,
+    cfg: AuricCfg,
+    uvec: np.ndarray,
+) -> Dict[Tuple[str, int, str], float]:
     """
     Return metric values keyed by (readout, m, metric_name) for readout in {A,B}.
     """
-    _, n_path, y_perp, _, _ = oracle_direction_reconstruct(coords, alphabet=cfg.alphabet, phi=PHI)
     bits_A = rho_A_from_yperp(y_perp, u=tuple(uvec.tolist()), u_mode="fixed", threshold=cfg.rhoA_threshold)
-    bits_B = rho_B_from_npath(n_path)
+    bits_B = rho_B_from_npath(n_path, mode="parity")
+    bits_Bvel = rho_B_from_npath(
+        n_path,
+        mode="vel",
+        Bperp=Bperp,
+        u=tuple(uvec.tolist()),
+        u_mode="fixed",
+        threshold="median",
+    )
 
     out: Dict[Tuple[str, int, str], float] = {}
     for m in cfg.ms:
@@ -114,6 +121,11 @@ def compute_auric_from_coords(coords: np.ndarray, *, cfg: AuricCfg, uvec: np.nda
         met_B = metrics_for_stream(bits_B, folded_B)
         out[("B", m, "type_entropy")] = float(met_B["type_entropy"])
         out[("B", m, "smb_rate_hat")] = float(met_B["smb_rate_hat"])
+
+        folded_Bv = fold_sliding_windows_bits(bits_Bvel, m=m)
+        met_Bv = metrics_for_stream(bits_Bvel, folded_Bv)
+        out[("Bvel", m, "type_entropy")] = float(met_Bv["type_entropy"])
+        out[("Bvel", m, "smb_rate_hat")] = float(met_Bv["smb_rate_hat"])
     return out
 
 
@@ -139,12 +151,33 @@ def main() -> None:
     ap.add_argument("--tag", default="decoys_4state_reduced_triple232_hybrid", help="Output tag suffix.")
     ap.add_argument("--alphabet", default="triple232", choices=["axis12", "pair72", "triple232"])
     ap.add_argument("--m", default="6,8,10", help="Comma list of m values.")
+    ap.add_argument(
+        "--axis-mode",
+        default="shared_pca",
+        choices=["shared_pca", "best_native_axis"],
+        help="Axis selection mode for rhoA: shared_pca (default) or strict native-only best_native_axis.",
+    )
+    ap.add_argument(
+        "--ph-fail-rms",
+        type=float,
+        default=100.0,
+        help="Flag/skip entries where ph_rms exceeds this (FailedGeometry via phason proxy).",
+    )
     ap.add_argument("--min-len", type=int, default=40)
     ap.add_argument("--max-len", type=int, default=400)
     ap.add_argument("--max-targets", type=int, default=0, help="If >0, limit number of targets (debug/quick runs).")
     ap.add_argument("--max-decoys-per-target", type=int, default=0, help="If >0, cap decoys per target (debug/quick runs).")
     ap.add_argument("--no-plots", action="store_true", help="If set, skip plot generation (fast/headless).")
     ap.add_argument("--progress-every", type=int, default=200, help="Progress print frequency in decoy loop.")
+    ap.add_argument("--qc-bond-nominal", type=float, default=3.8, help="Nominal CA-CA bond length (Å) for QC.")
+    ap.add_argument("--qc-bond-tol", type=float, default=0.5, help="Outlier tolerance for |d-3.8| (Å) in QC.")
+    ap.add_argument("--qc-ca-ca-max-fail", type=float, default=10.0, help="Fail if max consecutive CA-CA distance exceeds this (Å).")
+    ap.add_argument(
+        "--qc-outlier-frac-fail",
+        type=float,
+        default=0.20,
+        help="Fail if fraction of consecutive bonds outside tolerance exceeds this.",
+    )
     args = ap.parse_args()
 
     root = Path(__file__).resolve().parents[2]
@@ -185,44 +218,131 @@ def main() -> None:
 
     for tid, rows in items:
         # find a native path from the first row
-        native_path = (root / str(rows[0]["native_path"])).resolve()
+        native_path = _resolve_under_root(root, str(rows[0].get("native_path", "")).strip())
         if not native_path.exists():
             continue
         try:
-            native_chain, native_coords = load_ca_coords_longest_chain_pdb(native_path)
+            native_chain, native_coords = load_ca_coords(native_path)
         except Exception:
             continue
         Nn = int(native_coords.shape[0])
         if Nn < int(args.min_len) or Nn > int(args.max_len):
             continue
 
-        # shared PCA axis from native y_perp
-        _, _, y_perp_native, _, _ = oracle_direction_reconstruct(native_coords, alphabet=cfg.alphabet, phi=PHI)
-        uvec = _pca_uvec(y_perp_native)
+        qc_native = geometry_qc_ca_trace(
+            native_coords,
+            bond_nominal=float(args.qc_bond_nominal),
+            bond_tol=float(args.qc_bond_tol),
+            ca_ca_max_fail=float(args.qc_ca_ca_max_fail),
+            outlier_frac_fail=float(args.qc_outlier_frac_fail),
+        )
+        native_failed_geometry = bool(qc_native.get("failed_geometry", False))
+
+        # Lift native once (also supplies y_perp for axis selection + phason proxy QC).
+        try:
+            n_path_native, y_perp_native, Bperp_native, ph_rms_native, ph_max_native = _lift_from_coords(
+                native_coords, alphabet=cfg.alphabet
+            )
+        except Exception:
+            continue
+
+        native_failed_ph = bool(np.isfinite(ph_rms_native) and (ph_rms_native > float(args.ph_fail_rms)))
+        if native_failed_ph:
+            # If the native itself fails the phason-geometry check, skip this target:
+            # axis selection and separation claims are not meaningful for a broken lift.
+            continue
+
+        # Axis selection from NATIVE only (protocol-safe; no decoy leakage).
+        m_axis = 8 if 8 in cfg.ms else cfg.ms[0]
+        if str(args.axis_mode) == "best_native_axis":
+            uvec = best_native_axis(y_perp_native, m=int(m_axis), threshold=str(cfg.rhoA_threshold), metric="type_entropy")
+        else:
+            uvec = shared_pca_axis(y_perp_native)
 
         # native metrics
-        met_native = compute_auric_from_coords(native_coords, cfg=cfg, uvec=uvec)
+        met_native = compute_auric_from_lift(n_path_native, y_perp_native, Bperp_native, cfg=cfg, uvec=uvec)
 
         # decoys metrics
         met_decoys: Dict[Tuple[str, int, str], List[float]] = {}
         n_decoys_used = 0
+        n_decoys_failed_geometry = 0
+        n_decoys_failed_ph = 0
         rows_dec = rows
         if int(args.max_decoys_per_target) > 0:
             rows_dec = rows_dec[: int(args.max_decoys_per_target)]
 
         for j, r in enumerate(rows_dec, start=1):
-            decoy_path = (root / str(r["decoy_path"])).resolve()
+            decoy_path = _resolve_under_root(root, str(r.get("decoy_path", "")).strip())
             if not decoy_path.exists():
                 continue
             try:
-                _, decoy_coords = load_ca_coords_longest_chain_pdb(decoy_path)
+                _, decoy_coords = load_ca_coords(decoy_path)
             except Exception:
                 continue
             Nd = int(decoy_coords.shape[0])
             if Nd < int(args.min_len) or Nd > int(args.max_len):
                 continue
+
+            qc_decoy = geometry_qc_ca_trace(
+                decoy_coords,
+                bond_nominal=float(args.qc_bond_nominal),
+                bond_tol=float(args.qc_bond_tol),
+                ca_ca_max_fail=float(args.qc_ca_ca_max_fail),
+                outlier_frac_fail=float(args.qc_outlier_frac_fail),
+            )
+            if bool(qc_decoy.get("failed_geometry", False)):
+                n_decoys_failed_geometry += 1
+                # Keep a lightweight record (QC-only row) for audit, but exclude from Auric stats.
+                sample_rows.append(
+                    {
+                        "dataset": str(r.get("dataset", "(unknown)")),
+                        "target_id": tid,
+                        "native_chain": native_chain,
+                        "N_native": Nn,
+                        "decoy_path": _relpath_posix(decoy_path, root),
+                        "N_decoy": Nd,
+                        "readout": "QC",
+                        "m": -1,
+                        "metric": "failed_geometry",
+                        "value": 1.0,
+                        "ph_rms": float("nan"),
+                        "ph_max": float("nan"),
+                        "ca_ca_median": float(qc_decoy.get("ca_ca_median", float("nan"))),
+                        "ca_ca_max": float(qc_decoy.get("ca_ca_max", float("nan"))),
+                        "ca_ca_outlier_frac": float(qc_decoy.get("ca_ca_outlier_frac", float("nan"))),
+                    }
+                )
+                continue
+
             try:
-                met_d = compute_auric_from_coords(decoy_coords, cfg=cfg, uvec=uvec)
+                n_path_d, y_perp_d, Bperp_d, ph_rms_d, ph_max_d = _lift_from_coords(decoy_coords, alphabet=cfg.alphabet)
+            except Exception:
+                continue
+            if np.isfinite(ph_rms_d) and (float(ph_rms_d) > float(args.ph_fail_rms)):
+                n_decoys_failed_ph += 1
+                sample_rows.append(
+                    {
+                        "dataset": str(r.get("dataset", "(unknown)")),
+                        "target_id": tid,
+                        "native_chain": native_chain,
+                        "N_native": Nn,
+                        "decoy_path": _relpath_posix(decoy_path, root),
+                        "N_decoy": Nd,
+                        "readout": "QC",
+                        "m": -1,
+                        "metric": "failed_ph_rms",
+                        "value": 1.0,
+                        "ph_rms": float(ph_rms_d),
+                        "ph_max": float(ph_max_d),
+                        "ca_ca_median": float(qc_decoy.get("ca_ca_median", float("nan"))),
+                        "ca_ca_max": float(qc_decoy.get("ca_ca_max", float("nan"))),
+                        "ca_ca_outlier_frac": float(qc_decoy.get("ca_ca_outlier_frac", float("nan"))),
+                    }
+                )
+                continue
+
+            try:
+                met_d = compute_auric_from_lift(n_path_d, y_perp_d, Bperp_d, cfg=cfg, uvec=uvec)
             except Exception:
                 continue
             n_decoys_used += 1
@@ -232,16 +352,21 @@ def main() -> None:
             for (ro, m, metric_name), v in met_d.items():
                 sample_rows.append(
                     {
-                        "dataset": str(r.get("dataset", "")),
+                        "dataset": str(r.get("dataset", "(unknown)")),
                         "target_id": tid,
                         "native_chain": native_chain,
                         "N_native": Nn,
-                        "decoy_path": str(decoy_path.relative_to(root)).replace("\\", "/"),
+                        "decoy_path": _relpath_posix(decoy_path, root),
                         "N_decoy": Nd,
                         "readout": ro,
                         "m": int(m),
                         "metric": metric_name,
                         "value": float(v),
+                        "ph_rms": float(ph_rms_d),
+                        "ph_max": float(ph_max_d),
+                        "ca_ca_median": float(qc_decoy.get("ca_ca_median", float("nan"))),
+                        "ca_ca_max": float(qc_decoy.get("ca_ca_max", float("nan"))),
+                        "ca_ca_outlier_frac": float(qc_decoy.get("ca_ca_outlier_frac", float("nan"))),
                     }
                 )
 
@@ -252,7 +377,16 @@ def main() -> None:
         out: Dict[str, object] = {
             "target_id": tid,
             "N_native": Nn,
+            "native_failed_geometry": int(native_failed_geometry),
             "n_decoys_used": n_decoys_used,
+            "n_decoys_failed_geometry": int(n_decoys_failed_geometry),
+            "n_decoys_failed_ph_rms": int(n_decoys_failed_ph),
+            "native_ca_ca_median": float(qc_native.get("ca_ca_median", float("nan"))),
+            "native_ca_ca_max": float(qc_native.get("ca_ca_max", float("nan"))),
+            "native_ca_ca_outlier_frac": float(qc_native.get("ca_ca_outlier_frac", float("nan"))),
+            "native_ph_rms": float(ph_rms_native),
+            "native_ph_max": float(ph_max_native),
+            "axis_mode": str(args.axis_mode),
             "uvec_x": float(uvec[0]),
             "uvec_y": float(uvec[1]),
             "uvec_z": float(uvec[2]),
@@ -268,7 +402,7 @@ def main() -> None:
         if not args.no_plots:
             # Plots: per-target decoy distributions with native marker (m=8 default)
             for metric_name in ("type_entropy", "smb_rate_hat"):
-                for ro in ("A", "B"):
+                for ro in ("A", "B", "Bvel"):
                     m = 8 if 8 in cfg.ms else cfg.ms[0]
                     ys = np.asarray(met_decoys.get((ro, m, metric_name), []), dtype=np.float64)
                     ys = ys[np.isfinite(ys)]
@@ -299,16 +433,23 @@ def main() -> None:
     lines.append(f"- Manifest: `{man.relative_to(root).as_posix()}`")
     lines.append(f"- Alphabet: `{cfg.alphabet}`")
     lines.append(f"- m list: {', '.join(str(m) for m in cfg.ms)}")
+    lines.append(f"- Axis mode: `{str(args.axis_mode)}`")
+    lines.append(f"- FailedGeometry (phason): ph_rms <= {float(args.ph_fail_rms):.1f}")
     lines.append(f"- Targets used: {int(sdf.shape[0])}")
     lines.append(f"- Samples CSV (gitignored): `{samples_csv.relative_to(root).as_posix()}`")
     lines.append(f"- Summary CSV (gitignored): `{summary_csv.relative_to(root).as_posix()}`")
     lines.append(f"- Plots: `docs/runs/{args.run_name}/plots/`")
+    lines.append(f"- Geometry QC: max CA-CA <= {float(args.qc_ca_ca_max_fail):.1f} Å and outlier_frac <= {float(args.qc_outlier_frac_fail):.2f}")
     lines.append("")
     if len(sdf) == 0:
         lines.append("No targets produced usable decoy metrics (check parsing / length filters).")
     else:
         # A compact table: m=8 (or first m)
         m0 = 8 if 8 in cfg.ms else cfg.ms[0]
+        if "native_failed_geometry" in sdf.columns:
+            n_fail_nat = int(np.sum(sdf["native_failed_geometry"].to_numpy(dtype=np.int64) > 0))
+            lines.append(f"- Targets with native FailedGeometry under this QC: {n_fail_nat}/{int(sdf.shape[0])}")
+            lines.append("")
         lines.append("## Native vs Decoy separation (summary)")
         lines.append("")
         lines.append(f"Using m={m0}. δ<0 means native has lower metric (more ordered) than decoys.")
@@ -320,27 +461,49 @@ def main() -> None:
             f"delta_native_vs_decoys_type_entropy_rhoA_m{m0}",
             f"pct_native_smb_rate_hat_rhoA_m{m0}",
             f"delta_native_vs_decoys_smb_rate_hat_rhoA_m{m0}",
+            f"pct_native_type_entropy_rhoB_m{m0}",
+            f"pct_native_type_entropy_rhoBvel_m{m0}",
+            f"pct_combined_min(A,B)_type_entropy_m{m0}",
         ]
         lines.append("| " + " | ".join(hdr) + " |")
         lines.append("| " + " | ".join(["---"] * len(hdr)) + " |")
         for _, r in sdf.sort_values("target_id").iterrows():
+            pA = float(r.get(f"pct_native_among_decoys_type_entropy_rhoA_m{m0}", float("nan")))
+            pB = float(r.get(f"pct_native_among_decoys_type_entropy_rhoB_m{m0}", float("nan")))
+            pBv = float(r.get(f"pct_native_among_decoys_type_entropy_rhoBvel_m{m0}", float("nan")))
+            pComb = float(np.nanmin(np.asarray([pA, pB], dtype=np.float64)))
             row = [
                 str(r["target_id"]),
-                str(int(r.get("n_decoys_used", 0))),
+                f"{int(r.get('n_decoys_used', 0))} (failQC={int(r.get('n_decoys_failed_geometry', 0))})",
                 f"{float(r.get(f'pct_native_among_decoys_type_entropy_rhoA_m{m0}', float('nan'))):.3f}",
                 f"{float(r.get(f'delta_native_vs_decoys_type_entropy_rhoA_m{m0}', float('nan'))):.3f}",
                 f"{float(r.get(f'pct_native_among_decoys_smb_rate_hat_rhoA_m{m0}', float('nan'))):.3f}",
                 f"{float(r.get(f'delta_native_vs_decoys_smb_rate_hat_rhoA_m{m0}', float('nan'))):.3f}",
+                f"{pB:.3f}",
+                f"{pBv:.3f}",
+                f"{pComb:.3f}",
             ]
             lines.append("| " + " | ".join(row) + " |")
         lines.append("")
 
         # Aggregate: how often native is in lowest 10% of decoys
-        pcol = f"pct_native_among_decoys_type_entropy_rhoA_m{m0}"
-        if pcol in sdf.columns:
-            frac10 = float(np.mean(sdf[pcol].to_numpy(dtype=np.float64) <= 0.10))
-            lines.append(f"- Fraction targets with native in lowest 10% of decoys (rhoA type_entropy, m={m0}): {frac10:.3f}")
-            lines.append("")
+        pAcol = f"pct_native_among_decoys_type_entropy_rhoA_m{m0}"
+        pBcol = f"pct_native_among_decoys_type_entropy_rhoB_m{m0}"
+        pBvcol = f"pct_native_among_decoys_type_entropy_rhoBvel_m{m0}"
+        if pAcol in sdf.columns:
+            frac10A = float(np.mean(sdf[pAcol].to_numpy(dtype=np.float64) <= 0.10))
+            lines.append(f"- Fraction targets with native in lowest 10% of decoys (rhoA type_entropy, m={m0}): {frac10A:.3f}")
+        if pBcol in sdf.columns:
+            frac10B = float(np.mean(sdf[pBcol].to_numpy(dtype=np.float64) <= 0.10))
+            lines.append(f"- Fraction targets with native in lowest 10% of decoys (rhoB=parity type_entropy, m={m0}): {frac10B:.3f}")
+        if pBvcol in sdf.columns:
+            frac10Bv = float(np.mean(sdf[pBvcol].to_numpy(dtype=np.float64) <= 0.10))
+            lines.append(f"- Fraction targets with native in lowest 10% of decoys (rhoB=vel type_entropy, m={m0}): {frac10Bv:.3f}")
+        if pAcol in sdf.columns and pBcol in sdf.columns:
+            pComb = np.nanmin(np.stack([sdf[pAcol].to_numpy(dtype=np.float64), sdf[pBcol].to_numpy(dtype=np.float64)], axis=1), axis=1)
+            frac10Comb = float(np.mean(pComb <= 0.10))
+            lines.append(f"- Fraction targets with native in lowest 10% by min(A,Bparity) (type_entropy, m={m0}): {frac10Comb:.3f}")
+        lines.append("")
 
     report_md.write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(f"Wrote: {samples_csv}")

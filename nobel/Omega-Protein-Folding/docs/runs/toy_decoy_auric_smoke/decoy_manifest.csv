@@ -1,0 +1,10 @@
+dataset,target_id,native_path,decoy_path
+toy,TOY1,docs/runs/toy_decoy_auric_smoke/pdbs/native_TOY1.pdb,docs/runs/toy_decoy_auric_smoke/pdbs/decoy_TOY1_shuffle_00.pdb
+toy,TOY1,docs/runs/toy_decoy_auric_smoke/pdbs/native_TOY1.pdb,docs/runs/toy_decoy_auric_smoke/pdbs/decoy_TOY1_noisy_01.pdb
+toy,TOY1,docs/runs/toy_decoy_auric_smoke/pdbs/native_TOY1.pdb,docs/runs/toy_decoy_auric_smoke/pdbs/decoy_TOY1_blockshuffle4_02.pdb
+toy,TOY1,docs/runs/toy_decoy_auric_smoke/pdbs/native_TOY1.pdb,docs/runs/toy_decoy_auric_smoke/pdbs/decoy_TOY1_shuffle_03.pdb
+toy,TOY1,docs/runs/toy_decoy_auric_smoke/pdbs/native_TOY1.pdb,docs/runs/toy_decoy_auric_smoke/pdbs/decoy_TOY1_noisy_04.pdb
+toy,TOY1,docs/runs/toy_decoy_auric_smoke/pdbs/native_TOY1.pdb,docs/runs/toy_decoy_auric_smoke/pdbs/decoy_TOY1_blockshuffle4_05.pdb
+toy,TOY1,docs/runs/toy_decoy_auric_smoke/pdbs/native_TOY1.pdb,docs/runs/toy_decoy_auric_smoke/pdbs/decoy_TOY1_shuffle_06.pdb
+toy,TOY1,docs/runs/toy_decoy_auric_smoke/pdbs/native_TOY1.pdb,docs/runs/toy_decoy_auric_smoke/pdbs/decoy_TOY1_noisy_07.pdb
+toy,TOY1,docs/runs/toy_decoy_auric_smoke/pdbs/native_TOY1.pdb,docs/runs/toy_decoy_auric_smoke/pdbs/decoy_TOY1_blockshuffle4_08.pdb
