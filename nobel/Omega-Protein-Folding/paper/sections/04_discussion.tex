@@ -2,6 +2,8 @@
 
 Omega demonstrates a practical path from ‘folding as optimization’ to ‘folding as an auditable program’. Three messages emerge.
 
+To contextualize this claim against widely used deep predictors, we include a qualitative transparency benchmark against \texttt{AlphaFold} DB (AFDB), contrasting a static AFDB structure + pLDDT profile with Omega's replayable, step-wise audit trajectory (Fig.~\ref{fig:af_vs_omega_transparency}). This is \emph{not} a head-to-head accuracy comparison: Omega's example is a reconstruction under our 6D lift/quantization protocol, while the AFDB examples are server outputs; the point is that the same geometric ``shadow'' and an internal debugger-style signal can be exposed as auditable artifacts (all inputs/plots are provided under \texttt{docs/runs/af\_vs\_omega/}).
+
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{assets/figures/fig_af_vs_omega.png}
