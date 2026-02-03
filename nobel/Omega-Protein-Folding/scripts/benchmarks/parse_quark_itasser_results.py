@@ -125,15 +125,40 @@ def parse_quark_text_blob(txt: str) -> QuarkSummary:
     QUARK pages commonly expose lines labeled:
     - Predicted Secondary Structure
     - Predicted Solvent Accessibility
-    We store the first occurrence of each.
+    For HTML pages, extract the actual prediction strings.
     """
     job = ""
     m = re.search(r"\b(QA\d{4,})\b", txt)
     if m:
         job = m.group(1)
 
+    def _strip_tags(s: str) -> str:
+        s = re.sub(r"<[^>]+>", "", s)
+        s = s.replace("&nbsp;", " ")
+        return re.sub(r"\s+", "", s).strip()
+
+    # HTML-first extraction: get the prediction cell inside each section.
+    ss_pred = ""
+    sa_pred = ""
+    sec_block = re.search(r"Predicted\s+Secondary\s+Structure.*?</table>", txt, flags=re.I | re.S)
+    if sec_block:
+        mm = re.search(r"<b>Prediction</b>.*?</td><td>(.*?)</td>", sec_block.group(0), flags=re.I | re.S)
+        if mm:
+            ss_pred = _strip_tags(mm.group(1))
+    sa_block = re.search(r"Predicted\s+Solvent\s+Accessibility.*?</table>", txt, flags=re.I | re.S)
+    if sa_block:
+        mm = re.search(r"<b>Prediction</b>.*?</td><td>(.*?)</td>", sa_block.group(0), flags=re.I | re.S)
+        if mm:
+            sa_pred = _strip_tags(mm.group(1))
+
     ss_line = ""
     sa_line = ""
+    if ss_pred:
+        ss_line = ss_pred
+    if sa_pred:
+        sa_line = sa_pred
+
+    # Fallback: store the first occurrence line.
     for ln in txt.splitlines():
         if (not ss_line) and re.search(r"Predicted\s+Secondary\s+Structure", ln, flags=re.I):
             ss_line = ln.strip()
