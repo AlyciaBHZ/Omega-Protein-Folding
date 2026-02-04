@@ -1,0 +1,4 @@
+method,target_id,input_model,nstruct,coord_sd,coord_weight,best_total_score,median_total_score,best_rmsd_ca,best_pdb_path,notes
+omega,2cro,docs/runs/quark_itasser_homology_ablation/omega_models/omega_pred_2cro_seed0.pdb,20,1.0,1.0,560.9406,691.0088,2.1907,data/raw/rosetta_cache/quark_itasser_homology_ablation/omega/2cro/relax_omega_2cro_best.pdb,
+quark,2cro,docs/runs/quark_itasser_homology_ablation/server_models/2cro/quark_QA16127_model1.pdb,20,1.0,1.0,665.0521,766.6807,2.2550,data/raw/rosetta_cache/quark_itasser_homology_ablation/quark/2cro/relax_quark_2cro_best.pdb,
+itasser,2cro,docs/runs/quark_itasser_homology_ablation/server_models/2cro/itasser_S820085_model1.pdb,20,1.0,1.0,928.2141,989.1736,2.6666,data/raw/rosetta_cache/quark_itasser_homology_ablation/itasser/2cro/relax_itasser_2cro_best.pdb,

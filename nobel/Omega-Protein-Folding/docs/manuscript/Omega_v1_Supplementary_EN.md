@@ -133,3 +133,22 @@ Artifacts:
   `../runs/quark_itasser_homology_ablation/rosetta_relax_quark_1r69_n20_per_struct.csv`,  
   `../runs/quark_itasser_homology_ablation/rosetta_relax_itasser_1r69_n20_per_struct.csv`
 
+---
+
+## Supplementary Note Z | Additional three-way physical audit on 2CRO
+
+To test whether the 1R69 three-way result generalizes beyond a single target, we repeated the same **three-way constrained FastRelax audit** on target **2CRO** (Omega Cα trace vs QUARK model1 vs I‑TASSER model1; \(nstruct=20\)). As in 1R69, Omega exhibits a **left-shifted drift distribution** (lower median drift and a lower best drift) compared to QUARK and I‑TASSER under the same restraint strength, while also reaching a lower Rosetta energy floor.
+
+**Key numbers (2CRO, nstruct=20):**
+- **Omega**: best drift **2.01 Å**, median drift **2.27 Å**; best score **560.94 REU**
+- **QUARK**: best drift **2.21 Å**, median drift **2.48 Å**; best score **665.05 REU**
+- **I‑TASSER**: best drift **2.48 Å**, median drift **2.75 Å**; best score **928.21 REU**
+
+Artifacts:
+- Three-way summary: `../runs/quark_itasser_homology_ablation/rosetta_relax_threeway_2cro_n20.csv`
+- Per-trajectory drift/energy (committable):  
+  `../runs/quark_itasser_homology_ablation/rosetta_relax_omega_2cro_n20_per_struct.csv`,  
+  `../runs/quark_itasser_homology_ablation/rosetta_relax_quark_2cro_n20_per_struct.csv`,  
+  `../runs/quark_itasser_homology_ablation/rosetta_relax_itasser_2cro_n20_per_struct.csv`
+- Figure: `../runs/quark_itasser_homology_ablation/figures/threeway_2cro_panelAB.png`
+

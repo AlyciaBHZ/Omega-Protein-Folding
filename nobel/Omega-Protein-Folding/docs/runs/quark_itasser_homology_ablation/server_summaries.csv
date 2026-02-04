@@ -1,5 +1,7 @@
 target_id,method,tm_score_to_native,source,notes
-1r69,quark,0.87,user_reported,"TM-score reported by user for QUARK model1 vs native."
-1r69,itasser,0.85,user_reported,"TM-score reported by user for I-TASSER model1 vs native."
-1r69,omega,0.78,user_reported,"TM-score reported by user for Omega seed0 vs native."
-
+1r69,quark,0.87,user_reported,TM-score reported by user for QUARK model1 vs native.
+1r69,itasser,0.85,user_reported,TM-score reported by user for I-TASSER model1 vs native.
+1r69,omega,0.78,user_reported,TM-score reported by user for Omega seed0 vs native.
+2cro,omega,,pending,TM-score not yet computed/recorded for this server model.
+2cro,quark,,pending,TM-score not yet computed/recorded for this server model.
+2cro,itasser,,pending,TM-score not yet computed/recorded for this server model.
