@@ -142,8 +142,11 @@ On the long-chain GFP target (1EMA, N=221), the projector substantially reduces 
 
 \begin{figure}[t]
   \centering
-  \maybeincludegraphics[width=\linewidth]{assets/figures/fig5}
-  \caption{Example audit trace segment for 1EMA showing phason(t) under filter vs projector: projector performs $\Delta w_0$ repairs to re-enter the window.}
+  \maybeincludegraphics[width=\linewidth]{assets/figures/fig5_multi_target}
+  \caption{\textbf{Multi-target three-way physical audit (Omega vs QUARK vs I-TASSER).}
+  \textbf{(A)} Kabsch single-pass TM-score to native for model1 on 1R69 and 2CRO.
+  \textbf{(B)} Drift distributions under coordinate-constrained FastRelax ($nstruct=20$): C$\alpha$ RMSD to each method's input trace; Omega shows lower drift across both targets.
+  \textbf{(C)} Qualitative C$\alpha$ overlay vs native for 1R69.}
   \label{fig:5}
 \end{figure}
 
@@ -251,3 +254,11 @@ To test whether PhasonFold retains an advantage without directly optimizing orac
   \caption{Blind Sprint TM-score distribution (evaluation-only). Challenger (B) shifts the TM-score distribution upwards on \texttt{1TIM} and \texttt{2O5P} tail250.}
   \label{fig:13}
 \end{figure}
+
+\subsection{Physical audit: Omega backbones occupy Rosetta energy basins}
+
+Omega v1 outputs in this repository are primarily \textbf{C$\alpha$-only} traces. To assess whether these geometrically generated backbones are \textbf{physically realizable}---i.e., whether they lie within attractive basins of a standard all-atom force field---we performed a constrained relaxation audit using \textbf{Rosetta FastRelax} as an external ``physical auditor''.
+
+Across 6 homology-ablation targets (\texttt{1R69}, \texttt{2CRO}, \texttt{4PTI}, \texttt{1CTF}, \texttt{1DTK}, \texttt{1SHF-A}), the best-scoring relaxed models (20 trajectories per target; see Methods) exhibited \textbf{low structural drift} relative to the original Omega C$\alpha$ traces, confirming that Omega-generated backbones are compatible with Rosetta's physical energy landscape. We additionally observed target-specific accessibility signatures (e.g., \texttt{1CTF} showed a small median--best gap, whereas \texttt{4PTI} exhibited a deep but narrow basin). Full per-target audit results are provided in Supplementary and in \texttt{docs/runs/quark\_itasser\_homology\_ablation/rosetta\_relax\_summary.csv}.
+
+\textbf{Multi-target three-way audit (1R69, 2CRO).} To contextualize this ``physics audit'' against specialist ab initio predictors, we applied the same constrained FastRelax audit to committable server models from \textbf{QUARK} and \textbf{I-TASSER} (model1; $nstruct=20$). TM-scores in Fig.~\ref{fig:5}A use the repository's \textbf{Kabsch single-pass TM-score} (see Supplementary; \texttt{docs/runs/quark\_itasser\_homology\_ablation/server\_summaries.csv}) as a consistent topological readout across targets. While QUARK/I-TASSER achieve higher TM on these server models, the physical audit reveals a complementary advantage: \textbf{Omega exhibits a lower drift distribution under Rosetta relaxation across both targets} (Fig.~\ref{fig:5}B) and reaches a lower Rosetta energy floor under the same restraint strength.

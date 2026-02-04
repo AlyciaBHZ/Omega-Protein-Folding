@@ -128,6 +128,7 @@ Below we provide an inventory mapping each experiment family to its primary arti
   \item Server summary CSV (filled after downloads): \texttt{docs/runs/quark\_itasser\_homology\_ablation/server\_summaries.csv}
   \item TM-align record: \texttt{docs/runs/quark\_itasser\_homology\_ablation/tmalign\_summary.csv}
   \item Scripts: \texttt{scripts/benchmarks/extract\_fasta\_from\_pdb\_cache.py}, \texttt{scripts/benchmarks/parse\_quark\_itasser\_results.py}, \texttt{scripts/benchmarks/record\_tmalign\_results.py}
+  \item TM-score note: \texttt{server\_summaries.csv} reports a \textbf{Kabsch single-pass TM-score} computed under 1:1 residue correspondence (in-repo \texttt{scripts/pdb\_bench/bench\_utils.py}; source=\texttt{tm\_kabsch}). This is \emph{not} TM-align/US-align (no alignment search). Where an alignment-search TM is needed, we report it separately in \texttt{tmalign\_summary.csv}. Fig.~\ref{fig:5}A uses the Kabsch single-pass TM-score for consistency across targets and methods under the same indexing convention.
 \end{itemize}
 
 \begin{table}[t]
