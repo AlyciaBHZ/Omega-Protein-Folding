@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 """
-Figure 5 (multi-target): Omega vs QUARK vs I-TASSER physical audit.
+Figure 5 (multi-target): PhasonFold vs QUARK vs I-TASSER physical audit.
 
 Panels:
 - A: Kabsch single-pass TM-score bars for 1R69 and 2CRO (model1; from server_summaries.csv).
@@ -93,6 +93,7 @@ def main() -> None:
 
     methods = ["omega", "quark", "itasser"]
     colors = {"omega": "#F28E2B", "quark": "#4E79A7", "itasser": "#59A14F"}
+    method_label = {"omega": "PhasonFold", "quark": "QUARK", "itasser": "I-TASSER"}
 
     # Panel A data
     tm = _load_tm_kabsch(target_ids)
@@ -131,7 +132,7 @@ def main() -> None:
         axA.bar(x + off, vals, width=width, label=t.upper(), alpha=0.95, edgecolor="black", linewidth=0.6)
 
     axA.set_ylim(0.0, 1.0)
-    axA.set_xticks(x, [m.upper() if m != "itasser" else "I-TASSER" for m in methods])
+    axA.set_xticks(x, [method_label.get(m, m) for m in methods])
     axA.set_ylabel("TM-score vs native")
     axA.set_title("A  Topological accuracy (Kabsch single-pass TM)")
     axA.grid(True, axis="y", alpha=0.2)
@@ -155,7 +156,7 @@ def main() -> None:
             data.append(drift[t][m])
             box_colors.append(colors[m])
             xtick_pos.append(pos)
-            xtick_lab.append(m.upper() if m != "itasser" else "I-TASSER")
+            xtick_lab.append(method_label.get(m, m))
             pos += inner_gap
         mid = (start + (pos - inner_gap)) / 2.0
         axB.text(mid, -0.07, t.upper(), ha="center", va="top", transform=axB.get_xaxis_transform(), fontsize=10)

@@ -9,8 +9,8 @@ PhasonFold takes a different approach: treat folding as a \textbf{discrete encod
 \paragraph{(i) Discrete state and move algebra.}
 We represent the folding state as a compact discrete state vector (a double-rail encoding), enabling discrete moves and deterministic replay.
 
-\paragraph{(ii) Certificate-driven nonlocal moves.}
-We curate a bank of nonlocal basin-hopping moves and apply them adaptively based on a frustration/roughness proxy derived from observed residual geometry.
+\paragraph{(ii) Frustration-guided nonlocal moves.}
+We curate a bank of nonlocal basin-hopping moves and apply them adaptively based on a frustration/roughness proxy derived from observed residual geometry (not a physical energy, but an audit-fixed scalar field).
 
 \paragraph{(iii) Geometry via 6D cut-and-project and phason feasibility.}
 We link the discrete walk to 3D coordinates through a 6D icosahedral cut-and-project map. This exposes a perpendicular-space deviation—a \emph{phason} variable—that can be used as a soft shaping term or as a feasibility gate. Crucially, we show that phason becomes practically useful when implemented as a \emph{projector} (repair) rather than a pure filter.
