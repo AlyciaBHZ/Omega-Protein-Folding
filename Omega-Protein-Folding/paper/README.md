@@ -1,6 +1,6 @@
-# Omega Protein Folding — Paper (LaTeX)
+# PhasonFold — Paper (LaTeX)
 
-This folder contains a **sectioned LaTeX submission scaffold** for the Omega protein folding manuscript.
+This folder contains a **sectioned LaTeX submission scaffold** for the PhasonFold manuscript.
 
 ## Build
 
@@ -30,7 +30,7 @@ Raw/extracted source packs can be removed after integration to keep the reposito
 If you have a DOCX source available locally, you can regenerate the LaTeX scaffold from repo root:
 
 ```powershell
-python tools/docx_to_paper_latex.py --docx Omega_v1_NatureStyle_EN.docx --out paper
+python tools/docx_to_paper_latex.py --docx path\to\manuscript.docx --out paper
 ```
 
 ## Import ZIP evidence assets (optional)

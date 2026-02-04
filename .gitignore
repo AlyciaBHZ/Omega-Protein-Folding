@@ -28,13 +28,13 @@ Omega-Protein-Folding/**/__pycache__/
 Omega-Protein-Folding/**/*.pyc
 
 # LaTeX build artifacts
-Omega-Protein-Folding/paper/*.aux
-Omega-Protein-Folding/paper/*.bbl
-Omega-Protein-Folding/paper/*.blg
-Omega-Protein-Folding/paper/*.fdb_latexmk
-Omega-Protein-Folding/paper/*.fls
-Omega-Protein-Folding/paper/*.log
-Omega-Protein-Folding/paper/*.out
-Omega-Protein-Folding/paper/*.pdf
-Omega-Protein-Folding/paper/*.synctex.gz
+Omega-Protein-Folding/paper/**/*.aux
+Omega-Protein-Folding/paper/**/*.bbl
+Omega-Protein-Folding/paper/**/*.blg
+Omega-Protein-Folding/paper/**/*.fdb_latexmk
+Omega-Protein-Folding/paper/**/*.fls
+Omega-Protein-Folding/paper/**/*.log
+Omega-Protein-Folding/paper/**/*.out
+Omega-Protein-Folding/paper/**/*.pdf
+Omega-Protein-Folding/paper/**/*.synctex.gz
 
