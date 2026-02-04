@@ -39,7 +39,15 @@
 }
 
 \newcommand{\maybeincludetable}[1]{%
-  \IfFileExists{#1}{\input{#1}}{\fbox{Missing file: #1}}%
+  \IfFileExists{#1}{%
+    \begingroup%
+    % Keep all included tables within text width (common failure mode: too many columns).
+    \setlength{\tabcolsep}{3pt}%
+    \renewcommand{\arraystretch}{1.08}%
+    \small%
+    \resizebox{\linewidth}{!}{\input{#1}}%
+    \endgroup%
+  }{\fbox{Missing file: #1}}%
 }
 
 \begin{document}

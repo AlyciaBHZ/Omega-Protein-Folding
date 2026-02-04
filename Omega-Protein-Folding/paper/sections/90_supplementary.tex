@@ -72,9 +72,12 @@ Below we provide an inventory mapping each experiment family to its primary arti
   \centering
   \caption{Hard-negative decoy replay summary for $\rho_A$ at $m=8$ using $H(\mathrm{type})$. ``Native Rank'' is the native percentile among decoys (lower is more ordered / more native-like). Cliff's $\delta$ is computed for Shared-PCA only (native vs decoys).}
   \label{tab:decoy_replay_axis_ablation}
+  {%
   \scriptsize
   \setlength{\tabcolsep}{4pt}
-  \begin{tabular}{lllll}
+  \renewcommand{\arraystretch}{1.10}
+  % Use fixed-width columns so headers wrap instead of overflowing the page.
+  \begin{tabular}{p{0.10\linewidth}p{0.18\linewidth}p{0.22\linewidth}p{0.22\linewidth}p{0.16\linewidth}}
     \toprule
     Target ID & Decoy set & Native Rank (Shared-PCA) & Native Rank (Best-Native) & Cliff's $\delta$ (Shared-PCA) \\
     \midrule
@@ -97,6 +100,7 @@ Below we provide an inventory mapping each experiment family to its primary arti
     UNK & LMDS & 14.4\% & 14.4\% & -0.711 \\
     \bottomrule
   \end{tabular}
+  }%
 \end{table}
 
 \subsection*{Toy decoy smoke (pipeline sanity check)}
@@ -135,9 +139,12 @@ Below we provide an inventory mapping each experiment family to its primary arti
   \centering
   \caption{Template/fragment dependence and cross-method topology agreement for QUARK vs I-TASSER with strict homology exclusions. TM-scores are computed by TM-align/US-align on model1 (unless stated). ``A vs B'' within-method TM indicates sensitivity to homology exclusion; ``QUARK-A vs I-TASSER-A'' indicates cross-method agreement. Final values are recorded in \texttt{docs/runs/quark\_itasser\_homology\_ablation/tmalign\_summary.csv}.}
   \label{tab:quark_itasser_homology_ablation}
+  {%
   \scriptsize
   \setlength{\tabcolsep}{4pt}
-  \begin{tabular}{lllll}
+  \renewcommand{\arraystretch}{1.10}
+  % Wrap long headers/notes to keep within the text width.
+  \begin{tabular}{p{0.10\linewidth}p{0.18\linewidth}p{0.20\linewidth}p{0.18\linewidth}p{0.24\linewidth}}
     \toprule
     Target ID & QUARK-A vs QUARK-B (TM) & I-TASSER-A vs I-TASSER-B (TM) & QUARK-A vs I-TASSER-A (TM) & Notes \\
     \midrule
@@ -149,6 +156,7 @@ Below we provide an inventory mapping each experiment family to its primary arti
     1SHF-A & -- & -- & -- &  \\
     \bottomrule
   \end{tabular}
+  }%
 \end{table}
 
 \subsection*{Blind sprint + certificate prototypes (small N)}

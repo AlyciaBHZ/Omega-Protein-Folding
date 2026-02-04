@@ -100,16 +100,23 @@ On \texttt{3ICB} we observe a sharp divergence: while $\rho_B$ maintains or impr
   \centering
   \caption{Full1k hybrid protocol (triple232; $m=8$): effect sizes vs strong nulls. Cliff's $\delta<0$ indicates the real chain is more ordered (lower metric) than the null. Percentiles are native percentiles among shuffle replicates.}
   \label{tab:auric_full1k}
-  \begin{tabular}{lllllll}
-    \toprule
-    Readout & Metric & mean $\delta$(real,shuffle) & mean $\delta$(real,blk8) & median pct(real,shuffle) \\
-    \midrule
-    $\rho_A$ (PCA) & $H(\mathrm{type})$ & -0.274 & -0.242 & 0.300 \\
-    $\rho_B$ (parity) & $H(\mathrm{type})$ & -0.366 & -0.119 & 0.200 \\
-    $\rho_A$ (PCA) & $\widehat{h}_{\mathrm{SMB}}$ & -0.298 & -0.278 & 0.300 \\
-    $\rho_B$ (parity) & $\widehat{h}_{\mathrm{SMB}}$ & -0.494 & -0.326 & 0.100 \\
-    \bottomrule
-  \end{tabular}
+  {%
+    \setlength{\tabcolsep}{4pt}%
+    \renewcommand{\arraystretch}{1.08}%
+    \small%
+    \resizebox{\linewidth}{!}{%
+      \begin{tabular}{lllllll}
+        \toprule
+        Readout & Metric & mean $\delta$(real,shuffle) & mean $\delta$(real,blk8) & median pct(real,shuffle) \\
+        \midrule
+        $\rho_A$ (PCA) & $H(\mathrm{type})$ & -0.274 & -0.242 & 0.300 \\
+        $\rho_B$ (parity) & $H(\mathrm{type})$ & -0.366 & -0.119 & 0.200 \\
+        $\rho_A$ (PCA) & $\widehat{h}_{\mathrm{SMB}}$ & -0.298 & -0.278 & 0.300 \\
+        $\rho_B$ (parity) & $\widehat{h}_{\mathrm{SMB}}$ & -0.494 & -0.326 & 0.100 \\
+        \bottomrule
+      \end{tabular}%
+    }%
+  }%
 \end{table}
 
 \begin{figure}[t]
