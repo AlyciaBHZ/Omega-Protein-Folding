@@ -1,0 +1,253 @@
+\section{Results}
+
+\subsection{Frustration-guided nonlocal moves yield target-dependent, auditable policies}
+
+We first tested whether nonlocal navigation can be made \textbf{self-adaptive} without model training, using an error-geometry proxy $\mathrm{Imp}(p;D)$ to select candidate nonlocal moves. In biophysical terms, $\mathrm{Imp}$ plays the role of a landscape \emph{roughness/frustration} proxy derived from residual geometry: it is not a physical energy, but a protocol-fixed scalar field that shapes exploration. On N=16 contact-map proxy tasks across several targets, the $\mathrm{Imp}$-guided selector achieves competitive best Contact\_F1 while exhibiting target-dependent move usage. In particular, the 2CI2 proxy concentrates selection on \textbf{Expander\_Hot} macro-patches, consistent with the interpretation that its residual is dominated by localized repair needs, whereas 1UBQ uses predominantly local moves and global expander patches.
+
+These behaviours are emitted directly in the audit digest (counts\_total / counts\_early / counts\_late), allowing mechanistic A/B tests on the operator policy itself.
+
+\begin{figure}[t]
+  \centering
+  \maybeincludegraphics[width=\linewidth]{assets/figures/fig2}
+  \caption{Frustration-guided selector: aggregated move-usage counts by target (N=16 proxy). 2CI2 shows strong preference for Expander\_Hot macro moves.}
+  \label{fig:2}
+\end{figure}
+
+\begin{table}[t]
+  \centering
+\caption{Frustration-guided benchmarks (N=16 proxy): representative top-performing variants.}
+  \label{tab:1}
+  \maybeincludetable{assets/tables/table1.tex}
+\end{table}
+
+Across this proxy suite, the best mean Contact\_F1 reaches 0.962 on 2CI2\_16 and 5PTI\_16 (Imp-Adaptive-v2) and 0.916 on 1UBQ\_16 (Mix-Expander-Hot), while exhibiting different macro-move usage patterns (Fig.~\ref{fig:2}; Table~\ref{tab:1}). Operationally, these nonlocal moves act like \emph{basin-hopping}: structured, auditable rewrites that help traverse barriers induced by low-resolution objectives.
+
+\subsection{Low-resolution objectives induce a measurable hallucination gap}
+
+To expose a failure mode that is invisible to low-resolution objectives, we intentionally optimized Contact\_F1 alone on real proteins truncated to N=24 residues (1UBQ, 2CI2, 5PTI). Contact\_F1 acts as the optimized readout, whereas distogram RMSE and TM-score are treated as hidden audits. This creates a ‘hallucination gap’: configurations achieving high Contact\_F1 while remaining geometrically inconsistent under higher-resolution residuals. In this regime, purely navigation-driven search can converge to high-F1 states that are off-manifold when inspected by distogram RMSE or TM-score.
+
+\begin{figure}[t]
+  \centering
+  \maybeincludegraphics[width=\linewidth]{assets/figures/fig3}
+  \caption{Hallucination gap under Contact-only optimization (N=24). Points with high Contact\_F1 can exhibit low TM-score, motivating higher-resolution semantic and physical gates.}
+  \label{fig:3}
+\end{figure}
+
+\subsection{From hard phason rejection to projector-style repair}
+
+Early experiments showed that naive hard phason rejection can freeze search when (i) the 6D alphabet is too coarse to represent the target geometry, or (ii) the slice offset $w_0$ is misaligned, causing physically plausible states to be incorrectly labelled ‘non-crystalline’. To address this, we replaced the filter-style gate \texttt{if ph\_max>theta: reject()} with a projector-style operator \texttt{if ph\_max>theta: project\_to\_window()}.
+
+The projector performs a small inner-loop optimization of $w_0$ (a perpendicular-space translation) to reduce phason violation and accept the repaired candidate if it becomes feasible. This converts phason from a passive constraint into an active dynamical relaxation (a phason-flip analogue).
+
+\subsection{Multi-scale symbolic certificates disambiguate ``theory vs protocol'' at 1000-PDB scale}
+
+At 1000-PDB scale, scalar phason proxies such as $\mathrm{ph}_{\mathrm{rms}}$ or $\mathrm{ph}_{\max}$ can be \emph{too low-resolution} to distinguish a genuine theoretical failure from an \emph{observation-protocol} failure (e.g. misaligned slicing axis or offset definition). We therefore introduce a \textbf{multi-scale symbolic certificate} family: instead of a single scalar, we compute distributional, multi-$m$ signatures from stabilized type streams.
+
+\textbf{Protocol.} For each protein, we derive a binary readout $\rho(t)\in\{0,1\}$, then compute length-$m$ sliding windows and stabilize them via $\mathrm{Fold}_m$ (mapping arbitrary bit windows to golden-mean legal types with no adjacent 11), producing a stable-type stream. We report two complementary readouts:
+(i) \textbf{$\rho_A$ (geometry certifier)} from perpendicular-space $y^\perp$ using a \textbf{shared-PCA axis} computed once from the real chain and reused across nulls, with robust median thresholding; and
+(ii) \textbf{$\rho_B$ (logic certifier)} from the 6D step stream $\Delta n$ using a parity/majority-sign binarization. To avoid false positives from trivial marginals, we compare against strong correlation-destroying nulls (bond-direction shuffle and block-shuffle) in addition to random chains.
+
+\textbf{Full1k results.} On a reproducible set of 1000 PDB chains (length-filtered to $60\le N\le 350$), these multi-scale certificates produce stable, large effect sizes across $m\in\{6,8,10\}$. The shared-PCA $\rho_A$ readout (perpendicular-space geometric order) yields a strong separation (lower type entropy and lower entropy-rate proxy) relative to shuffle and block-shuffle nulls, while the parity $\rho_B$ readout (step-parity/dynamical order) provides complementary evidence that is particularly strong on the entropy-rate proxy (Table~\ref{tab:auric_full1k}). Notably, cross-readout agreement remains close to zero ($\mathrm{corr}(z_A,z_B)\approx 0$), indicating that the two certificates capture distinct aspects of order rather than redundant views of the same signal.
+
+\textbf{Hard-negative decoy control.} To address the reviewer concern that random or shuffle nulls are ``too easy'' (i.e., trivially non-protein-like), we evaluated the geometry-based certificate on classic hard-negative benchmarks from Decoys 'R' Us: \texttt{4state\_reduced} and \texttt{LMDS}, which contain near-native but incorrect folds.
+
+\paragraph{Robustness across decoy families.}
+Using the same hybrid protocol and a protocol-fixed \emph{native-derived} axis per target (the axis $u$ is computed from the native $y^\perp$ once and then reused for all decoys), $\rho_A$ type-entropy typically ranks the native structure among the lower-entropy tail of its decoy set, with several targets showing near-complete separation (e.g., 1R69 and 2CRO with Cliff's $\delta \approx -0.98$).
+On \texttt{4state\_reduced} (7 targets), the Shared-PCA $\rho_A$ certificate places the native within the lowest 10\% of entropy for 2/7 targets; switching to the stricter \textbf{Best-Native-Axis} protocol improves this separation (3/7 targets in the lowest 10\%).
+Beyond \texttt{4state\_reduced}, on the \texttt{LMDS} decoy set (9 targets), the Shared-PCA $\rho_A$ certificate successfully ranks the native structure within the lowest 10\% of entropy for 4/9 targets. Crucially, switching to the stricter \textbf{Best-Native-Axis} protocol \textit{improves} this separation (5/9 targets in the lowest 10\%), demonstrating that the signal arises from intrinsic native order, not protocol artifacts.
+
+\paragraph{Geometric mimicry in hard cases.}
+While separation is strong for most targets, specific targets such as \texttt{1CTF} remain challenging across both benchmarks: under Shared-PCA, \texttt{1CTF} exhibits weak or even reversed separation ($\delta>0$), and although Best-Native-Axis restores the expected ordering ($\delta<0$), the native percentile remains relatively high. We characterize \texttt{1CTF} as a case of \textit{geometric mimicry}, where high-quality decoys can preserve coarse-grained certificate signatures despite topological errors. This highlights the role of the geometry-based certificate as a necessary \textit{feasibility gate} rather than a sufficient atomic-level discriminator, motivating its combination with local energy refinement in the search phase.
+
+Full decoy reports and per-target histograms are provided in the accompanying evidence repository.
+
+\paragraph{External server baseline with strict homology exclusions.}
+To complement certificate-based controls with an interpretable cross-method agreement check, we prepared a small benchmark comparing QUARK and I-TASSER on the same six short targets used above, and added within-method ablations that exclude close homologous fragments/templates. This provides an external sanity check on whether the predicted global topology is robust to homology leakage and whether two independent pipelines converge to a similar fold class (TM-score $\ge 0.5$ indicates shared topology). Inputs, job tracking, and the TM-align summary template are provided in \texttt{docs/runs/quark\_itasser\_homology\_ablation/}; per-target outcomes will be summarized in Supplementary Table~\ref{tab:quark_itasser_homology_ablation}.
+
+\paragraph{Physical consistency audit (post-hoc).}
+As an additional low-cost sanity check that does not modify search, we computed coarse-grained C$\alpha$ physical proxies (bond-length MSE and a non-neighbour steric-clash proxy) and compared them against the geometry-based certificate. On the \texttt{4state\_reduced} hard-negative decoy benchmark, these signals are weakly correlated (Pearson $r\approx 0$), consistent with an \textbf{orthogonal-defense} interpretation: many decoys satisfy local physical constraints while violating global geometric manifold constraints (high geometric type entropy), and a smaller subset exhibits the converse (low geometric type entropy but poor local physics). Figure~S\ref{fig:physics_audit} summarizes this ``dual-filter funnel'' behavior.
+
+\textbf{AlphaFold transparency context (non-accuracy).} To contextualize PhasonFold's auditability claim against widely used predictors, we also include a qualitative transparency comparison against \texttt{AlphaFold} DB (AFDB), contrasting a static AFDB output + pLDDT profile with PhasonFold's replayable audit trajectory (Fig.~\ref{fig:af_vs_omega_transparency}).
+
+\textbf{Blind-sprint feasibility.} Finally, we tested whether the certificates can be used as \emph{active scoring signals} (not just post-hoc discriminators). On short targets (N<100), we ran blind-sprint prototypes that do not use oracle direction guidance and treat TM-score as evaluation-only, optimizing native-derived contact/distogram objectives augmented by certificate penalties. We report two variants:
+\begin{itemize}[nosep,leftmargin=*]
+  \item \emph{Contact beam-search + certificates}: On 1CRN (N=46), a contact-only beam-search with certificate scoring reaches TM$\approx$0.74 (see the evidence repository under \texttt{docs/runs/}).
+  \item \emph{Sparse-distogram MDS + certificate reranking}: As an upper-bound feasibility test using native-derived pairwise distances (300 sampled pairs per target), we ran a suite of 10 short chains (N=46--76, 5 seeds each). Best-of-seeds results: 9/10 targets achieve TM$>$0.98, with 5 reaching TM=1.0 (1CRN, 1R69, 2CRO, 4PTI, 5PTI); one outlier (1SN3) yields TM=0.53 due to missing structure data (see the evidence repository under \texttt{docs/runs/}).
+\end{itemize}
+These prototypes are not yet the full PhasonFold move stack, and the distogram MDS variant uses native distance information that would not be available in a truly blind setting. Nevertheless, they establish feasibility that certificate-style audit signals can steer search toward higher-quality structures when combined with informative distance priors.
+
+\paragraph{Blind Sprint ablation: $\rho_B$ rescues hard cases, $\rho_A$ can be risky.}
+To turn Blind Sprint from a demonstration into a quantitative experiment, we ran an ablation suite on the 7 classic \texttt{4state\_reduced} short targets (N<100) with 5 random seeds each. We compare a baseline contact-driven beam search against three certificate variants: $\rho_A$ only (geometry), $\rho_B$ only (logic/dynamics; velocity readout), and $\rho_A+\rho_B$ (Fig.~\ref{fig:blind_sprint_ablation}).
+
+\textbf{Certificates rescue search failure cases.}
+The baseline policy achieves a high best-of-seeds success rate (6/7 targets with TM$>$0.6) but fails on \texttt{1SN3} (best TM=0.31). Enabling the logic/dynamics certificate $\rho_B$ increases robustness to 7/7 (TM$>$0.6 on all targets), boosting \texttt{1SN3} to best TM=0.84. This shows that $\rho_B$ can act as an actionable feasibility signal during blind search rather than a post-hoc diagnostic.
+
+\textbf{Orthogonality and protocol sensitivity of $\rho_A$ vs $\rho_B$.}
+On \texttt{3ICB} we observe a sharp divergence: while $\rho_B$ maintains or improves performance (best TM$\approx$0.79), $\rho_A$ alone can guide search into a failure basin (best TM$\approx$0.22), consistent with an over-constrained geometric manifold early in the search. Together, these ablations support our recommended protocol: use $\rho_B$ for search guidance (high acceptance rate) and reserve $\rho_A$ for geometric auditing and decoy discrimination, where it is strongest.
+
+\begin{figure}[t]
+  \centering
+  \maybeincludegraphics[width=\linewidth]{assets/figures/fig4_search_ablation}
+  \caption{\textbf{Search Ablation (Blind Sprint on 4state targets, 5 seeds each).}
+  \textbf{(A)} Best-of-seeds TM-score per target for baseline (grey), $\rho_A$ (blue), $\rho_B$-vel (orange), and $\rho_A+\rho_B$ (green). \texttt{1SN3} is rescued by $\rho_B$ (``Rescue''), while \texttt{3ICB} reveals a ``Geometric Trap'' where $\rho_A$ alone fails.
+  \textbf{(B)} Success rate (fraction of targets with best-of-seeds TM$>$0.6): baseline 6/7 vs $\rho_B$-vel 7/7.
+  \textbf{(C)} TM ECDF over all seeds from the same suite, showing a distributional shift with certificate terms.
+  }
+  \label{fig:blind_sprint_ablation}
+\end{figure}
+
+\begin{table}[t]
+  \centering
+  \caption{Full1k hybrid protocol (triple232; $m=8$): effect sizes vs strong nulls. Cliff's $\delta<0$ indicates the real chain is more ordered (lower metric) than the null. Percentiles are native percentiles among shuffle replicates.}
+  \label{tab:auric_full1k}
+  \begin{tabular}{lllllll}
+    \toprule
+    Readout & Metric & mean $\delta$(real,shuffle) & mean $\delta$(real,blk8) & median pct(real,shuffle) \\
+    \midrule
+    $\rho_A$ (PCA) & $H(\mathrm{type})$ & -0.274 & -0.242 & 0.300 \\
+    $\rho_B$ (parity) & $H(\mathrm{type})$ & -0.366 & -0.119 & 0.200 \\
+    $\rho_A$ (PCA) & $\widehat{h}_{\mathrm{SMB}}$ & -0.298 & -0.278 & 0.300 \\
+    $\rho_B$ (parity) & $\widehat{h}_{\mathrm{SMB}}$ & -0.494 & -0.326 & 0.100 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\begin{figure}[t]
+  \centering
+  \begin{subfigure}[t]{0.49\linewidth}
+    \centering
+    \maybeincludegraphics[width=\linewidth]{../docs/runs/full1k_hybrid_auric/plots/auric_entropy_multiscale_triple232_rhoA_n1000_seed0_triple232_hybrid_pcaA_parityB_shuffle10_blk8x5_r1}
+    \caption{$\rho_A$ (shared-PCA): multi-$m$ trends.}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[t]{0.49\linewidth}
+    \centering
+    \maybeincludegraphics[width=\linewidth]{../docs/runs/full1k_hybrid_auric/plots/auric_entropy_multiscale_triple232_rhoB_n1000_seed0_triple232_hybrid_pcaA_parityB_shuffle10_blk8x5_r1}
+    \caption{$\rho_B$ (parity): multi-$m$ trends.}
+  \end{subfigure}
+  \caption{Multi-scale symbolic certificate on full1k under the hybrid protocol. Multi-scale curves summarize median $H(\mathrm{type})$ across $m\in\{6,8,10\}$ for real and null families.}
+  \label{fig:auric_multiscale_full1k}
+\end{figure}
+
+\subsection{Projector repair enables feasible hard gates on a long-chain $\beta$-barrel (1EMA/GFP)}
+
+On the long-chain GFP target (1EMA, N=221), the projector substantially reduces phason ratio while maintaining or improving structural metrics, whereas filter-style hard rejection incurs a large reject count and can lower TM-score. These results support the interpretation that feasibility at tight gates is limited by alignment ($w_0$) and expressivity, not by the usefulness of phason as a geometric regularizer.
+
+\begin{figure}[t]
+  \centering
+  \maybeincludegraphics[width=\linewidth]{assets/figures/fig4}
+  \caption{Phason ratio vs TM-score for 1EMA (GFP) comparing baseline (no gate), filter-style hard reject, and projector repair. Projector reduces phason violations without freezing exploration.}
+  \label{fig:4}
+\end{figure}
+
+\begin{figure}[t]
+  \centering
+  \maybeincludegraphics[width=\linewidth]{assets/figures/fig5}
+  \caption{Example audit trace segment for 1EMA showing phason(t) under filter vs projector: projector performs $\Delta w_0$ repairs to re-enter the window.}
+  \label{fig:5}
+\end{figure}
+
+\subsection{A feasible-tight hard gate $\theta^\star$ makes projector repair necessary across folds}
+
+To test whether phason constraints are merely optional regularizers or enforceable dynamical conditions, we introduced $\theta^\star$ (theta\_star): a per-target feasible-tight threshold derived from a counterfactual feasibility floor. Operationally, $\theta^\star$ is set just above the smallest ph\_max achievable by projector repair, making it tight but satisfiable. In this regime, filter-style hard rejection fails to ever enter the window, while projector repair reaches feasibility and stays within the gate.
+
+\begin{table}[t]
+  \centering
+  \caption{$\theta^\star$ hard-gate feasibility: filter vs projector repair.}
+  \label{tab:2}
+  \maybeincludetable{assets/tables/table2.tex}
+\end{table}
+
+Concretely, under $\theta^\star$ the filter gate never reaches feasibility on either 1AKE or 1TIM (pass\_final=False), while the projector enters the window after \(\approx 70\) steps (t\_first\_pass 70.5–73.5) with a small number of repair events (phason\_relax\_n 7–12) (Table~\ref{tab:2}).
+
+\begin{figure}[t]
+  \centering
+  \maybeincludegraphics[width=\linewidth]{assets/figures/fig6}
+  \caption{1AKE ph\_max(t) under $\theta^\star$ with horizontal $\theta^\star$ line: filter fails to cross; projector enters window.}
+  \label{fig:6}
+\end{figure}
+
+\begin{figure}[t]
+  \centering
+  \maybeincludegraphics[width=\linewidth]{assets/figures/fig7}
+  \caption{1TIM ph\_max(t) under $\theta^\star$ with horizontal $\theta^\star$ line: filter fails; projector crosses and remains feasible.}
+  \label{fig:7}
+\end{figure}
+
+\subsection{A 6D alphabet hierarchy reveals a >0.9 TM-score ceiling (Triple232)}
+
+Hard geometric constraints alone cannot yield high structural accuracy if the discrete move set cannot represent the target. We therefore evaluated a hierarchy of 6D step alphabets—axis12 (±$e_i$), pair72 (±$e_i$±$e_j$) and triple232 (±$e_i$±$e_j$±$e_k$)—using an oracle direction codec that quantizes native C$\alpha$ bond directions. This isolates representational expressivity from global search.
+
+Triple232 raises the oracle TM-score ceiling to \textasciitilde{}0.94 for 1AKE and \textasciitilde{}0.92 for 2O5P tail250. For 1TIM, the full-length ceiling is \textasciitilde{}0.81, but local 100-residue windows exceed 0.92, suggesting that long-chain accuracy requires multi-scale composition rather than a single global slice.
+
+\begin{figure}[t]
+  \centering
+  \maybeincludegraphics[width=\linewidth]{assets/figures/fig8}
+  \caption{Oracle expressivity of axis12, pair72 and triple232 alphabets. Triple232 enables TM-score >0.9 on 1AKE and 2O5P tail250.}
+  \label{fig:8}
+\end{figure}
+
+\subsection{Sprint-to-0.9: hotspot Triple232 + piecewise projector reaches TM-score >0.9 on 1TIM and a membrane-protein segment}
+
+Finally, we combined the two key enablers—expressivity (Triple232) and dynamical feasibility ($\theta^\star$ + projector repair)—into a targeted A/B runner.
+
+Configuration A (Baseline) uses pair72 directions with a single global projector under $\theta^\star$. Configuration B (Challenger) uses hotspot-only Triple232 re-encoding (to avoid unnecessary branching) together with a piecewise projector that allows $w_0$ to drift across segments, reducing long-range accumulation of phason strain.
+
+This Sprint-to-0.9 runner is an \emph{oracle-guided compilation} stress test: the ``wish'' is perfect (native alignment supplies hotspot locations), and the goal is to verify that the operator stack (patch + projector) can \emph{realize} a 0.9+ TM-score endpoint when representational and feasibility bottlenecks are addressed (see \texttt{artifacts/reports/sprint0p9\_AB\_runner\_report.md}).
+
+On 1TIM (N=247) and 2O5P tail250 (N=250), the Challenger reaches TM-score >0.9 while maintaining $\theta^\star$ feasibility, and also maintains a hydrophobic-belt packing signal on the membrane segment (Fig.~\ref{fig:12}).
+
+\begin{table}[t]
+  \centering
+  \caption{Sprint-to-0.9 A/B outcomes (baseline vs challenger).}
+  \label{tab:3}
+  \maybeincludetable{assets/tables/table3.tex}
+\end{table}
+
+In particular, on 1TIM the baseline stalls at TM=0.676, whereas the Challenger reaches TM=0.928--0.940 across three seeds (mean 0.936). On 2O5P tail250, the baseline achieves TM=0.703, whereas the Challenger reaches TM=0.917--0.923 (mean 0.921) across three seeds (Table~\ref{tab:3}).
+
+\begin{figure}[t]
+  \centering
+  \maybeincludegraphics[width=\linewidth]{assets/figures/fig9}
+  \caption{TM-score distributions for Sprint-to-0.9 A/B on 1TIM and 2O5P tail250.}
+  \label{fig:9}
+\end{figure}
+
+\begin{figure}[t]
+  \centering
+  \maybeincludegraphics[width=\linewidth]{assets/figures/fig10}
+  \caption{Phason–TM scatter with $\theta^\star$ horizontal lines. Challenger points remain below $\theta^\star$ while improving TM-score.}
+  \label{fig:10}
+\end{figure}
+
+\begin{figure}[t]
+  \centering
+  \maybeincludegraphics[width=\linewidth]{assets/figures/fig11}
+  \caption{1TIM phason-strain along the chain. Piecewise projector suppresses long-range accumulation relative to a global slice.}
+  \label{fig:11}
+\end{figure}
+
+\begin{figure}[t]
+  \centering
+  \maybeincludegraphics[width=\linewidth]{assets/figures/fig12}
+  \caption{2O5P tail250 hydrophobic belt pattern for native vs A/B reconstructions.}
+  \label{fig:12}
+\end{figure}
+
+\subsection{Blind Sprint: removing oracle TM-score and native membrane labels}
+
+To test whether PhasonFold retains an advantage without directly optimizing oracle TM-score and native-derived membrane annotations, we ran a Blind Sprint protocol that removes these oracle terms from the acceptance objective and replaces them with proxy guides (semantic residuals such as distogram RMSE and a sequence-only hydropathy belt prior; see \texttt{artifacts/reports/blind\_sprint\_AB\_report\_v1.md}).
+
+\begin{table}[t]
+  \centering
+  \caption{Blind Sprint A/B summary (evaluation TM-score reported; not used for acceptance).}
+  \label{tab:4}
+  \maybeincludetable{assets/tables/table4.tex}
+\end{table}
+
+\begin{figure}[t]
+  \centering
+  \maybeincludegraphics[width=0.9\linewidth]{../figures/blind\_sprint\_tmscore\_distribution}
+  \caption{Blind Sprint TM-score distribution (evaluation-only). Challenger (B) shifts the TM-score distribution upwards on \texttt{1TIM} and \texttt{2O5P} tail250.}
+  \label{fig:13}
+\end{figure}

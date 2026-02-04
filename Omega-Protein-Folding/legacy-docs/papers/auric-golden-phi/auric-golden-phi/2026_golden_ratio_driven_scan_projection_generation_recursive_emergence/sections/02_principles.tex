@@ -1,0 +1,136 @@
+\section{起点与原则：自指比例与最小生成机制}
+
+\subsection{自指比例与重整化不动点}
+
+黄金比例
+\[
+\varphi=\frac{1+\sqrt5}{2}
+\]
+满足自指方程 $\varphi=1+\varphi^{-1}$，亦即 $\varphi^{-1}$ 是映射 $x\mapsto (1+x)^{-1}$ 的不动点。本文在本节只取其\textbf{严格可用的数学含义}：该不动点关系提供一个最简的自相似尺度常数示例，并在后续的斐波那契递推、增长率与编码语法中反复出现。关于“概念/意义”的解释性叙述不作为任何定理的前提（见引言小节 \ref{subsec:reading-guide}）。
+
+\subsection{反共振最优性原则}
+
+在需要从连续/高维结构产生离散读出时，常见困难来自有理近似导致的周期性共振。黄金比例及其逆在连分数意义下具有“最难被有理数逼近”的极值性质，因而可作为最强的反共振选择。本文采用如下数学化原则：
+\begin{itemize}
+  \item 在给定读出通道数固定（此处为二元）时，选择使符号复杂度最小、且有理近似共振最弱的参数分支；
+  \item 该原则在一维旋转编码与 Fibonacci/Ostrowski 编码中均自然选出 $\alpha=\varphi^{-1}$ 的“黄金分支”。
+\end{itemize}
+
+为避免“偏好”式表述，本文将反共振具体化为一个可比较的数论不变量，并引用其极值性质（\cite{Cassels1957,KuipersNiederreiter1974}）。
+
+\begin{definition}[共振强度]\label{def:resonance-strength}
+对 $\alpha\in\RR\setminus\QQ$，定义其有理近似共振强度为
+\[
+R(\alpha):=\sup_{(p,q)\in\ZZ\times\NN}\frac{1}{q^2\abs{\alpha-p/q}} \in (0,\infty].
+\]
+该量越小，表示越难以出现低分母的强共振近似。
+\end{definition}
+
+\begin{remark}[标准对象与等价刻画]\label{rem:lagrange-constant}
+量 $R(\alpha)$ 是连分数理论中的 \emph{Lagrange 常数}（亦即 Markov/Lagrange 谱的基本不变量）。并且 $R(\alpha)<\infty$ 当且仅当 $\alpha$ \emph{badly approximable}（等价于其连分数部分商有界）；此时
+\[
+R(\alpha)=\limsup_{n\to\infty}\frac{1}{q_n^2\abs{\alpha-p_n/q_n}},
+\]
+其中 $p_n/q_n$ 为 $\alpha$ 的连分数收敛分数（参见 \cite{Cassels1957,KuipersNiederreiter1974}）。
+\end{remark}
+
+\begin{definition}[Markov 常数（最坏逼近下界）]\label{def:markov-constant}
+对 $\alpha\in\RR\setminus\QQ$，定义
+\[
+c(\alpha):=\inf_{(p,q)\in\ZZ\times\NN} q^2\left|\alpha-\frac{p}{q}\right|\in[0,\infty).
+\]
+若 $c(\alpha)>0$（等价于 $\alpha$ badly approximable），则 $R(\alpha)=1/c(\alpha)$。
+\end{definition}
+
+\begin{theorem}[黄金比例的极值反共振]\label{thm:golden-antiresonance}
+设 $\alpha=\varphi^{-1}$. 则对任意 $p/q\in\QQ$ 有
+\[
+\abs{\alpha-\frac{p}{q}} \ge \frac{1}{\sqrt5\,q^2},
+\]
+且常数 $\sqrt5$ 在 Hurwitz 意义下是最优的：对任意 $\beta\in\RR\setminus\QQ$，总存在无穷多个 $p/q$ 使得
+\[
+\abs{\beta-\frac{p}{q}} < \frac{1}{\sqrt5\,q^2}.
+\]
+因此 $R(\varphi^{-1})=\sqrt5$ 并在该意义下达到最小可能的“最坏共振上界”。
+\end{theorem}
+
+\begin{proof}
+第一部分是“黄金比例（及其等价数）为最坏逼近数”的标准结论：对
+\(\alpha=\varphi^{-1}=[0;1,1,1,\dots]\)，对任意有理数 \(p/q\) 都有
+\[
+\left|\alpha-\frac{p}{q}\right|\ge \frac{1}{\sqrt5\,q^2}.
+\]
+其证明可由连分数的最佳逼近性质与 Markov/Lagrange 谱底 \(\sqrt5\) 的刻画给出；此处我们按最小输入原则直接引用该精确形式（见 \cite{Cassels1957}）。
+
+第二部分即 Hurwitz 定理：对任意无理数 \(\beta\)，存在无穷多个 \(p/q\) 满足
+\(\left|\beta-\frac{p}{q}\right|<1/(\sqrt5\,q^2)\)，且常数 \(1/\sqrt5\) 不能整体改大（见 \cite{Cassels1957} 或 \cite{KuipersNiederreiter1974}）。由定义 \ref{def:resonance-strength} 得 \(R(\varphi^{-1})=\sqrt5\)，并且对任意 \(\beta\) 有 \(R(\beta)\ge \sqrt5\)。
+\end{proof}
+
+\begin{definition}[模群等价（唯一性口径）]\label{def:modular-equivalence}
+称两无理数 $\alpha,\beta\in\RR\setminus\QQ$ \emph{等价}，若存在整数矩阵
+\(
+\begin{pmatrix}a&b\\c&d\end{pmatrix}\in \mathrm{SL}(2,\ZZ)
+\)
+使得
+\[
+\beta=\frac{a\alpha+b}{c\alpha+d}.
+\]
+这是连分数理论中的标准等价关系（保持 Lagrange/Markov 不变量；见 \cite{Cassels1957}）。
+\end{definition}
+
+\begin{theorem}[Hurwitz 极值的唯一性（Markov/Lagrange 谱底）]\label{thm:hurwitz-uniqueness}
+设 $\beta\in\RR\setminus\QQ$ 且 $R(\beta)=\sqrt5$（等价于 $c(\beta)=1/\sqrt5$，见定义 \ref{def:markov-constant}）。则 $\beta$ 与 $\varphi^{-1}$ 在定义 \ref{def:modular-equivalence} 的意义下等价。
+特别地，若进一步规定 $\beta\in(0,1)$ 且 $\beta$ 的连分数首项为 $[0;\cdot]$，则该等价类中唯一的代表为 $\beta=\varphi^{-1}$。
+\end{theorem}
+
+\begin{proof}
+这是 Markov 定理（Lagrange 谱的最小点）的一种标准表述：Lagrange 谱的最小值为 \(\sqrt5\)，且达到该最小值当且仅当 \(\beta\) 与 \(\varphi\)（从而与 \(\varphi^{-1}\)）在 \(\mathrm{SL}(2,\ZZ)\) 的分式线性变换下等价。可参见 \cite{Cassels1957} 中关于 Markov/Lagrange 谱与等价变换保持性的系统论述。
+
+最后一条“在 \((0,1)\) 的规范化唯一代表”来自连分数表示的唯一性：等价变换对应于连分数的有限前缀变换；在固定 \((0,1)\) 且首项为 \(0\) 的规范下，周期连分数 \([0;1,1,1,\dots]=\varphi^{-1}\) 给出唯一代表。
+\end{proof}
+
+定理 \ref{thm:golden-antiresonance} 给出一个完全定量的“反共振”选择：在 Hurwitz 意义下，$\alpha=\varphi^{-1}$ 达到最小可能的最坏情形逼近常数（即 $R(\varphi^{-1})=\sqrt5$）。因此当分辨率或返归时间由分母 $q$ 控制时，黄金分支在最坏情形下提供统一的低阶共振抑制上界（参见 \cite{Cassels1957,KuipersNiederreiter1974}）。
+
+\subsection{从反共振到有限样本稳定性：一个可审计的优化问题}
+
+上面的 Hurwitz 极值性质本身是数论陈述。为了把它转译为扫描—投影读出中“可审计的稳定性证书”，我们在最基本的一维扫描模型上给出一个与正文第 4 节一致的量化指标，并明确本文所解决的优化问题。
+
+\begin{definition}[共振诱导不稳定性（Kronecker 扫描的可审计证书）]\label{def:instability-envelope}
+对无理 $\alpha\in\RR\setminus\QQ$ 与初相位 $x_0\in[0,1)$，考虑 Kronecker 序列
+\[
+x_t=\{x_0+t\alpha\}\in[0,1),\qquad t=0,1,\dots
+\]
+其星差异度记为
+\[
+D_N^*(\alpha;x_0):=\sup_{0\le a\le 1}\left|\frac1N\sum_{t=0}^{N-1}\ind_{[0,a)}(x_t)-a\right|.
+\]
+我们将 $D_N^*(\alpha;x_0)$ 视为样本量 $N$ 下、在\textbf{全部区间窗二元读出}意义下的“共振诱导不稳定性”证书：它同时给出最坏窗集频率误差，并可由排序在有限样本上直接计算（见命题 \ref{prop:discrepancy-certificate}）。
+\end{definition}
+
+\begin{proposition}[反共振$\Rightarrow$差异度上界$\Rightarrow$窗频率误差界]\label{prop:antiresonance-to-stability}
+在定义 \ref{def:instability-envelope} 的 Kronecker 扫描模型中，对任意区间窗 $W=[0,a)$ 的指示读出 $s_t=\ind_W(x_t)$，其频率误差满足
+\[
+\left|\frac1N\sum_{t=0}^{N-1}s_t-a\right|\le D_N^*(\alpha;x_0).
+\]
+并且当 $\alpha$ badly approximable（等价于连分数部分商有界，亦等价于 $R(\alpha)<\infty$；见注 \ref{rem:lagrange-constant}）时，$D_N^*(\alpha;x_0)$ 具有显式上界，从而给出可审计的有限样本稳定性证书（见附录 H）。
+\end{proposition}
+
+\begin{corollary}[黄金分支的显式有限样本证书]\label{cor:golden-finite-sample-certificate}
+取 $\alpha=\varphi^{-1}$。则对任意初相位 $x_0$ 与任意 $N\ge 2$，
+\[
+D_N^*(\varphi^{-1};x_0)\ \le\ \frac{3+\left\lceil \frac{\log(\sqrt5\,N)}{\log \varphi}\right\rceil}{N}
+\]
+（推论 \ref{cor:kronecker-discrepancy-golden}）。因此在区间窗二元读出意义下，黄金分支给出一个统一、显式的“共振诱导不稳定性”衰减证书，阶为 $O((\log N)/N)$。
+\end{corollary}
+
+\begin{remark}[本文所解决与未解决的“最优性”问题]\label{rem:what-is-optimized}
+本文在二元读出约束下采用的“黄金分支”选择，严格对应于如下可审计目标的极值：在 Hurwitz 意义下最小化最坏有理逼近常数 $R(\alpha)$（定理 \ref{thm:golden-antiresonance}），并在旋转二分割读出模型中落在 Sturmian 最小复杂度类上（定理 \ref{thm:sturmian-min-complexity-rotation}）。
+
+需要强调的是：$R(\alpha)$ 的极小化并不自动推出对\textbf{所有}“不稳定性”概念（例如更一般观测、折叠后的类型分布、或与 Parry 测度的距离）也达到唯一最小。本文在这类更强主张上采取保守口径：仅将能够由差异度/遍历工具链严格推出的部分写为定理（如命题 \ref{prop:antiresonance-to-stability} 与推论 \ref{cor:golden-finite-sample-certificate}），其余作为需要额外结构与证明的开放问题（参见第 \ref{sec:experiments} 节与结论）。
+\end{remark}
+
+\begin{remark}[索引互补的算术化刻画（Beatty 互补）]\label{rem:beatty-complement}
+在一维旋转扫描 $x_t=\{x_0+t\alpha\}$ 与区间窗二元读出 $b_t=\ind_{W}(x_t)$ 的标准模型中，除了“频率/差异度”刻画外，还存在一个同样可审计的“索引侧”刻画：命中集合与未命中集合在自然数索引上形成互补划分，并可由 Beatty 互补定理用两条取整序列表示。
+
+在黄金分支 $\alpha=\varphi^{-1}$ 的标准窗约定下，这一互补对可取为 $(\varphi,\varphi^2)$（因为 $1/\varphi+1/\varphi^2=1$），从而“门控比例” $\varphi^{-1}:\varphi^{-2}$ 与“互补索引划分”在同一算术骨架下对齐。\cite{Beatty1926}
+\end{remark}

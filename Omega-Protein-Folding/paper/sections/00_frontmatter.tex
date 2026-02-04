@@ -1,0 +1,17 @@
+\title{PhasonFold: Auditable protein-folding dynamics via 6D quasicrystal projectors and phason feasibility relaxation}
+\subtitle{A v1 integrated manuscript (Nature-style) with complete experimental evidence and auditable artifacts}
+\author{Wenlin Zhang\\National University of Singapore \and Haobo Ma\\Chrono AI PTE LTD.}
+\date{Version: v1.0 | Date: 2026-02-01}
+\maketitle
+\begin{abstract}
+Protein folding is a paradigmatic hard inference problem: even when the final structure is known, the combinatorial complexity of exploring folding pathways complicates mechanistic interpretation, reproducibility and controllable interventions. Recent deep-learning systems predict static structures with remarkable accuracy, yet they typically provide limited access to interpretable, replayable \emph{dynamics}. Here we present \emph{PhasonFold}, a discrete folding framework that models backbone generation as a discrete dynamical system with an auditable move trace. PhasonFold couples (i) a frustration/roughness proxy $\mathrm{Imp}(p;D)$ derived from residual geometry to guide nonlocal basin-hopping moves, (ii) a 6D icosahedral cut-and-project embedding whose perpendicular-space deviation (phason) provides a strictly geometric feasibility variable, and (iii) a projector-style relaxation that \emph{repairs} out-of-window proposals by optimizing the hyperspace slice offset $w_0$ rather than rejecting them. Across a staged benchmark suite---from N=24 hallucination-gap stress tests to N$\approx$250 long-chain and membrane-protein targets---we show that (a) low-resolution objectives can induce high-contact yet physically inconsistent ``hallucinations'', (b) feasible-tight phason constraints become practical only when implemented via projection-style relaxation, and (c) increasing the 6D step-alphabet expressivity (Triple232) enables full-length TM-score $>0.9$ on a 247-residue TIM-barrel (1TIM) and a 250-residue membrane-protein segment (2O5P tail250) under a satisfiable hard gate $\theta^\star$. These results position phason feasibility and hyperspace relaxation as a biophysics-grounded mechanism for auditable geometric constraints in folding dynamics.
+\end{abstract}
+
+\section*{Main contributions}
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{Auditable folding dynamics:} folding is represented as a discrete move sequence with deterministic replay and an audit-grade trace.
+  \item \textbf{Frustration-guided nonlocal moves:} an error-geometry proxy $\mathrm{Imp}(p;D)$ adaptively selects basin-hopping (nonlocal) moves to improve exploration efficiency.
+  \item \textbf{Phason feasibility as relaxation:} replacing hard rejection with projector-style slice-offset relaxation ($\Delta w_0$) turns phason from a brittle constraint into an actionable dynamical mechanism.
+  \item \textbf{Alphabet expressivity:} a large 6D step set (Triple232) reduces readout discretization and supports domain- and membrane-scale tests.
+  \item \textbf{Blind sprint protocol:} removes oracle TM-score and native membrane labels; uses semantic residuals and a hydropathy-only belt gate.
+\end{enumerate}

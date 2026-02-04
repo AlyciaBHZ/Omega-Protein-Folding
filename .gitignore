@@ -1,22 +1,40 @@
 # NOTE:
-# This git repository is rooted at Desktop, but we only want to version-control
-# the Omega project under `nobel/Omega-Protein-Folding/`.
+# This git repository is rooted at Desktop. We intentionally version-control ONLY
+# the PhasonFold project directory and a small set of repo metadata files.
 # Everything else on Desktop is ignored to avoid accidentally committing
-# personal files (pdf/pptx/etc.) and large binaries.
+# personal files and large binaries.
 
 # Ignore everything by default
 /*
 
-# Keep this file
+# Keep repo metadata
 !.gitignore
+!README.md
 
-# Allow the nobel folder to be visible
-!nobel/
+# Track ONLY the project directory
+!Omega-Protein-Folding/
+!Omega-Protein-Folding/**
 
-# Ignore all other content inside nobel by default
-nobel/*
+# Never commit editor/agent state
+Omega-Protein-Folding/.cursor/
+Omega-Protein-Folding/.cursor/**
+Omega-Protein-Folding/**/.cursor/
+Omega-Protein-Folding/**/.cursor/**
 
-# Track ONLY Omega-Protein-Folding
-!nobel/Omega-Protein-Folding/
-!nobel/Omega-Protein-Folding/**
+# Common local environments / caches
+Omega-Protein-Folding/.venv/
+Omega-Protein-Folding/.venv/**
+Omega-Protein-Folding/**/__pycache__/
+Omega-Protein-Folding/**/*.pyc
+
+# LaTeX build artifacts
+Omega-Protein-Folding/paper/*.aux
+Omega-Protein-Folding/paper/*.bbl
+Omega-Protein-Folding/paper/*.blg
+Omega-Protein-Folding/paper/*.fdb_latexmk
+Omega-Protein-Folding/paper/*.fls
+Omega-Protein-Folding/paper/*.log
+Omega-Protein-Folding/paper/*.out
+Omega-Protein-Folding/paper/*.pdf
+Omega-Protein-Folding/paper/*.synctex.gz
 
