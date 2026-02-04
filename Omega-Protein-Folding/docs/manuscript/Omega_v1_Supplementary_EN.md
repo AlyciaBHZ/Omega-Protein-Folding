@@ -121,7 +121,7 @@ Artifacts:
 - I‑TASSER job `S820065`: `../runs/quark_itasser_homology_ablation/server_models/1r69/itasser_S820065_model1.pdb`
 - Omega Cα trace: `../runs/quark_itasser_homology_ablation/omega_models/omega_pred_1r69_seed0.pdb`
 
-**Topological accuracy (TM-score to native).** TM-scores for 1R69 are recorded in `../runs/quark_itasser_homology_ablation/server_summaries.csv` (currently server/user reported; can be replaced by a committed TM-align run later).
+**Topological accuracy (TM-score to native).** TM-scores are recorded in `../runs/quark_itasser_homology_ablation/server_summaries.csv` using the repository’s **Kabsch single-pass TM-score** (`scripts/pdb_bench/bench_utils.py`, `tm_score`), computed under 1:1 residue correspondence against RCSB native mmCIF (downloaded into `data/raw/pdb_cache/`, gitignored). This is not TM-align/US-align (no alignment search), but provides a consistent readout for same-length, index-aligned comparisons.
 
 **Physical stability under constrained FastRelax (nstruct=20).** Figure 5B summarizes the drift distribution (Cα RMSD to each method’s input trace) across 20 independent relaxation trajectories. Omega shows a lower drift distribution and a shorter tail than QUARK/I‑TASSER under the same restraint strength (coord_sd=1.0 Å, coord_weight=1.0).
 
@@ -151,4 +151,7 @@ Artifacts:
   `../runs/quark_itasser_homology_ablation/rosetta_relax_quark_2cro_n20_per_struct.csv`,  
   `../runs/quark_itasser_homology_ablation/rosetta_relax_itasser_2cro_n20_per_struct.csv`
 - Figure: `../runs/quark_itasser_homology_ablation/figures/threeway_2cro_panelAB.png`
+
+**Upgraded Figure 5 (multi-target).** A combined multi-target view (1R69 + 2CRO) is provided at:
+- `../runs/quark_itasser_homology_ablation/figures/fig5_multi_target.png`
 

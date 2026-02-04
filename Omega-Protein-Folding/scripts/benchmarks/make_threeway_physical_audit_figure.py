@@ -37,6 +37,8 @@ def _load_tm(target_id: str) -> dict[str, float]:
     for _, r in df.iterrows():
         m = str(r["method"]).strip().lower()
         try:
+            if str(r.get("source", "")).strip().lower() != "tm_kabsch":
+                continue
             out[m] = float(r["tm_score_to_native"])
         except Exception:
             continue
