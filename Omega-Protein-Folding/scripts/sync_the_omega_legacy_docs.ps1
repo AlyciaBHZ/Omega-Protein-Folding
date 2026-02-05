@@ -1,6 +1,6 @@
 param(
   # Path to the `the-omega/docs` folder (a git working tree).
-  [string]$TheOmegaDocsPath = (Join-Path $PSScriptRoot "..\\..\\the-omega\\docs"),
+  [string]$TheOmegaDocsPath,
 
   # Destination legacy docs folder inside this repo.
   [string]$DestLegacyDocsPath = (Join-Path $PSScriptRoot "..\legacy-docs"),
@@ -19,6 +19,27 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
+
+function Resolve-TheOmegaDocsPath {
+  param([string]$Provided)
+
+  if (-not [string]::IsNullOrWhiteSpace($Provided)) {
+    return $Provided
+  }
+
+  # Common local layouts:
+  # - Desktop\nobel\the-omega\docs  (used in this workspace)
+  # - Desktop\the-omega\docs
+  $candidates = @(
+    (Join-Path $PSScriptRoot "..\\..\\nobel\\the-omega\\docs"),
+    (Join-Path $PSScriptRoot "..\\..\\the-omega\\docs")
+  )
+  foreach ($p in $candidates) {
+    if (Test-Path -LiteralPath $p) { return $p }
+  }
+
+  throw "TheOmegaDocsPath not provided and no default candidate found. Provide -TheOmegaDocsPath pointing to the the-omega\\docs folder."
+}
 
 function Assert-PathExists {
   param([string]$Path, [string]$Label)
@@ -181,8 +202,12 @@ function Copy-File {
   Copy-Item -LiteralPath $Source -Destination $Dest -Force
 }
 
+$TheOmegaDocsPath = Resolve-TheOmegaDocsPath -Provided $TheOmegaDocsPath
 Assert-PathExists -Path $TheOmegaDocsPath -Label "TheOmegaDocsPath"
 Assert-PathExists -Path $DestLegacyDocsPath -Label "DestLegacyDocsPath"
+
+$TheOmegaDocsPath = (Resolve-Path -LiteralPath $TheOmegaDocsPath).Path
+$DestLegacyDocsPath = (Resolve-Path -LiteralPath $DestLegacyDocsPath).Path
 
 Write-Host "==> Pulling latest in: $TheOmegaDocsPath" -ForegroundColor Green
 & git -C $TheOmegaDocsPath pull | Out-Host
@@ -198,13 +223,43 @@ Write-Host "==> Syncing to: $DestLegacyDocsPath" -ForegroundColor Green
 #
 $theOmegaRepoPath = Split-Path -Parent $TheOmegaDocsPath
 Assert-PathExists -Path $theOmegaRepoPath -Label "TheOmega repo root"
+$theOmegaRepoPath = (Resolve-Path -LiteralPath $theOmegaRepoPath).Path
 
 $tempRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("the-omega-docs-export-" + [System.Guid]::NewGuid().ToString("N"))
 New-Item -ItemType Directory -Force -Path $tempRoot | Out-Null
 
 $zipPath = Join-Path $tempRoot "the-omega-docs.zip"
 Write-Host "==> Exporting git-tracked docs to temp: $tempRoot" -ForegroundColor Green
-& git -C $theOmegaRepoPath archive --format=zip --output $zipPath "HEAD:docs" | Out-Host
+$docsTree = "HEAD:docs"
+
+# Only sync paper-related docs by default (keeps the export small).
+$wantedRootEntries = @(
+  "papers",
+  "SUMMARY.md",
+  "index.md",
+  "index_cn.md",
+  "covenant_cn.md",
+  "covenant_en.md"
+)
+
+$rootEntries = & git -C $theOmegaRepoPath ls-tree --name-only $docsTree
+if ($LASTEXITCODE -ne 0) { throw "git ls-tree failed (exit $LASTEXITCODE)" }
+
+$includePaths = @()
+foreach ($p in $wantedRootEntries) {
+  if ($rootEntries -contains $p) { $includePaths += $p }
+}
+
+if ($includePaths.Count -eq 0) {
+  throw "No expected entries found under $docsTree"
+}
+
+Push-Location -LiteralPath $theOmegaRepoPath
+try {
+  & git archive --format=zip --output $zipPath $docsTree @includePaths | Out-Host
+} finally {
+  Pop-Location
+}
 if ($LASTEXITCODE -ne 0) { throw "git archive failed (exit $LASTEXITCODE)" }
 
 $extractDir = Join-Path $tempRoot "extracted"

@@ -1,13 +1,29 @@
 \section{结论}
 
-本文给出一条纯数学的递归生成链，并刻意将“可证结果”与“解释性框架”分层呈现（见引言小节 \ref{subsec:reading-guide}）：前者以定理/命题形式给出并可独立审计；后者仅用于动机与术语组织。本文的主要\textbf{数学结论}可概括为：
+本文围绕扫描—投影生成器及其诱导的折叠/读出算子，给出一组可独立审计的原创结论。为强调可复核性，下列条目均以定义/定理编号为锚点：
 \begin{enumerate}
-  \item \textbf{（事件与地址的形式化）}把“概念”落实为可测事件与其平移生成的柱事件族；递归地址化仅执行 $\sigma$-代数细化而不引入外加结构（第 3、5 节）。
-  \item \textbf{（黄金分支的极值口径）}在 Hurwitz/Markov 意义下给出反共振极值与唯一性口径，并将其转译为差异度证书的可审计上界；在金属平均族（常数型连分数）中进一步得到差异度证书主导对数系数的严格 gap（第 2 节与附录 H/H$'$）。
-  \item \textbf{（折叠与多尺度一致）}构造可计算满射 $\Fold_m:\Omega_m\to X_m$ 将 $2^m$ 微态折叠到 $F_{m+2}$ 稳定类型，并用逆系统/逆极限形式化跨分辨率相容性（第 \ref{subsec:folding-multiscale} 小节与附录 \ref{app:multiscale-inverse-limit}）。
-  \item \textbf{（序列级因子与有限状态表示）}把折叠提升为滑动块算子 $\Phi_m$，给出因子性质与显式 sofic 图表示（第 6 节）。
-  \item \textbf{（归一化算术与实现）}把 Zeckendorf 规范代表视为值纤维横截面，给出“逐位叠加 $\Rightarrow$ 折叠归一化”的等价表述，并引用纯数字层（有限状态/线性时间）的 Zeckendorf 算术实现（第 7 节与附录 E）。
-  \item \textbf{（Parry/\(\zeta\)/算子接口）}在黄金均值 SFT 上给出 Parry 最大熵测度与动力学 $\zeta$ 的标准闭式表达，并将柱投影与对角子代数的口径写成可核验命题（第 8--9 节）。
+  \item \textbf{（递归地址化的结构性极简性）}证明递归地址化仅对应于可测柱事件族的 $\sigma$-代数细化，不引入外加结构（命题 \ref{prop:recursive-addressing-refinement}）。
+  \item \textbf{（有限窗口折叠与跨分辨率相容）}构造有限窗口折叠 $\Fold_m$ 及其可计算实现，并证明合流性、逆系统相容与 sofic 因子接口的统一结论（定理 \ref{thm:fold-suite}；并见定义 \ref{def:fold-word} 与命题 \ref{prop:fold-basic}）。进一步刻画"降一阶分辨率"的规范差：最坏情形下朴素截断与折叠感知 restriction 可在前 $m$ 位逐位全异（定理 \ref{thm:fold-gauge-anomaly-max}）。并且在均匀输入基线下平均规范差密度存在且闭式为 \(g_\ast=4/9\)（定理 \ref{thm:fold-gauge-anomaly-density}）。
+  \item \textbf{（环论统一原则：域相统一窗、CRT 分裂模板与可完成的 Fibonacci-adic 极限）}由有限分辨率算术的模结构同构
+  $(X_m,\boxplus_m,\boxtimes_m)\cong \ZZ/(F_{m+2}\ZZ)$（定理 \ref{thm:finite-resolution-mod}），统一/破缺首先被模数的环论性质刚性决定：当 $F_{m+2}$ 为素数时进入域相（推论 \ref{cor:field-phase-fib-prime}；表 \ref{tab:fib_prime_resolution_windows} 给出分辨率窗口），当 $F_{m+2}$ 含多个不同素因子时 CRT 给出规范的多因子分裂模板（推论 \ref{cor:crt-factorization}）。
+  进一步，沿二幂子塔 $m_k=2^k-2$（使 $F_{m_k+2}=F_{2^k}$ 构成整除链）可定义严格逆极限环 $\ZZ_{\mathrm{Fib},2}$ 并得到紧致单位群（定义 \ref{def:fib-adic-ring} 与命题 \ref{prop:fib-adic-basic}），从而把跨尺度"统一电荷算术"完备化为一个明确可审计的数学对象。
+  \item \textbf{（投影本体数学与信息账本）}建立投影本体数学框架：定义扫描—投影生成器与投影词演算（定义 \ref{def:pom-spg}、\ref{def:pom-projection-word}、\ref{def:pom-projword-2cat}），并给出相对熵缺陷的闭式信息账本恒等式及其推论（定理 \ref{thm:pom-kl-ledger} 与推论 \ref{cor:pom-ent-increase-equals-kl}），从而将粗粒化的信息损失对象化为可计算的残差项。
+  \item \textbf{（离散联络口径下的异常曲率：规范场强的最小闭层定义）}把 \(E_m\) 与 \(\mathrm{LIFT}_G\) 视为分辨率轴与标签轴上的离散平行移动，并将异常签名 \(\mathsf{Anom}_G\) 解释为基本方块的曲率 \(2\)-胞腔（注 \ref{rem:pom-anom-as-curvature}），从而把“规范”从叙事层落回到可核对的闭层残差对象。
+  \item \textbf{（Bridge-Kit：严格化交换图的回归测试包）}把“prime-like（Euler product/显式公式）侧”与“谱/迹侧”的共同像落到常数层与低维指纹：以 Dirichlet--Mertens 常数张量 \(C_r\) 与异常签名 \(\mathsf{Anom}\) 为核心输出，并并列报告指数级慢模证书 \(\rho/\lambda\) 与低秩/傅里叶压缩指纹 \((\mathcal{E}_1,\eta_{\mathrm{tail}},\text{SVD})\)。该桥包已在仓库中被封装为一键可复现脚本 \texttt{scripts/exp\_bridge\_kit.py}（输出二级摘要 JSON 与可 \verb|\input| 的指纹片段），可作为后续实现改动的强一致性回归测试接口；并且异常只引入常数级预算补丁（\(e^{A_\infty}\)），不改变随分辨率 \(m\) 的主斜率。
+  \item \textbf{（最大纤维族的相位数与顶层纤维谱闭式）}在折叠纤维计数上，给出最大纤维闭式并进一步封口最大达到者相位数与次大/第三大纤维能级缺口（定理 \ref{thm:pom-max-fiber}、\ref{thm:pom-max-achievers-phase-stabilization}、\ref{thm:pom-second-max-fiber-closed-form}、\ref{thm:pom-third-max-fiber-even-closed-form}；推论 \ref{cor:pom-second-max-gap-constant} 与注 \ref{rem:pom-phase-defect-resource-meters}）。
+  \item \textbf{（空间/时间双通道桥包：最坏缺陷端点、有限寄存器与谱侧边界通道）}
+  折叠侧“最坏空间缺陷”的指数尺度由最大纤维闭式 \(D_{2k}=F_{k+2},D_{2k+1}=2F_{k+1}\) 锁定，从而给出可审计的 min-entropy 端点常数 \(h_\infty=\log(2/\sqrt\varphi)\)（定理 \ref{thm:pom-max-fiber}；推论 \ref{cor:pom-max-fiber-rate-endpoint}、\ref{cor:pom-min-entropy-rate}）。
+  平均意义下，Rényi--2 与 Shannon 熵率满足 \(h_2=\log(4/r_2)\) 及 \(h_2\le h_1\le \log\varphi\)，且偏离常数由 \(\log(\varphi r_2/4)\) 完全刻画（推论 \ref{cor:pom-s2-asymptotic}、\ref{cor:pom-shannon-entropy-squeeze}）。
+  谱侧则出现对应的“两通道竞争律”：真实输入 \(40\) 状态核的 \(\det(I-zM)\) 结构因子分解与二维慢模指纹 \(\mathbf{R}_{m,2}\) 把最坏慢化来源拆为 bulk/输入骨架与 boundary/符号残差两条正交通道（小节 \ref{subsec:rho-m2-2d-fingerprint}；定义 \ref{def:rho-m2-fingerprint}）。
+  最后，折叠在信息率意义下不压缩，其“丢失”可被提升为显式缺陷寄存器使整体映射单射（注 \ref{rem:pom-finite-defect}），而二进制区间折叠的上界饱和点集合 \(\{1,2,3,4,5,7,12\}\) 提供了稀有 Diophantine 事件的可复核指纹（附录 \ref{app:fold-multiplicity}；表 \ref{tab:fold_binary_saturation_points}）。
+  \item \textbf{（读出塔重写与可判定闭环）}在投影词的局部读出塔片段上证明终止性与合流性并给出正规形（定理 \ref{thm:pom-rewrite-termination-confluence}），并由此得到词问题的可判定性与审计闭环（命题 \ref{prop:pom-projword-decidable}、\ref{prop:pom-rewrite-audit-loop}）。
+  \item \textbf{（碰撞核编译与共振判别）}对任意阶碰撞矩给出有限状态的 moment-kernel 编译与 Perron 主谱刻画（定理 \ref{thm:pom-collision-kernel-ak}），并给出模态约束导致 Hankel 秩下降的充分判别，从而将共振定位为可检验的机制（定理 \ref{thm:pom-moment-resonance}）。
+  \item \textbf{（二维压力曲面与编译相图底座）}在允许边权 \(w(s,a)\in\RR_{\ge 0}\) 的对称幂系数提取口径下，把温度化门 \(\mathrm{PROJ}_u\) 的权重注入 moment-kernel，得到统一二维谱对象 \(r_q(u)=\rho(\widetilde A_q(u))\) 与压力曲面 \(P(q,u)=\log r_q(u)-q\log|A_{\mathrm{out}}|\)（\S\ref{subsec:pom-pressure-surface-qu}；图 \ref{fig:moment-pressure-surface-sync10} 给出示例核的可复现热图），从而为 \((u,q,\varepsilon)\) 三旋钮的资源调度提供一个可计算相图坐标系。
+  \item \textbf{（profinite 轴上的 Chebotarev 提升）}在核版 GRH 的平方根界假设下，沿素数寄存器的逆极限轴提升有限层 Chebotarev 计数，并对任意 cylinder 集合给出平方根级等分布误差（定理 \ref{thm:pom-profinite-axis}）。
+  \item \textbf{（adelic 局部--整体异常抵消判据）}在 \(L^2(\widehat{\ZZ})\) 的统一模数框架中，以有限部异常签名构造整体异常泛函 \(\mathcal{A}_{\le P}(\theta)\)，并以其稳定驻点/极小作为“跨模数一致提升”的可证伪统一点判据（注 \ref{rem:pom-adelic-anom-functional}）。
+  \item \textbf{（谱隙对齐的统一判据与常数域匹配的群选择器）}在群标签扭曲谱接口上定义表示通道的谱隙耦合量 \(g_{\varrho}(u)=\log(\lambda_1(u)/\rho(M_{K,\varrho}(u)))\)，并提出“统一 = 扭曲通道谱隙对齐”的可计算 minimax 判据；在自对偶 completion 下统一点自然钉在 \(u=1\)，并由六分支锁定与低阶 Rényi 近单谱维信号提供可审计数值锚点，同时给出离散素数模轴上的谱隙扩散跑动诊断与 lapse 重标定示例（见 \ref{subsec:group-unification-spectral-alignment}；表 \ref{tab:real-input-40-rho-ppp-prime-scan} 与表 \ref{tab:real-input-40-lapse-modulated-tau-mix}）。
+  \item \textbf{（局部双几何的统一生成元与方向耦合比）}在真实输入 40 状态核的三维观测下，定义方向耦合比 \(\mathcal{W}(v)\) 并证明其驻点对应曲率错配谱的本征模态；数值上恒压漂移方向与唯一正曲率模态高度对齐，从而给出主导统一常数 \(W_{\mathrm{GUT}}\approx 5.32\)（定义 \ref{def:real-input-40-directional-coupling} 与命题 \ref{prop:real-input-40-unified-generator-alignment}）。
+  \item \textbf{（Fold6 的刚性统一种子与先验离散 Weyl 作用）}在 \(m=6\) 的稳定类型层上，\(X_6\) 的 \(18\oplus 3\) 分裂及其 cyclic 子集的 \(6+12\) Hamming-weight 指纹，把“Cartan-like 三方向 + 根样十八方向”的计数结构直接锁定到 rank-\(3\)、维 \(21\) 的简单李型 \(B_3/C_3\) 候选；相应离散对称核为 \(W(B_3)\cong W(C_3)\cong (\ZZ_2)^3\rtimes S_3\) 且阶为 \(48\)。该结论以可复现脚本与根字典表给出（见 \ref{subsec:bdry-tower-zeck-gut}；附录 \ref{app:fold6-b3c3-seed-dictionary}）。
 \end{enumerate}
 
-最后再次强调两点：其一，本文的“涌现”用语只作为解释性组织语言；其二，本文关于“黄金分支最优性”的严格结论仅限于 Hurwitz/Markov 与差异度证书链条，并不覆盖“折叠后分布到 Parry 基线的 TV/KL 距离”等更强泛函的全局最优性（详见注 \ref{rem:what-is-optimized} 与第 \ref{sec:experiments} 节）。
+最后指出：本文中的术语“涌现”仅用于组织动机与解释性叙事；任何后续推理均以编号结果为前提。关于黄金分支的“最优性”讨论亦严格限定在文中显式给出的数论证书链条之内，且不外推到更强的统计泛函最优性（见注 \ref{rem:what-is-optimized}）。

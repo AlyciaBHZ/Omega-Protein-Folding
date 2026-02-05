@@ -32,11 +32,7 @@ X_m:=\{w\in\{0,1\}^m:\ w\ \text{不含子串}\ 11\}.
 \]
 将 $X_m$ 视为稳定类型空间：只有满足局部禁止律的词被视为“可稳定重复”的读出类型。
 
-\subsection{索引互补：Beatty 互补定理与黄金分支}\label{subsec:beatty-complement}
-
-本小节给出一个“索引侧”的算术刻画：在区间窗二元读出下，命中时刻与未命中时刻可由一对互补 Beatty 序列描述。该结论将“读出互补”从符号语言侧（长度 $m$ 的稳定词空间 $X_m$）补全到自然数索引侧（时间坐标的互补划分）。
-
-\begin{definition}[标准机械词与命中时刻集合]\label{def:standard-mechanical-word}
+\subsection{索引互补：Beatty 互补定理与黄金分支}\label{subsec:beatty-complement}本小节给出一个“索引侧”的算术刻画：在区间窗二元读出下，命中时刻与未命中时刻可由一对互补 Beatty 序列描述。该结论将“读出互补”从符号语言侧（长度 $m$ 的稳定词空间 $X_m$）补全到自然数索引侧（时间坐标的互补划分）。\begin{definition}[标准机械词与命中时刻集合]\label{def:standard-mechanical-word}
 取 $0<\alpha<1$ 且 $\alpha\notin\QQ$，令
 \[
 x_t=x_0+t\alpha\ (\mathrm{mod}\ 1)\in\RR/\ZZ,\qquad t\in\ZZ_{\ge 0}.
@@ -49,9 +45,7 @@ b_t=\ind_{W_\alpha}(x_t)\in\{0,1\}.
 \[
 A:=\{t+1\in\NN:\ b_t=1\},\qquad B:=\{t+1\in\NN:\ b_t=0\}.
 \]
-\end{definition}
-
-\begin{proposition}[命中/未命中索引为互补 Beatty 序列]\label{prop:beatty-complement-indices}
+\end{definition}\begin{proposition}[命中/未命中索引为互补 Beatty 序列]\label{prop:beatty-complement-indices}
 在定义 \ref{def:standard-mechanical-word} 的设定下，令
 \[
 r:=\frac{1}{\alpha}>1,\qquad s:=\frac{1}{1-\alpha}>1,
@@ -62,9 +56,7 @@ A=\big\{\big\lfloor (n+\gamma)r\big\rfloor:\ n\in\NN\big\},\qquad
 B=\big\{\big\lfloor (n+\gamma')s\big\rfloor:\ n\in\NN\big\}.
 \]
 并且由于 $1/r+1/s=\alpha+(1-\alpha)=1$，由 Beatty 互补定理可知 $A$ 与 $B$ 不交且并为 $\NN$。特别地，当取黄金分支 $\alpha=\varphi^{-1}$ 时，有 $r=\varphi$、$s=\varphi^{2}$，从而命中/未命中索引由 $(\varphi,\varphi^2)$ 的互补 Beatty 对给出。\cite{Beatty1926}
-\end{proposition}
-
-\begin{proof}
+\end{proposition}\begin{proof}
 对任意 $k\in\NN$，记累计命中数
 \[
 N_1(k):=\sum_{t=0}^{k-1} b_t.

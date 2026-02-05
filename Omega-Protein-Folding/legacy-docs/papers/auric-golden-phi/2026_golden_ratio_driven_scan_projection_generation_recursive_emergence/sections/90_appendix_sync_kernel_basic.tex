@@ -20,7 +20,7 @@ Q=\{000,001,002,010,100,101,0\overline{1}2,1\overline{1}2,01\overline{1},11\over
 第 9.1 节把黄金均值约束（禁止相邻 $11$）的移位空间视为 SFT，并用邻接矩阵把 $\zeta$ 写成行列式。这里做的是同一件事：只是把"语法 SFT"换成"机制 SFT（同步核）"。
 \end{remark}
 
-\subsubsection{邻接矩阵 \(B\) 与同步核移位 \((X_B,\sigma)\)}
+\subsubsection{邻接矩阵 B 与同步核移位 (X\_B, sigma)}\label{app:sync-kernel-basic}
 固定状态顺序
 \[
 (000,001,002,010,100,101,0\overline{1}2,1\overline{1}2,01\overline{1},11\overline{1}),
@@ -86,7 +86,7 @@ p_n=\frac{1}{n}\sum_{d\mid n}\mu(d)\,a_{n/d},
 \]
 其中 $\mu$ 为 Möbius 函数。该关系可视作 $\zeta$ 的欧拉乘积结构在"周期/primitive"分解上的等价表达（与第 9.1 节的周期点计数接口一致）。
 
-\subsubsection{显式数值与渐近：\texorpdfstring{$p_n\sim 3^n/n$}{p\_n ~ 3^n/n}}
+\subsubsection{显式数值与渐近：\texorpdfstring{$p_n\sim 3^n/n$}{p\_n ~ 3**n/n}}
 对该 $B$，前 10 项周期点计数（迹）为
 \[
 (a_1,\dots,a_{10})=(2,14,20,94,222,770,2116,6694,19442,59494),
@@ -159,8 +159,10 @@ r:=3z\in(0,1),\qquad
 \qquad
 \mathfrak{M}_B\approx 0.7383577034164908.
 \]
+更高精度的 $\log\mathfrak{M}_B$ 及其对应的 Dirichlet 留数与 $s=1$ 有限部常数（见附录 \ref{app:real-input-40-dirichlet} 的接口）汇总于表 \ref{tab:sync-kernel-B-dirichlet-constants}（由脚本生成并 \verb|\input|）：
+\input{sections/generated/tab_sync_kernel_B_dirichlet_constants}
 
-\begin{remark}[与第 9 节的接口说明]
+\begin{remark}[与第 10 节的接口说明]
 \begin{itemize}
   \item 第 9.1 节给出"语法 SFT"的 $\zeta$；这里给出"机制 SFT（在线归一化核）"的 $\zeta_B$。两者共享同一条可审计推导链：闭路径计数 $\Rightarrow \mathrm{Tr}(A^n) \Rightarrow \det(I-zA)$。
   \item 第 9.3 节给出 Abel/有限部作为解析层读出；这里展示它如何把 primitive 谱压缩成一个可比较的标量 $\mathfrak{M}_B$。
@@ -169,5 +171,5 @@ r:=3z\in(0,1),\qquad
 \end{remark}
 
 \begin{remark}[加权 primitive 谱的可审计扩展]
-进一步可在同步核的边上引入与 carry、负携带或状态含 $\overline{1}$ 等相关的权重，构造加权矩阵 $B_\theta$ 与 $\zeta_{B,\theta}$，并在 $r\uparrow 1$ 时抽取加权有限部常数族。这样"隐含属性"由状态名转为一组可审计的解析不变量（均值、方差、偏差常数），仍完全落在第 9 节的接口体系内。
+进一步可在同步核的边上引入与 carry、负携带或状态含 $\overline{1}$ 等相关的权重，构造加权矩阵 $B_\theta$ 与 $\zeta_{B,\theta}$，并在 $r\uparrow 1$ 时抽取加权有限部常数族。这样"隐含属性"由状态名转为一组可审计的解析不变量（均值、方差、偏差常数），仍完全落在第 10 节的接口体系内。
 \end{remark}

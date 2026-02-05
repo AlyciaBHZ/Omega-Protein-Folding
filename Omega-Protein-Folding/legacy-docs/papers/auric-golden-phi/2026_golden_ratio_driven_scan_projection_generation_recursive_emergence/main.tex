@@ -1,12 +1,38 @@
 \ifdefined\pdfoutput\pdfoutput=1\fi % pdfTeX only; safe under XeTeX/LuaTeX
 \documentclass[11pt,letterpaper,fontset=fandol]{ctexart}
 
+% Silence spurious “Missing character … (U+0013)” log noise.
+\tracinglostchars=0\relax
+
 \usepackage{geometry}
 \geometry{letterpaper, margin=1in}
 
 \usepackage{amsmath, amssymb, amsthm}
 \usepackage{amscd}
-\usepackage{graphicx}
+\makeatletter
+\@ifundefined{FASTBUILD}{%
+  \usepackage{graphicx}%
+}{%
+  % Fast build: skip loading external graphics, speed up compilation.
+  \usepackage[draft]{graphicx}%
+}%
+\makeatother
+
+% In FASTBUILD mode we still want compilation to succeed even if some
+% (pipeline-generated) graphics are missing. Replace missing graphics with a
+% small framed placeholder instead of a hard error.
+\makeatletter
+\@ifundefined{FASTBUILD}{}{%
+  \let\origincludegraphics\includegraphics
+  \renewcommand{\includegraphics}[2][]{%
+    \IfFileExists{#2}{%
+      \origincludegraphics[#1]{#2}%
+    }{%
+      \fbox{\ttfamily missing graphic: \detokenize{#2}}%
+    }%
+  }%
+}%
+\makeatother
 \usepackage[hypertexnames=false]{hyperref}
 \usepackage{cite}
 \usepackage{xcolor}
@@ -20,6 +46,13 @@
 \usepackage{mathrsfs}
 \usepackage{dsfont}
 
+% Ask xeCJK to synthesize missing CJK font shapes when needed.
+\makeatletter
+\@ifundefined{xeCJKsetup}{}{%
+  \xeCJKsetup{AutoFakeBold=true,AutoFakeSlant=true}%
+}%
+\makeatother
+
 % Allow line breaks in \url/\path at underscores.
 \makeatletter
 \g@addto@macro\UrlBreaks{\do\_}
@@ -32,8 +65,11 @@
 \newtheorem{corollary}[theorem]{推论}
 \newtheorem{definition}[theorem]{定义}
 \newtheorem{remark}[theorem]{注}
+\newtheorem{axiom}[theorem]{公理}
 \newtheorem{assumption}[theorem]{假设}
 \newtheorem{example}[theorem]{例}
+\newtheorem{algorithm}[theorem]{算法}
+\newtheorem{conjecture}[theorem]{猜想}
 
 % Common commands
 \newcommand{\dd}{\mathrm{d}}
@@ -48,6 +84,7 @@
 \newcommand{\ind}{\mathbf{1}}
 \newcommand{\card}[1]{\left\lvert #1\right\rvert}
 \newcommand{\Tr}{\mathrm{Tr}}
+\newcommand{\Mat}{\mathrm{Mat}}
 
 % Paper-specific
 \newcommand{\Fold}{\mathrm{Fold}}
@@ -56,10 +93,11 @@
 \fvset{breaklines=true,breakanywhere=true,fontsize=\small}
 
 \title{黄金比例驱动的扫描—投影生成：\\\large 由群作用与统计稳定性递归涌现的算术与概念层级}
-\author{}
+\author{马昊伯\\CHRONOAI PTE. LTD.\\\#14-02, Marina Bay Financial Centre Tower 1\\8 Marina Blvd, Singapore 018981}
 \date{\today}
 
 \begin{document}
+\sloppy
 \maketitle
 
 \input{sections/00_frontmatter}
@@ -71,11 +109,11 @@
 \input{sections/05_recursive_addressing}
 \input{sections/06_golden_branch_folding}
 \input{sections/07_emergent_arithmetic}
+\input{sections/08_projection_ontology_mathematics}
 \input{sections/08_group_unification}
 \input{sections/09_zeta_finite_part}
 \input{sections/10_high_dimensional_cut_project}
 \input{sections/12_experiments}
-\input{sections/13_related_work}
 \input{sections/11_conclusion}
 
 \FloatBarrier
@@ -86,4 +124,3 @@
 \input{sections/99_bibliography}
 
 \end{document}
-

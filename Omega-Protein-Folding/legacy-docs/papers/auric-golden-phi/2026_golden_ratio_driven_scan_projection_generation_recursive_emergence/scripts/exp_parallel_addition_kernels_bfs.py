@@ -27,6 +27,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Deque, Dict, Iterable, List, Mapping, Tuple
 
+import numpy as np
+
 from common_paths import export_dir, generated_dir
 from common_phi_fold import Progress
 
@@ -107,6 +109,38 @@ def _power_iteration(
     return lam
 
 
+def _power_iteration_nonneg_inplace(
+    n: int,
+    mul_inplace,
+    *,
+    itmax: int,
+    tol: float,
+    prog: Progress,
+    label: str,
+) -> float:
+    """Power iteration with reusable NumPy buffers (nonnegative operator)."""
+    if n <= 0:
+        return 0.0
+    x = np.full(n, 1.0 / n, dtype=float)
+    y = np.empty_like(x)
+    lam = 0.0
+    for it in range(1, itmax + 1):
+        mul_inplace(x, y)
+        s = float(np.sum(y))
+        if not (s > 0.0):
+            return 0.0
+        y *= 1.0 / s
+        lam_new = s
+        if it > 50 and abs(lam_new - lam) / max(1.0, abs(lam_new)) < tol:
+            prog.tick(f"{label} power it={it} lam~{lam_new:.12g}")
+            return lam_new
+        lam = lam_new
+        x, y = y, x
+        if it % 200 == 0:
+            prog.tick(f"{label} power it={it} lam~{lam_new:.12g}")
+    return lam
+
+
 @dataclass(frozen=True)
 class KernelSpec:
     name: str
@@ -120,10 +154,13 @@ class KernelSpec:
     carry_free_traces: List[int]
 
 
-def _bfs_states(spec: KernelSpec, prog: Progress) -> Tuple[Dict[State, int], List[Tuple[int, int, int]]]:
+def _bfs_states(spec: KernelSpec, prog: Progress) -> Tuple[Dict[State, int], List[Tuple[int, int, int, int, int]]]:
     idx: Dict[State, int] = {spec.init_state: 0}
     q: Deque[State] = deque([spec.init_state])
-    edges: List[Tuple[int, int, int]] = []  # (src_id, dst_id, kappa)
+    # (src_id, dst_id, input_symbol, kappa_A, kappa_B)
+    # For K21, kappa_A and kappa_B correspond to the two elimination phases.
+    # For other kernels, we set kappa_A=kappa and kappa_B=0.
+    edges: List[Tuple[int, int, int, int, int]] = []
     b = len(spec.alphabet)
     steps = 0
     while q:
@@ -134,7 +171,13 @@ def _bfs_states(spec: KernelSpec, prog: Progress) -> Tuple[Dict[State, int], Lis
             if ns not in idx:
                 idx[ns] = len(idx)
                 q.append(ns)
-            edges.append((sid, idx[ns], kappa))
+            if "21-local" in spec.name:
+                # In our implementation, kappa = 1_{qA!=0}+1_{qB!=0}.
+                # Recover components deterministically by recomputing them here.
+                kA, kB = _kappa_split_21_local(s, a)
+                edges.append((sid, idx[ns], int(a), int(kA), int(kB)))
+            else:
+                edges.append((sid, idx[ns], int(a), int(kappa), 0))
             steps += 1
         if steps % (b * 5000) == 0:
             prog.tick(f"{spec.name} bfs states={len(idx)} edges={len(edges)}")
@@ -143,14 +186,14 @@ def _bfs_states(spec: KernelSpec, prog: Progress) -> Tuple[Dict[State, int], Lis
 
 def _stationary_uniform_inputs(
     n_states: int,
-    edges: List[Tuple[int, int, int]],
+    edges: List[Tuple[int, int, int, int, int]],
     b: int,
     prog: Progress,
     label: str,
 ) -> List[float]:
     # Transition matrix is average over input symbols: P_ij = (# of inputs sending i->j)/b.
     out: List[Dict[int, int]] = [dict() for _ in range(n_states)]
-    for i, j, _ in edges:
+    for i, j, _a, _kA, _kB in edges:
         out_i = out[i]
         out_i[j] = out_i.get(j, 0) + 1
 
@@ -175,14 +218,50 @@ def _stationary_uniform_inputs(
     return pi
 
 
+def _stationary_uniform_inputs_from_arrays(
+    *,
+    n_states: int,
+    src: np.ndarray,
+    dst: np.ndarray,
+    b: int,
+    prog: Progress,
+    label: str,
+) -> np.ndarray:
+    """Stationary distribution under uniform IID inputs, using sparse scatter-add."""
+    if n_states <= 0:
+        return np.zeros(0, dtype=float)
+    inv_b = 1.0 / float(b)
+    pi = np.full(n_states, inv_b * (float(b) / float(n_states)), dtype=float)
+    new = np.empty_like(pi)
+    tmp = np.empty(src.shape[0], dtype=float)
+    for it in range(1, 20000 + 1):
+        # new[dst] += pi[src] / b
+        np.take(pi, src, out=tmp)
+        new.fill(0.0)
+        np.add.at(new, dst, tmp)
+        new *= inv_b
+        s = float(np.sum(new))
+        if s > 0.0:
+            new *= 1.0 / s
+        diff = float(np.sum(np.abs(new - pi)))
+        pi, new = new, pi
+        if diff < 1e-13 and it > 200:
+            prog.tick(f"{label} stationary it={it} diff={diff:.3e}")
+            break
+        if it % 1000 == 0:
+            prog.tick(f"{label} stationary it={it} diff={diff:.3e}")
+    return pi
+
+
 def _kappa_dist(
-    edges: List[Tuple[int, int, int]],
+    edges: List[Tuple[int, int, int, int, int]],
     pi: List[float],
     b: int,
 ) -> Dict[int, float]:
     # Under uniform input, from state i each input has prob 1/b.
     d: Dict[int, float] = {}
-    for i, _, k in edges:
+    for i, _j, _a, kA, kB in edges:
+        k = int(kA) + int(kB)
         d[k] = d.get(k, 0.0) + pi[i] / b
     s = sum(d.values())
     if s == 0.0:
@@ -190,9 +269,68 @@ def _kappa_dist(
     return {k: v / s for k, v in sorted(d.items())}
 
 
+def _kappa_dist_from_arrays(
+    *,
+    src: np.ndarray,
+    kappa: np.ndarray,
+    pi: np.ndarray,
+    b: int,
+) -> Dict[int, float]:
+    inv_b = 1.0 / float(b)
+    tmp = np.empty(src.shape[0], dtype=float)
+    np.take(pi, src, out=tmp)
+    tmp *= inv_b
+    k_int = kappa.astype(np.int64, copy=False)
+    max_k = int(np.max(k_int)) if k_int.size else 0
+    hist = np.bincount(k_int, weights=tmp, minlength=max_k + 1)
+    s = float(np.sum(hist))
+    if not (s > 0.0):
+        return {}
+    hist = hist / s
+    out: Dict[int, float] = {}
+    for k, p in enumerate(hist.tolist()):
+        if p:
+            out[int(k)] = float(p)
+    return out
+
+
+def _kappa_split_probs(
+    edges: List[Tuple[int, int, int, int, int]],
+    pi: List[float],
+    b: int,
+) -> Tuple[float, float]:
+    # Return (P(kappa_A>0), P(kappa_B>0)) under stationary pi and uniform inputs.
+    pA = 0.0
+    pB = 0.0
+    for i, _j, _a, kA, kB in edges:
+        w = pi[i] / b
+        if kA:
+            pA += w
+        if kB:
+            pB += w
+    return pA, pB
+
+
+def _kappa_split_probs_from_arrays(
+    *,
+    src: np.ndarray,
+    kA: np.ndarray,
+    kB: np.ndarray,
+    pi: np.ndarray,
+    b: int,
+) -> Tuple[float, float]:
+    inv_b = 1.0 / float(b)
+    tmp = np.empty(src.shape[0], dtype=float)
+    np.take(pi, src, out=tmp)
+    tmp *= inv_b
+    pA = float(np.sum(tmp[kA != 0]))
+    pB = float(np.sum(tmp[kB != 0]))
+    return pA, pB
+
+
 def _lambda_u(
     n_states: int,
-    edges: List[Tuple[int, int, int]],
+    edges: List[Tuple[int, int, int, int, int]],
     u: float,
     prog: Progress,
     label: str,
@@ -200,8 +338,8 @@ def _lambda_u(
     # Spectral radius of weighted adjacency M(u), where each labeled edge contributes u^kappa.
     # We do power iteration on the linear operator (sparse).
     out: List[List[Tuple[int, int]]] = [[] for _ in range(n_states)]  # (dst, kappa)
-    for i, j, k in edges:
-        out[i].append((j, k))
+    for i, j, _a, kA, kB in edges:
+        out[i].append((j, int(kA) + int(kB)))
 
     def mul(x: List[float]) -> List[float]:
         y = [0.0] * n_states
@@ -223,6 +361,55 @@ def _lambda_u(
         return y
 
     return _power_iteration(n_states, mul, itmax=8000, tol=1e-12, prog=prog, label=f"{label} u={u}")
+
+
+def _lambda_u_from_arrays(
+    *,
+    n_states: int,
+    src: np.ndarray,
+    dst: np.ndarray,
+    kappa: np.ndarray,
+    u: float,
+    prog: Progress,
+    label: str,
+) -> float:
+    """Spectral radius of weighted adjacency M(u), computed by power iteration."""
+    if n_states <= 0:
+        return 0.0
+
+    k_int = kappa.astype(np.int64, copy=False)
+    if u == 0.0:
+        mask = k_int == 0
+        src0 = src[mask]
+        dst0 = dst[mask]
+
+        def mul_inplace(x: np.ndarray, y: np.ndarray) -> None:
+            y.fill(0.0)
+            np.add.at(y, dst0, x[src0])
+
+        return _power_iteration_nonneg_inplace(
+            n_states, mul_inplace, itmax=8000, tol=1e-12, prog=prog, label=f"{label} u={u}"
+        )
+
+    # Precompute edge weights w_e = u^{kappa_e}.
+    k_max = int(np.max(k_int)) if k_int.size else 0
+    pow_u = np.empty(k_max + 1, dtype=float)
+    pow_u[0] = 1.0
+    for k in range(1, k_max + 1):
+        pow_u[k] = pow_u[k - 1] * float(u)
+    w_edge = pow_u[k_int]  # shape: (n_edges,)
+
+    tmp = np.empty(src.shape[0], dtype=float)
+
+    def mul_inplace(x: np.ndarray, y: np.ndarray) -> None:
+        y.fill(0.0)
+        np.take(x, src, out=tmp)
+        tmp[:] *= w_edge
+        np.add.at(y, dst, tmp)
+
+    return _power_iteration_nonneg_inplace(
+        n_states, mul_inplace, itmax=8000, tol=1e-12, prog=prog, label=f"{label} u={u}"
+    )
 
 
 # -----------------------------
@@ -357,6 +544,17 @@ def _step_21_local(state: State, v_t: int) -> Tuple[State, int]:
     return ns, kappa
 
 
+def _kappa_split_21_local(state: State, v_t: int) -> Tuple[int, int]:
+    # Mirror the internal decisions of _step_21_local, but return (kappa_A, kappa_B).
+    v_tm2, v_tm1, qA_tm3, qA_tm2, w_tm6, w_tm5, w_tm4, w_tm3, qB_tm6, qB_tm5 = state
+    qA_tm1 = _qA_algoA(v_tm2, v_tm1, v_t)
+    w_tm2 = v_tm2 - 3 * qA_tm2 + qA_tm3 + qA_tm1
+    qB_tm4 = _qB_algoB(w_tm6, w_tm5, w_tm4, w_tm3, w_tm2)
+    kA = 1 if qA_tm1 != 0 else 0
+    kB = 1 if qB_tm4 != 0 else 0
+    return kA, kB
+
+
 def _carry_free_traces_full_shift(m: int, n_max: int) -> List[int]:
     return [m**n for n in range(1, n_max + 1)]
 
@@ -436,10 +634,10 @@ def _make_table(rows: List[Dict[str, Any]]) -> str:
         r"\caption{并行核的单流在线编译（BFS）与 carry-free 指纹（由脚本 \texttt{scripts/exp\_parallel\_addition\_kernels\_bfs.py} 生成）。}"
     )
     lines.append(r"\label{tab:parallel-addition-kernels-bfs}")
-    lines.append(r"\begin{tabular}{@{}lcccccc@{}}")
+    lines.append(r"\begin{tabular}{@{}lccccccc@{}}")
     lines.append(r"\toprule")
     lines.append(
-        r"核（单流） & 输入字母表 $B$ & $|Q|$ & $\kappa$-均值 & carry-free $\det(I-zA_0)$ & $(p_n(A_0))_{n\le 12}$ & $\lambda(u)$: $u=0,1$ \\"
+        r"核（单流） & 输入字母表 $B$ & $|Q|$ & $\kappa$-均值 & $P(q^A\neq 0),P(q^B\neq 0)$ & carry-free $\det(I-zA_0)$ & $(p_n(A_0))_{n\le 12}$ & $\lambda(u)$: $u=0,1$ \\"
     )
     lines.append(r"\midrule")
     for r in rows:
@@ -450,6 +648,7 @@ def _make_table(rows: List[Dict[str, Any]]) -> str:
                     r["B_tex"],
                     str(r["states"]),
                     r["kappa_mean"],
+                    r["qsplit"],
                     f"${r['det0']}$",
                     f"${r['p12']}$",
                     f"${r['lambda_u01']}$",
@@ -531,14 +730,29 @@ def main() -> None:
         n_states = len(idx)
         b = len(spec.alphabet)
 
-        pi = _stationary_uniform_inputs(n_states, edges, b=b, prog=prog, label=spec.name)
-        kdist = _kappa_dist(edges, pi, b=b)
+        # Convert edges to compact numeric arrays once (used by multiple computations).
+        e_arr = np.asarray([(i, j, kA, kB) for (i, j, _a, kA, kB) in edges], dtype=np.int64)
+        src = e_arr[:, 0]
+        dst = e_arr[:, 1]
+        kA = e_arr[:, 2]
+        kB = e_arr[:, 3]
+        kappa = kA + kB
+
+        pi_np = _stationary_uniform_inputs_from_arrays(
+            n_states=n_states, src=src, dst=dst, b=b, prog=prog, label=spec.name
+        )
+        pi = [float(x) for x in pi_np.tolist()]
+
+        kdist = _kappa_dist_from_arrays(src=src, kappa=kappa, pi=pi_np, b=b)
         kmean = sum(k * p for k, p in kdist.items())
+        pA, pB = _kappa_split_probs_from_arrays(src=src, kA=kA, kB=kB, pi=pi_np, b=b)
 
         # spectral radius of weighted adjacency for u grid
         lams = {}
         for u in u_grid:
-            lams[str(u)] = _lambda_u(n_states, edges, u=u, prog=prog, label=spec.name)
+            lams[str(u)] = _lambda_u_from_arrays(
+                n_states=n_states, src=src, dst=dst, kappa=kappa, u=u, prog=prog, label=spec.name
+            )
         lam0 = lams.get("0.0", lams.get("0", None))
         lam1 = lams.get("1.0", lams.get("1", None))
 
@@ -568,8 +782,12 @@ def main() -> None:
                 "block_size": spec.block_size,
                 "alphabet_B": spec.alphabet,
                 "states_reachable": n_states,
+                # Deterministic single-flow transition edges (compact, for reproducible downstream diagnostics).
+                # Format: [src, dst, kappa_A, kappa_B]. Total activity is kappa = kappa_A + kappa_B.
+                "edges": [[int(i), int(j), int(kA), int(kB)] for (i, j, _a, kA, kB) in edges],
                 "kappa_dist_uniform_inputs": kdist,
                 "kappa_mean_uniform_inputs": kmean,
+                "kappa_phase_probs_uniform_inputs": {"A": pA, "B": pB},
                 "carry_free": {
                     "symbols": spec.carry_free_symbols,
                     "det_I_minus_zA0": spec.carry_free_det,
@@ -607,6 +825,7 @@ def main() -> None:
                 "B_tex": B_tex,
                 "states": n_states,
                 "kappa_mean": _fmt(kmean, 8),
+                "qsplit": (f"{_fmt(pA,8)},{_fmt(pB,8)}" if "21-local" in spec.name else r"--"),
                 "det0": spec.carry_free_det.replace("z", "z"),
                 "p12": p12,
                 "lambda_u01": f"{_fmt(lam0 or 0.0, 8)},{_fmt(lam1 or 0.0, 8)}",

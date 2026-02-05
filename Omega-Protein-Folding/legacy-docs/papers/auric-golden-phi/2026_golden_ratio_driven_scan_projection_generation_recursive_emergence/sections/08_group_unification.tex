@@ -1,4 +1,4 @@
-\section{群论统一：从扫描半群到稳定类型半环}
+\section{群论统一：从扫描半群到稳定类型半环}\label{sec:group-unification}
 
 \subsection{迭代作为“数”的生成}
 
@@ -12,6 +12,14 @@
 \subsection{黄金比例的代数后果：递归尺度与自相似}
 
 Fibonacci 递归由 $\varphi$ 的特征方程 $x^2=x+1$ 统摄。稳定类型基数 $\abs{X_m}=F_{m+2}$ 的渐近增长率为 $\varphi^m$，折叠多重度的增长率为 $(2/\varphi)^m$。这给出一个严格的“尺度流”模型：分辨率提高（$m\to m+1$）时稳定类型空间自相似增长，但微态空间增长更快，从而必然需要折叠；折叠的统计结构由 $\varphi$ 决定。
+
+\paragraph{分辨率算术的统一窗（域相）}
+由定理 \ref{thm:finite-resolution-mod}，分辨率 $m$ 的稳定类型算术满足
+\((X_m,\boxplus_m,\boxtimes_m)\cong \ZZ/(F_{m+2}\ZZ)\)。
+因此“统一/破缺”首先是模数的环论性质：当 $F_{m+2}$ 为素数时进入域相（推论 \ref{cor:field-phase-fib-prime}），不会产生非平凡 CRT 直积分裂；
+当 $F_{m+2}$ 含多个不同素因子时，CRT 给出规范的多因子分裂模板（推论 \ref{cor:crt-factorization}）。
+表 \ref{tab:fib_prime_resolution_windows} 列出一组 Fibonacci-prime 分辨率窗口（域相“壳层”）及其尺度 $\varepsilon_m=\varphi^{-m}$。
+\input{sections/generated/tab_fib_prime_resolution_windows}
 
 \subsection{稳定状态作为“黄金本征态”}
 
@@ -28,8 +36,8 @@ A=\begin{pmatrix}
   \item 对有限分辨率观测，许多微态差异在该状态下被平均，表现为“不可读出的细节”，而稳定规律仍由主特征结构决定。
 \end{itemize}
 
-\begin{proposition}[Parry 最大熵测度的显式形式]\label{prop:parry-measure-golden}
-令状态集合为 $\{0,1\}$，允许转移为 $0\to0,0\to1,1\to0$（禁止 $1\to1$），其邻接矩阵为上式 $A$。取 Perron--Frobenius 右特征向量 $r=(\varphi,1)^{\mathsf T}$ 与左特征向量 $\ell=(1,\varphi-1)$（归一化不影响下式）。则 Parry 最大熵马尔可夫测度的转移概率可写为
+\begin{remark}[标准事实：黄金均值 SFT 的 Parry 基线]\label{prop:parry-measure-golden}
+令状态集合为 $\{0,1\}$，允许转移为 $0\to0,0\to1,1\to0$（禁止 $1\to1$），其邻接矩阵为上式 $A$。取 Perron--Frobenius 右特征向量 $r=(\varphi,1)^{\mathsf T}$ 与左特征向量 $\ell=(1,\varphi-1)$。则 Parry 最大熵马尔可夫测度的转移概率可写为
 \[
 P_{ij}=\frac{A_{ij}r_j}{\varphi r_i},
 \]
@@ -39,22 +47,24 @@ P_{00}=\varphi^{-1},\quad P_{01}=\varphi^{-2},\quad P_{10}=1.
 \]
 其平稳分布为
 \[
-\pi(0)=\frac{\varphi^2}{\varphi^2+1}=\frac{\varphi+1}{\varphi+2},\qquad
-\pi(1)=\frac{1}{\varphi^2+1}=\frac{1}{\varphi+2}.
+\pi(0)=\frac{\varphi^2}{\varphi^2+1},\qquad
+\pi(1)=\frac{1}{\varphi^2+1}.
 \]
-\end{proposition}
-
-\begin{corollary}[显式混合速率（两状态黄金链）]\label{cor:golden-markov-mixing}
-令 $P$ 为命题 \ref{prop:parry-measure-golden} 的转移矩阵，$\pi$ 为其平稳分布。则 $P$ 的特征值为 $1$ 与 $-\varphi^{-2}$，从而对任意初始分布 $\nu$ 都有
-\[
-\|\nu P^n-\pi\|_{\mathrm{TV}}\le \varphi^{-2n},\qquad n\ge 0.
-\]
-因此在最大熵基准下，稳定类型的低阶统计以明确的指数率收敛，并由 $\varphi$ 统一控制。
-\end{corollary}
+并且由于 $P$ 的次特征值为 $-\varphi^{-2}$，两状态链的总变差收敛具有显式指数速率（见 \cite{LindMarcus1995} 对一般有限型子移位/Parry 测度的标准推导）。
+\end{remark}
 
 由此可把该测度在长度 $m$ 的稳定词空间 $X_m$ 上具体写为：对 $u=u_1\cdots u_m\in X_m$，
 \[
 \pi_m(u)=\pi(u_1)\prod_{j=1}^{m-1} P_{u_j u_{j+1}}.
 \]
-命题 \ref{prop:parry-measure-golden} 因而为第 \ref{sec:quant-fit} 节的“拟合准则”提供封闭基准；其推导与一般有限型子移位完全一致，见 \cite{LindMarcus1995}。
+注 \ref{prop:parry-measure-golden} 因而为第 \ref{sec:quant-fit} 节的“拟合准则”提供一个封闭基线；其推导与一般有限型子移位完全一致，见 \cite{LindMarcus1995}。
 
+\input{sections/08_group_unification_parry_endpoint_bridge.tex}
+
+\input{sections/08_group_unification_boundary_tower_gut_signature.tex}
+
+\input{sections/08_group_unification_fibonacci_lie_resonance_ladder.tex}
+
+\input{sections/08_group_unification_spectral_alignment.tex}
+
+\input{sections/08_group_unification_audit_pointers.tex}
