@@ -38,3 +38,9 @@ Omega-Protein-Folding/paper/**/*.out
 Omega-Protein-Folding/paper/**/*.pdf
 Omega-Protein-Folding/paper/**/*.synctex.gz
 
+# Local "evidence outputs" (keep out of git by default)
+# These folders are large and are often generated/downloaded locally.
+Omega-Protein-Folding/data/
+Omega-Protein-Folding/artifacts/
+Omega-Protein-Folding/figures/
+
