@@ -34,7 +34,7 @@
   \IfFileExists{#2.pdf}{\includegraphics[#1]{#2.pdf}}{%
   \IfFileExists{#2.png}{\includegraphics[#1]{#2.png}}{%
   \IfFileExists{#2.jpg}{\includegraphics[#1]{#2.jpg}}{%
-  \fbox{Missing file: #2.(pdf|png|jpg)}%
+  \fbox{\texttt{Missing file: \detokenize{#2}.(pdf|png|jpg)}}%
   }}}%
 }
 
